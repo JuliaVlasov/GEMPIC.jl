@@ -16,10 +16,7 @@ E_y(x,y,t) = \\sin(\\frac{2 M \\pi}{L_x} x)  \\sin(\\frac{2 M \\pi}{L_x} t)
 ```
 
 """
-function test_maxwell_1d_fem()
-
-  #sll_m_low_level_bsplines, only: sll_s_eval_uniform_periodic_spline_curve
-
+function test_maxwell_1d_fem( mode :: Int )
 
   eta1_min = .0
   eta1_max = 2π
@@ -35,38 +32,40 @@ function test_maxwell_1d_fem()
 
   maxwell_1d = Maxwell1DFEM(domain, nc_eta1, deg)
 
+  ex = zeros(Float64, nc_eta1)
+  ey = zeros(Float64, nc_eta1)
+  bz = zeros(Float64, nc_eta1)
+
+  bz_exact = zeros(Float64, nc_eta1)
+  ex_exact = zeros(Float64, nc_eta1)
+  ey_exact = zeros(Float64, nc_eta1)
+  rho      = zeros(Float64, nc_eta1)
+  sval     = zeros(Float64, nc_eta1)
+
+  cos_k(x) = cos(mode*2*pi*x/Lx) 
+  sin_k(x) = sin(mode*2*pi*x/Lx) 
+
+  # Test Poisson
+  #-------------
+  # Set exact solution
+  for i = 1:nc_eta1
+     xi = eta1_min + (i-1)*delta_eta1
+     ex_exact[i] = sin_k(xi)/(2.0*mode*pi/Lx)
+  end
+
+
+  #compute_rhs_from_function( maxwell_1d, cos_k, deg, rho)
+
+  #compute_e_from_rho( maxwell_1d, ex, rho ) 
+
+  #! Evaluate spline curve at grid points and compute error
+  #! Ex is a 1-form, i.e. one spline degree lower
+  #call sll_s_eval_uniform_periodic_spline_curve(deg-1, ex, sval)
+  #err_ex = maxval(sval-ex_exact)
+  #print*, 'error Poisson',  err_ex
+  @test true
+
 #=
-  ! Allocate arrays
-  SLL_CLEAR_ALLOCATE(ex(1:nc_eta1),error)
-  SLL_CLEAR_ALLOCATE(ey(1:nc_eta1),error)
-  SLL_CLEAR_ALLOCATE(bz(1:nc_eta1),error)
-
-  SLL_CLEAR_ALLOCATE(bz_exact(1:nc_eta1),error)
-  SLL_CLEAR_ALLOCATE(ex_exact(1:nc_eta1),error)
-  SLL_CLEAR_ALLOCATE(ey_exact(1:nc_eta1),error)
-  SLL_CLEAR_ALLOCATE(rho(1:nc_eta1),error)
-
-  SLL_CLEAR_ALLOCATE(sval(1:nc_eta1),error)
-
-
-  ! Test Poisson
-  !-------------
-  ! Set exact solution
-  do i = 1, nc_eta1
-     xi = eta1_min + real(i-1,f64)*delta_eta1
-     ex_exact(i) =   sin_k(xi)/(2.0_f64*mode*sll_p_pi/Lx)
-  end do
-
-  call maxwell_1d%compute_rhs_from_function( cos_k, deg, rho)
-
-  call maxwell_1d%compute_e_from_rho( ex, rho ) 
-
-  ! Evaluate spline curve at grid points and compute error
-  ! Ex is a 1-form, i.e. one spline degree lower
-  call sll_s_eval_uniform_periodic_spline_curve(deg-1, ex, sval)
-  err_ex = maxval(sval-ex_exact)
-  print*, 'error Poisson',  err_ex
-
   call sll_s_plot_two_fields_1d('ex',nc_eta1,sval,ex_exact,0,0.0_f64)
  
   ! Test Ampere
@@ -91,7 +90,7 @@ function test_maxwell_1d_fem()
   !call sll_plot_two_fields_1d('ex',nc_eta1,sval,ex_exact,0,0.0_f64)
 
   l2norm =  maxwell_1d%l2norm_squared(ex,deg-1)
-  err_l2norm = l2norm - dt**2*sll_p_pi
+  err_l2norm = l2norm - dt**2*pi
   print*, 'error l2 norm', err_l2norm
 
 
@@ -116,8 +115,8 @@ function test_maxwell_1d_fem()
 
      do i = 1, nc_eta1
         xi = eta1_min + real(i-1,f64)*delta_eta1
-        ey_exact(i) =   sin(mode*2*sll_p_pi*xi/Lx) * sin(mode*2*sll_p_pi*time/Lx)
-        bz_exact(i) =   cos(mode*2*sll_p_pi*xi/Lx) * cos(mode*2*sll_p_pi*time/Lx)
+        ey_exact(i) =   sin(mode*2*pi*xi/Lx) * sin(mode*2*pi*time/Lx)
+        bz_exact(i) =   cos(mode*2*pi*xi/Lx) * cos(mode*2*pi*time/Lx)
      end do
 
      call sll_s_eval_uniform_periodic_spline_curve(deg, ey, sval)
@@ -150,28 +149,14 @@ function test_maxwell_1d_fem()
 
 contains
 
-  function cos_k(x)
-
-    sll_real64             :: cos_k
-    sll_real64, intent(in) :: x
-
-    cos_k = cos(mode*2*sll_p_pi*x/Lx) 
-
-  end function cos_k
-
-  function sin_k(x)
-
-    sll_real64             :: sin_k
-    sll_real64, intent(in) :: x
-
-    sin_k = sin(mode*2*sll_p_pi*x/Lx) 
-
-  end function sin_k
 
 =#
 
-    true
-
 end 
 
-@test test_maxwell_1d_fem()
+@testset " Test Maxwell 1D FEM solver " begin
+
+    mode = 2
+    test_maxwell_1d_fem( mode )
+
+end
