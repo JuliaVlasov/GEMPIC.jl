@@ -1,0 +1,11 @@
+language: julia
+
+os: osx
+julia: 1.0
+
+notifications:
+  email: false
+
+after_success:
+  - julia -e 'using Pkg; cd(Pkg.dir("GEMPIC")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+  - julia -e 'using Pkg; cd(Pkg.dir("GEMPIC")); Pkg.add("Documenter"); include(joinpath("docs", "make.jl"))';
