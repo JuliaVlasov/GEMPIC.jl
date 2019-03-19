@@ -77,7 +77,7 @@ mutable struct Maxwell1DFEM
             mass_1[2] = 26.0/120.0
             mass_1[3] = 1.0/120.0
         else
-            throw( ArgumentError("Wrong value of degree = $degree") )
+            throw( ArgumentError("Wrong value of degree = $degree  (1,2 or 3)") )
         end 
 
         eig_mass0         = zeros(Float64, n_dofs)
