@@ -1,3 +1,4 @@
+using LinearAlgebra
 using FFTW
 using FastGaussQuadrature
 
@@ -250,6 +251,41 @@ function compute_rhs_from_function(self, func, degree, coefs_dofs)
 
 end 
 
+function solve_circulant(self, eigvals, rhs)
+
+    n = self.n_dofs
+    # Compute res from rhs, using eigenvalue of circulant  matrix
+    self.work .= rhs
+    # Forward FFT
+    mul!(self.wsave, self.plan_fw, self.work )
+    self.wsave[1] = self.wsave[1] * eigvals[1]
+    for k=2:n÷2
+       re_p = self.wsave[k] * eigvals[k] - self.wsave[n-k+2] * eigvals[n-k+2]
+       im_p = self.wsave[k] * eigvals[n-k+2] + self.wsave[n-k+2] * eigvals[k]
+       self.wsave[k]     = re_p
+       self.wsave[n-k+2] = im_p
+    end
+    self.wsave[n÷2+1] = self.wsave[n÷2+1]*eigvals[n÷2+1]
+    # Backward FFT 
+    mul!( self.work, self.plan_bw, self.wsave)
+
+end
+
+export compute_e_from_rho
+
+function compute_e_from_rho(self, E, rho )
+
+    # Compute potential phi from rho, using eigenvalue of circulant inverse matrix
+    solve_circulant(self, self.eig_weak_poisson, rho)
+    # Compute spline coefficients of Ex from those of phi
+    for i=2:self.n_dofs
+        E[i] = (self.work[i-1] -  self.work[i]) 
+    end
+    # treat Periodic point
+    E[1] = (self.work[self.n_dofs] - self.work[1]) 
+
+end
+
 #=
 
 contains
@@ -322,52 +358,7 @@ contains
 
    end subroutine compute_E_from_j_1d_fem
   
-   subroutine sll_s_compute_e_from_rho_1d_fem(self, E, rho )       
-     class(sll_t_maxwell_1d_fem) :: self
-     sll_real64,dimension(:),intent(in) :: rho
-     sll_real64,dimension(:),intent(out) :: E
-     ! local variables
-     sll_int32 :: i 
 
-     ! Compute potential phi from rho, using eigenvalue of circulant inverse matrix
-     call solve_circulant(self, self%eig_weak_poisson, rho, self%work)
-     ! Compute spline coefficients of Ex from those of phi
-     do i=2,self%n_dofs
-        E(i) =  (self%work(i-1) -  self%work(i)) !* (self%delta_x)
-     end do
-     ! treat Periodic point
-     E(1) = (self%work(self%n_dofs) - self%work(1)) !* (self%delta_x)
-
-   end subroutine sll_s_compute_e_from_rho_1d_fem
-
-   subroutine solve_circulant(self, eigvals, rhs, res)
-     class(sll_t_maxwell_1d_fem) :: self
-     sll_real64, intent(in) :: eigvals(:)    ! eigenvalues of circulant matrix
-     sll_real64, intent(in) :: rhs(:)
-     sll_real64, intent(out) :: res(:)
-     ! local variables
-     sll_int32 :: k
-     sll_real64 :: re, im 
-
-     ! Compute res from rhs, using eigenvalue of circulant  matrix
-     res = rhs
-     ! Forward FFT
-     call sll_s_fft_exec_r2r_1d ( self%plan_fw, res, self%wsave )
-     self%wsave(1) = self%wsave(1) * eigvals(1)
-     do k=2, self%n_dofs/2
-        re = self%wsave(k) * eigvals(k) - &
-             self%wsave(self%n_dofs-k+2) * eigvals(self%n_dofs-k+2)
-        im = self%wsave(k) * eigvals(self%n_dofs-k+2) + &
-             self%wsave(self%n_dofs-k+2) * eigvals(k)
-        self%wsave(k) = re
-        self%wsave(self%n_dofs-k+2) = im
-     end do
-     self%wsave(self%n_dofs/2+1) = self%wsave(self%n_dofs/2+1)*eigvals(self%n_dofs/2+1)
-     ! Backward FFT 
-     call sll_s_fft_exec_r2r_1d( self%plan_bw, self%wsave, res )
-     ! normalize
-     res = res / self%n_dofs
-   end subroutine solve_circulant
 
 
 
