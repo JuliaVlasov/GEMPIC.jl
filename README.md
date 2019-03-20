@@ -10,5 +10,6 @@ Geometric ElectroMagnetic Particle-In-Cell Methods
 A Julia example of implementation of the [GEMPIC](https://arxiv.org/abs/1609.03053)
 
 This is a translation from a Fortran code written by :
+
     - Katharina Kormann  (Max-Planck-Institut fur Plasmaphysik - Garching (Germany))
     - Eric Sonnendrucker (Max-Planck-Institut fur Plasmaphysik - Garching (Germany))
