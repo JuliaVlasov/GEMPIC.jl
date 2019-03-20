@@ -1,3 +1,7 @@
+using GEMPIC
+
+import GEMPIC: set_common_weight, set_x, set_v, set_weights
+
 function test_particle_mesh_coupling_spline_1d()
 
     n_cells       = 10            # Number of cells
@@ -5,29 +9,33 @@ function test_particle_mesh_coupling_spline_1d()
     spline_degree = 3             # Spline degree
     domain        = [0.0, 2.0]    # x_min, x_max
     x_vec = [0.1, 0.65, 0.7, 1.5] # Particle positions
-    v_vec = [[1.5, -3.0, 0.0, 6.0], 
-             [0.0,  0.5, 0.0, 0.0]]'
+    v_vec = [1.5  -3.0  0.0  6.0; 
+             0.0   0.5  0.0  0.0]'
 
     particle_group = ParticleGroup1D2V( n_particles, n_particles ,1.0, 1.0, 1)
   
- #= 
-  call particle_group%set_common_weight(1.0/real(n_particles,f64))
+    set_common_weight(particle_group, 1.0/n_particles)
 
-  do i_part = 1,n_particles
-     xi(1) = x_vec(i_part)
-     call particle_group%set_x(i_part, xi)
-     call particle_group%set_weights(i_part, [1.0])
-     xi(1:2) = v_vec(i_part,:)
-     call particle_group%set_v(i_part, xi)
-  end do
+    for i_part = 1:n_particles
+        set_x(particle_group, i_part, x_vec[i_part])
+        set_weights(particle_group, i_part, 1.0)
+        set_v(particle_group, i_part, v_vec[i_part,:])
+    end
   
-  values_grid(:,1,1) = [ 2.0833333333333332E-002,  0.47916666666666663,    &
-       0.47916666666666663,        2.0833333333333332E-002]
-  values_grid(:,1,3) = values_grid(:,1,1)   
-  values_grid(:,1,4) = values_grid(:,1,1) 
-  values_grid(:,1,2) = [7.0312500000000000E-002,  0.61197916666666663, &
-       0.31510416666666663,        2.6041666666666665E-003 ]
+    values_grid = zeros(Float64,(4,1,4))
 
+    values_grid[:,1,1] .= [ 2.0833333333333332e-002,  
+                            0.47916666666666663, 
+                            0.47916666666666663, 
+                            2.0833333333333332e-002]
+    values_grid[:,1,3] .= values_grid[:,1,1]   
+    values_grid[:,1,4] .= values_grid[:,1,1] 
+    values_grid[:,1,2] .= [7.0312500000000000e-002,  
+                           0.61197916666666663,
+                           0.31510416666666663,        
+                           2.6041666666666665E-003 ]
+
+#=
   ! Initialize the kernel
   call kernel%init &
        (domain, [n_cells], n_particles, spline_degree, sll_p_collocation)
