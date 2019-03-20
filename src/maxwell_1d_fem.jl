@@ -300,7 +300,7 @@ function l2projection(self, func, degree, coefs_dofs)
     eigvals = zeros(Float64, n)
 
     # Compute right-hand-side
-    compute_rhs_from_function(self, func, degree, self.work)
+    compute_rhs_from_function(self, func, degree, coefs_dofs)
 
     # Multiply by inverse mass matrix 
     if (degree == self.s_deg_0)
@@ -323,48 +323,44 @@ function l2projection(self, func, degree, coefs_dofs)
 
 end
   
+export compute_e_from_b
+"""
+
+compute Ey from Bz using weak Ampere formulation 
+
+"""
+function compute_e_from_b(self, delta_t, field_in, field_out)
+    
+    coef = delta_t / self.delta_x
+
+    # Compute potential weak curl of Bz using eigenvalue of circulant inverse matrix
+    solve_circulant(self, self.eig_weak_ampere, field_in)
+    # Update bz from self value
+    field_out .+= coef .* self.work
+
+end
+
+export compute_b_from_e
+"""
+Compute Bz from Ey using strong 1D Faraday equation for spline coefficients
+```math
+B_z^{new}(x_j) = B_z^{old}(x_j) - \\frac{\\Delta t}{\\Delta x} (E_y(x_j) - E_y(x_{j-1})
+```
+"""
+function compute_b_from_e(self, delta_t, field_in, field_out)
+
+    coef = delta_t/self.delta_x
+    # relation betwen spline coefficients for strong Ampere
+    for i=2:self.n_dofs
+       field_out[i] = field_out[i] + coef * ( field_in[i-1] - field_in[i] )
+    end
+    # treat Periodic point
+    field_out[1] = field_out[1] + coef * ( field_in[end] - field_in[1] )
+
+end
+
 
 #=
-
-contains
-  !> compute Ey from Bz using weak Ampere formulation 
-  subroutine sll_s_compute_e_from_b_1d_fem(self, delta_t, field_in, field_out)
-    class(sll_t_maxwell_1d_fem) :: self
-    sll_real64, intent(in)     :: delta_t   !< Time step
-    sll_real64, intent(in)     :: field_in(:)  !< Bz
-    sll_real64, intent(inout)  :: field_out(:)  !< Ey
-    ! local variables
-    sll_real64 :: coef
-    
-    ! Compute potential weak curl of Bz using eigenvalue of circulant inverse matrix
-    call solve_circulant(self, self%eig_weak_ampere, field_in, self%work)
-    ! Update bz from self value
-    coef = delta_t/self%delta_x
-    field_out =  field_out + coef*self%work
-
-  end subroutine sll_s_compute_e_from_b_1d_fem
-
-  !> Compute Bz from Ey using strong 1D Faraday equation for spline coefficients
-  !> $B_z^{new}(x_j) = B_z^{old}(x_j) - \frac{\Delta t}{\Delta x} (E_y(x_j) - E_y(x_{j-1})  $
-   subroutine sll_s_compute_b_from_e_1d_fem(self, delta_t, field_in, field_out)
-    class(sll_t_maxwell_1d_fem)  :: self
-    sll_real64, intent(in)     :: delta_t
-    sll_real64, intent(in)     :: field_in(:)  ! ey
-    sll_real64, intent(inout)  :: field_out(:) ! bz 
-    ! local variables
-    sll_real64 :: coef
-    sll_int32 :: i
-
-    coef = delta_t/self%delta_x
-    ! relation betwen spline coefficients for strong Ampere
-    do i=2,self%n_dofs
-       field_out(i) = field_out(i) + coef * ( field_in(i-1) - field_in(i) )
-    end do
-    ! treat Periodic point
-    field_out(1) = field_out(1) + coef * ( field_in(self%n_dofs) - field_in(1) )
-   end subroutine sll_s_compute_b_from_e_1d_fem
-
-
 
 
 
@@ -394,25 +390,4 @@ contains
      
    end function inner_product_1d_fem
    
-
-
-   subroutine free_1d_fem(self)
-     class(sll_t_maxwell_1d_fem) :: self
-
-     call sll_s_fft_free( self%plan_fw )
-     call sll_s_fft_free( self%plan_bw )
-     deallocate(self%mass_0)
-     deallocate(self%mass_1)
-     deallocate(self%eig_mass0)
-     deallocate(self%eig_mass1)
-     deallocate(self%eig_weak_ampere)
-     deallocate(self%eig_weak_poisson)
-     deallocate(self%wsave)
-     deallocate(self%work)
-
-   end subroutine free_1d_fem
-
-
-end module sll_m_maxwell_1d_fem
-
 =#

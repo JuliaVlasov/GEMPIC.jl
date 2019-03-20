@@ -1,5 +1,6 @@
 using Test
 using GEMPIC
+using LinearAlgebra
 
 """
    test_maxwell_1d_fem()
@@ -20,7 +21,7 @@ function test_maxwell_1d_fem( mode :: Int )
 
   eta1_min = .0
   eta1_max = 2π
-  nc_eta1  = 128
+  nc_eta1  = 256
 
   Lx = eta1_max - eta1_min
 
@@ -100,39 +101,30 @@ function test_maxwell_1d_fem( mode :: Int )
   ex = 0.0 # 0-form -> splines of degree deg
   l2projection(maxwell_1d, cos_k, deg-1, bz) # 0-form -> splines of degree deg-1
 
-#=
-  ! Time loop. Second order Strang splitting
-  do istep = 1, nstep 
-     call maxwell_1d%compute_b_from_e( 0.5*dt, ey, bz)
-     call maxwell_1d%compute_e_from_b(         dt, bz, ey)
-     call maxwell_1d%compute_b_from_e( 0.5*dt, ey, bz)
+  # Time loop. Second order Strang splitting
+  for istep = 1:nstep 
+
+     compute_b_from_e( maxwell_1d, 0.5*dt, ey, bz)
+     compute_e_from_b( maxwell_1d,     dt, bz, ey)
+     compute_b_from_e( maxwell_1d, 0.5*dt, ey, bz)
      
      time = time + dt
 
-     do i = 1, nc_eta1
-        xi = eta1_min + real(i-1,f64)*delta_eta1
-        ey_exact(i) =   sin(mode*2*pi*xi/Lx) * sin(mode*2*pi*time/Lx)
-        bz_exact(i) =   cos(mode*2*pi*xi/Lx) * cos(mode*2*pi*time/Lx)
-     end do
+     for i = 1:nc_eta1
+        xi = eta1_min + (i-1)*delta_eta1
+        ey_exact[i] = sin(mode*2*pi*xi/Lx) * sin(mode*2*pi*time/Lx)
+        bz_exact[i] = cos(mode*2*pi*xi/Lx) * cos(mode*2*pi*time/Lx)
+     end
 
-     call sll_s_eval_uniform_periodic_spline_curve(deg, ey, sval)
-     err_ey = maxval(sval-ey_exact)
-     call sll_s_eval_uniform_periodic_spline_curve(deg-1, bz, sval)
-     err_bz = maxval(sval-bz_exact)
+     sval = eval_uniform_periodic_spline_curve(deg, ey)
+     err_ey = norm(sval .- ey_exact)
+     sval = eval_uniform_periodic_spline_curve(deg-1, bz)
+     err_bz = norm(sval .- bz_exact)
 
-     write(*,"(10x,' istep = ',I6)",advance="no") istep
-     write(*,"(' time = ',g12.3,' sec')",advance="no") time
-     write(*,"(' erreur L2 = ',2g15.5)") err_ey, err_bz
+     @test err_ey ≈ 0.0 atol = 1e-2
+     @test err_bz ≈ 0.0 atol = 1e-2
 
-     call sll_s_plot_two_fields_1d('bz',nc_eta1,sval,bz_exact,istep,time)
-
-  end do ! next time step
-
-  tol = 1.0d-3
-  if ((err_bz < tol) .and. (err_ey < tol) .and. (err_ex < tol) .and. (err_ex2 < tol) .and. (err_l2norm < tol)) then
-     print*,'PASSED'
-  endif
-=#
+  end # next time step
 
 end 
 
