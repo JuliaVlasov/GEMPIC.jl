@@ -106,20 +106,20 @@ mutable struct Maxwell1DFEM
             coef0 = mass_0[1]
             coef1 = mass_1[1]
             for j = 1:s_deg_0-1
-               cos_mode = cos(2*pi*j*k÷n_dofs)
+               cos_mode = cos(2*pi*j*k/n_dofs)
                coef0 = coef0 + 2 * mass_0[j+1] * cos_mode
                coef1 = coef1 + 2 * mass_1[j+1] * cos_mode
             end
             # add last term for larger matrix
             j = s_deg_0
-            coef0 = coef0 + 2 * mass_0[j+1]*cos(2*pi*j*k÷n_dofs)
+            coef0 = coef0 + 2 * mass_0[j+1]*cos(2*pi*j*k/n_dofs)
             # compute eigenvalues
             eig_mass0[k+1] = coef0 # real part
             eig_mass0[n_dofs-k+1] = 0.0 # imaginary part
             eig_mass1[k+1] = coef1 # real part
             eig_mass1[n_dofs-k+1] = 0.0 # imaginary part
-            cos_mode = cos(2*pi*k÷n_dofs)
-            sin_mode = sin(2*pi*k÷n_dofs)
+            cos_mode = cos(2*pi*k/n_dofs)
+            sin_mode = sin(2*pi*k/n_dofs)
             eig_weak_ampere[k+1] =  (coef1 / coef0) * (1-cos_mode) # real part
             eig_weak_ampere[n_dofs-k+1] =  -(coef1 / coef0) * sin_mode   # imaginary part
             eig_weak_poisson[k+1] = 1.0 / (coef1 * ((1-cos_mode)^2 + sin_mode^2))  # real part
@@ -154,63 +154,6 @@ mutable struct Maxwell1DFEM
 
 end 
 
-
-"""
-    uniform_bsplines_eval_basis( spline_degree, normalized_offset, bspl )
-  
-# UNIFORM B-SPLINE FUNCTIONS
-
-## Evaluate all non vanishing uniform B-Splines in unit cell. 
-
-Returns an array with the values of the b-splines of the 
-requested degree, evaluated at a given cell offset. The cell size is
-normalized between 0 and 1, thus the offset given must be a number
-between 0 and 1.
-
-Output: bspl(1:d+1)= B_d(-(d+1)/2+d+x),...,B_d(-(d+1)/2+x) 
-with d=spline_degree and x=normalized_offset
-where B_d=B_{d-1}*B_0 and B_0=1_[-1/2,1/2] and * is convolution
-the following code can be used for comparison with [deboor](http://pages.cs.wisc.edu/~deboor/)
-
-```fortran
-do i=-d,d+1
-    t(i+d+1)=real(i,8)
-end do
-call bsplvb(t,d+1,1,normalized_offset,d+1,out)
-```
-
-We also have the property (from the symmetry of the B-spline)
-out(1:d+1)= B_d(-(d+1)/2+xx),...,B_d(-(d+1)/2+d+xx),..., 
-where xx=1-normalized_offset
-
-"""
-function uniform_bsplines_eval_basis( spline_degree, normalized_offset )
-
-    @assert spline_degree     >= 0
-    @assert normalized_offset >= 0.0
-    @assert normalized_offset <= 1.0
-
-    bspl = zeros(Float64, spline_degree+1)
-
-    bspl[1] = 1.0
-    for j = 1:spline_degree
-       xx     = -normalized_offset    :: Float64
-       j_real = Float64(j)            :: Float64
-       inv_j  = 1.0 / j_real          :: Float64
-       saved  = 0.0                   :: Float64
-       for r = 0:j-1
-          xx        = xx + 1.0
-          temp      = bspl[r+1] * inv_j
-          bspl[r+1] = saved + xx * temp
-          saved     = (j_real - xx) * temp
-       end
-       bspl[j+1] = saved
-    end
-
-    bspl
-
-end 
-
 export compute_rhs_from_function
 
 """
@@ -222,13 +165,14 @@ Its components are ``\\int f N_i dx`` where ``N_i`` is the B-spline starting at 
 """
 function compute_rhs_from_function(self, func, degree, coefs_dofs)
 
-    bspl     = zeros(Float64, (degree+1,degree+1))
+    bspl = zeros(Float64, (degree+1,degree+1))
 
     # take enough Gauss points so that projection is exact for splines of degree deg
     # rescale on [0,1] for compatibility with B-splines
     x, w = gausslegendre(degree+1)
 
     x .= 0.5 .* (x .+ 1.0)
+    w .= 0.5 .* w
 
     # Compute bsplines at gauss_points
     for k=1:degree+1
@@ -269,6 +213,8 @@ function solve_circulant(self, eigvals, rhs)
     # Backward FFT 
     mul!( self.work, self.plan_bw, self.wsave)
 
+    self.work ./= n
+
 end
 
 export compute_e_from_rho
@@ -279,10 +225,10 @@ function compute_e_from_rho(self, E, rho )
     solve_circulant(self, self.eig_weak_poisson, rho)
     # Compute spline coefficients of Ex from those of phi
     for i=2:self.n_dofs
-        E[i] = (self.work[i-1] -  self.work[i]) 
+        E[i] = self.work[i-1] -  self.work[i]
     end
     # treat Periodic point
-    E[1] = (self.work[self.n_dofs] - self.work[1]) 
+    E[1] = self.work[self.n_dofs] - self.work[1] 
 
 end
 

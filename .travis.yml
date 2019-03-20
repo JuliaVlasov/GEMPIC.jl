@@ -4,7 +4,7 @@ os: osx
 julia: 1.0
 
 notifications:
-  email: false
+  email: true
 
 after_success:
   - julia -e 'using Pkg; cd(Pkg.dir("GEMPIC")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'

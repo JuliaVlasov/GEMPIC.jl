@@ -4,3 +4,4 @@
 deps/deps.jl
 Manifest.toml
 *.swp
+.ipynb_checkpoints/maxwell_1d_fem-checkpoint.ipynb

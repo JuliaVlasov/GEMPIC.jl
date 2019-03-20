@@ -59,10 +59,9 @@ function test_maxwell_1d_fem( mode :: Int )
 
   # Evaluate spline curve at grid points and compute error
   # Ex is a 1-form, i.e. one spline degree lower
-  #call sll_s_eval_uniform_periodic_spline_curve(deg-1, ex, sval)
-  #err_ex = maxval(sval-ex_exact)
-  #print*, 'error Poisson',  err_ex
-  @test true
+  sval = eval_uniform_periodic_spline_curve(deg-1, ex)
+  err_ex = maximum(sval .- ex_exact)
+  @test err_ex ≈ 0.0 atol = 1e-6
 
 #=
   call sll_s_plot_two_fields_1d('ex',nc_eta1,sval,ex_exact,0,0.0_f64)
