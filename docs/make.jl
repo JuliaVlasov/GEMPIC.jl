@@ -9,5 +9,5 @@ makedocs(
 
 deploydocs(
     deps   = Deps.pip("mkdocs", "python-markdown-math"),
-    repo   = "github.com/juliavlasov/GEMPIC.jl.git",
+    repo   = "github.com/JuliaVlasov/GEMPIC.jl.git",
  )
