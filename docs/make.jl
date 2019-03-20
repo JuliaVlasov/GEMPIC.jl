@@ -3,7 +3,7 @@ using GEMPIC
 
 makedocs(
     sitename = "GEMPIC",
-    format = :html,
+    format = Documenter.HTML(),
     modules = [GEMPIC]
 )
 
