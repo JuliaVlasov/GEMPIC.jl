@@ -5,6 +5,8 @@ makedocs(
     sitename = "GEMPIC",
     format = Documenter.HTML(),
     modules = [GEMPIC]
+    pages = ["Documentation" => "index.md",
+             "Contents"      => "contents.md"]
 )
 
 deploydocs(
