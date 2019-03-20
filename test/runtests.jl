@@ -53,8 +53,7 @@ function test_maxwell_1d_fem( mode :: Int )
      ex_exact[i] = sin_k(xi)/(2.0*mode*pi/Lx)
   end
 
-
-  #compute_rhs_from_function( maxwell_1d, cos_k, deg, rho)
+  compute_rhs_from_function( maxwell_1d, cos_k, deg, rho)
 
   #compute_e_from_rho( maxwell_1d, ex, rho ) 
 

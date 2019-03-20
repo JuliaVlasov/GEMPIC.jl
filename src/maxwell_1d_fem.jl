@@ -1,4 +1,5 @@
 using FFTW
+using FastGaussQuadrature
 
 export Maxwell1DFEM
 
@@ -152,6 +153,103 @@ mutable struct Maxwell1DFEM
 
 end 
 
+
+"""
+    uniform_bsplines_eval_basis( spline_degree, normalized_offset, bspl )
+  
+# UNIFORM B-SPLINE FUNCTIONS
+
+## Evaluate all non vanishing uniform B-Splines in unit cell. 
+
+Returns an array with the values of the b-splines of the 
+requested degree, evaluated at a given cell offset. The cell size is
+normalized between 0 and 1, thus the offset given must be a number
+between 0 and 1.
+
+Output: bspl(1:d+1)= B_d(-(d+1)/2+d+x),...,B_d(-(d+1)/2+x) 
+with d=spline_degree and x=normalized_offset
+where B_d=B_{d-1}*B_0 and B_0=1_[-1/2,1/2] and * is convolution
+the following code can be used for comparison with [deboor](http://pages.cs.wisc.edu/~deboor/)
+
+```fortran
+do i=-d,d+1
+    t(i+d+1)=real(i,8)
+end do
+call bsplvb(t,d+1,1,normalized_offset,d+1,out)
+```
+
+We also have the property (from the symmetry of the B-spline)
+out(1:d+1)= B_d(-(d+1)/2+xx),...,B_d(-(d+1)/2+d+xx),..., 
+where xx=1-normalized_offset
+
+"""
+function uniform_bsplines_eval_basis( spline_degree, normalized_offset )
+
+    @assert spline_degree     >= 0
+    @assert normalized_offset >= 0.0
+    @assert normalized_offset <= 1.0
+
+    bspl = zeros(Float64, spline_degree+1)
+
+    bspl[1] = 1.0
+    for j = 1:spline_degree
+       xx     = -normalized_offset    :: Float64
+       j_real = Float64(j)            :: Float64
+       inv_j  = 1.0 / j_real          :: Float64
+       saved  = 0.0                   :: Float64
+       for r = 0:j-1
+          xx        = xx + 1.0
+          temp      = bspl[r+1] * inv_j
+          bspl[r+1] = saved + xx * temp
+          saved     = (j_real - xx) * temp
+       end
+       bspl[j+1] = saved
+    end
+
+    bspl
+
+end 
+
+export compute_rhs_from_function
+
+"""
+   compute_rhs_from_function(self, func, degree, coefs_dofs)
+
+Compute the FEM right-hand-side for a given function f and periodic splines of given degree.
+
+Its components are ``\\int f N_i dx`` where ``N_i`` is the B-spline starting at ``x_i``. 
+"""
+function compute_rhs_from_function(self, func, degree, coefs_dofs)
+
+    bspl     = zeros(Float64, (degree+1,degree+1))
+
+    # take enough Gauss points so that projection is exact for splines of degree deg
+    # rescale on [0,1] for compatibility with B-splines
+    x, w = gausslegendre(degree+1)
+
+    x .= 0.5 .* (x .+ 1.0)
+
+    # Compute bsplines at gauss_points
+    for k=1:degree+1
+        bspl[k,:] .=  uniform_bsplines_eval_basis(degree, x[k])
+    end
+
+    # Compute coefs_dofs = int f(x)N_i(x) 
+    for i = 1:self.n_dofs
+        coef = 0.0
+        # loop over support of B spline
+        for j = 1:degree+1
+           # loop over Gauss points
+            for k=1:degree+1
+                coef = coef + w[k]*func(self.delta_x*(x[k] + i + j - 2)) * bspl[k,degree+2-j]
+            end
+        end
+        # rescale by cell size
+        coefs_dofs[i] = coef * self.delta_x
+     end
+
+end 
+
 #=
 
 contains
@@ -272,44 +370,6 @@ contains
    end subroutine solve_circulant
 
 
-   !> Compute the FEM right-hand-side for a given function f and periodic splines of given degree
-   !> Its components are $\int f N_i dx$ where $N_i$ is the B-spline starting at $x_i$ 
-   subroutine sll_s_compute_fem_rhs(self, func, degree, coefs_dofs)
-     class(sll_t_maxwell_1d_fem)             :: self
-     procedure(sll_i_function_1d_real64) :: func
-     sll_int32, intent(in) :: degree
-     sll_real64, intent(out) :: coefs_dofs(:)  ! Finite Element right-hand-side
-     ! local variables
-     sll_int32 :: i,j,k
-     sll_real64 :: coef
-     sll_real64, dimension(2,degree+1) :: xw_gauss
-     sll_real64, dimension(degree+1,degree+1) :: bspl
-
-     ! take enough Gauss points so that projection is exact for splines of degree deg
-     ! rescale on [0,1] for compatibility with B-splines
-     xw_gauss = sll_f_gauss_legendre_points_and_weights(degree+1, 0.0, 1.0)
-     ! Compute bsplines at gauss_points
-     do k=1,degree+1
-        call sll_s_uniform_bsplines_eval_basis(degree,xw_gauss(1,k), bspl(k,:))
-        !print*, 'bs', bspl(k,:)
-     end do
-
-     ! Compute coefs_dofs = int f(x)N_i(x) 
-     do i = 1, self%n_dofs
-        coef=0.0
-        ! loop over support of B spline
-        do j = 1, degree+1
-           ! loop over Gauss points
-           do k=1, degree+1
-              coef = coef + xw_gauss(2,k)*func(self%delta_x*(xw_gauss(1,k) + i + j - 2)) * bspl(k,degree+2-j)
-              !print*, i,j,k, xw_gauss(2,k), xw_gauss(1,k),f(self%delta_x*(xw_gauss(1,k) + i + j - 2)) 
-           enddo
-        enddo
-        ! rescale by cell size
-        coefs_dofs(i) = coef*self%delta_x
-     enddo
-
-   end subroutine sll_s_compute_fem_rhs
 
    !> Compute the L2 projection of a given function f on periodic splines of given degree
    subroutine L2projection_1d_fem(self, func, degree, coefs_dofs)
