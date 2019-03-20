@@ -28,20 +28,21 @@ function test_particle_mesh_coupling_spline_1d()
                             0.47916666666666663, 
                             0.47916666666666663, 
                             2.0833333333333332e-002]
+
     values_grid[:,1,3] .= values_grid[:,1,1]   
+
     values_grid[:,1,4] .= values_grid[:,1,1] 
+
     values_grid[:,1,2] .= [7.0312500000000000e-002,  
                            0.61197916666666663,
                            0.31510416666666663,        
                            2.6041666666666665E-003 ]
 
-#=
-  ! Initialize the kernel
-  call kernel%init &
-       (domain, [n_cells], n_particles, spline_degree, sll_p_collocation)
+    kernel = ParticleMeshCoupling( domain, [n_cells], n_particles, 
+                 spline_degree, :collocation)
   
+#=
   ! Check that the constructors for the abstract type are working.
-  !call sll_s_new_particle_mesh_coupling_spline_1d(ksa, domain, [n_cells], n_particles, spline_degree, sll_p_collocation)
   call sll_s_new_particle_mesh_coupling_spline_1d_ptr(ksp, domain, [n_cells], n_particles, spline_degree, sll_p_collocation)
 
   ! Accumulate rho
