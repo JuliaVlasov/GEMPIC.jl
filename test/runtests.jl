@@ -60,54 +60,52 @@ function test_maxwell_1d_fem( mode :: Int )
   # Evaluate spline curve at grid points and compute error
   # Ex is a 1-form, i.e. one spline degree lower
   sval = eval_uniform_periodic_spline_curve(deg-1, ex)
-  err_ex = maximum(sval .- ex_exact)
+  err_ex = maximum(abs.(sval .- ex_exact))
+  println( " error Poisson  $err_ex ")
   @test err_ex ≈ 0.0 atol = 1e-6
 
-#=
-  call sll_s_plot_two_fields_1d('ex',nc_eta1,sval,ex_exact,0,0.0_f64)
- 
-  ! Test Ampere
-  !-------------
-  ! Set time step
-  dt = .5_f64 * delta_eta1
-  ! Set exact solution
-  do i = 1, nc_eta1
-     xi = eta1_min + real(i-1,f64)*delta_eta1
-     ex_exact(i) =   -cos_k(xi)*dt
-  end do
+  # Test Ampere
+  #-------------
+  # Set time step
+  dt = .5 * delta_eta1
+  # Set exact solution
+  for i = 1:nc_eta1
+     xi = eta1_min + (i-1)*delta_eta1
+     ex_exact[i] = - cos_k(xi)*dt
+  end
 
-  call maxwell_1d%compute_rhs_from_function(cos_k, deg-1, rho)
-  ex = 0.0_f64
-  call maxwell_1d%compute_E_from_j(dt*rho, 1, ex )
+  compute_rhs_from_function(maxwell_1d, cos_k, deg-1, rho)
+  fill!(ex, 0.0)
+  compute_e_from_j(maxwell_1d, dt .* rho, 1, ex )
 
-  ! Evaluate spline curve at grid points and compute error
-  ! Ex is a 1-form, i.e. one spline degree lower
-  call sll_s_eval_uniform_periodic_spline_curve(deg-1, ex, sval)
-  err_ex2 = maxval(sval-ex_exact)
-  print*, 'error Ampere',  err_ex2
-  !call sll_plot_two_fields_1d('ex',nc_eta1,sval,ex_exact,0,0.0_f64)
+  # Evaluate spline curve at grid points and compute error
+  # Ex is a 1-form, i.e. one spline degree lower
+  sval =  eval_uniform_periodic_spline_curve(deg-1, ex)
+  err_ex2 = maximum(abs.(sval .- ex_exact))
+  println( " error Ampere  $err_ex2 ")
+  @test err_ex2 ≈ 0.0 atol = 1e-6
 
-  l2norm =  maxwell_1d%l2norm_squared(ex,deg-1)
-  err_l2norm = l2norm - dt**2*pi
-  print*, 'error l2 norm', err_l2norm
+  l2norm =  l2norm_squared(maxwell_1d, ex, deg-1)
+  err_l2norm = l2norm - dt^2*pi
+  println( " error l2 norm $err_l2norm ")
 
-
-  ! Test Maxwell on By and Ez 
-  !--------------------------
-  ! Set time stepping parameters
-  time  = 0.0_f64
-  dt    = .5_f64 * delta_eta1
+  # Test Maxwell on By and Ez 
+  #--------------------------
+  # Set time stepping parameters
+  time  = 0.0
+  dt    = .5 * delta_eta1
   nstep = 10
 
-  ! Compute initial fields 
-  ex = 0.0_f64 ! 0-form -> splines of degree deg
-  call maxwell_1d%L2projection(cos_k, deg-1, bz) ! 0-form -> splines of degree deg-1
+  # Compute initial fields 
+  ex = 0.0 # 0-form -> splines of degree deg
+  l2projection(maxwell_1d, cos_k, deg-1, bz) # 0-form -> splines of degree deg-1
 
+#=
   ! Time loop. Second order Strang splitting
   do istep = 1, nstep 
-     call maxwell_1d%compute_b_from_e( 0.5_f64*dt, ey, bz)
+     call maxwell_1d%compute_b_from_e( 0.5*dt, ey, bz)
      call maxwell_1d%compute_e_from_b(         dt, bz, ey)
-     call maxwell_1d%compute_b_from_e( 0.5_f64*dt, ey, bz)
+     call maxwell_1d%compute_b_from_e( 0.5*dt, ey, bz)
      
      time = time + dt
 
@@ -134,20 +132,6 @@ function test_maxwell_1d_fem( mode :: Int )
   if ((err_bz < tol) .and. (err_ey < tol) .and. (err_ex < tol) .and. (err_ex2 < tol) .and. (err_l2norm < tol)) then
      print*,'PASSED'
   endif
-
-  call maxwell_1d%free()
-
-  DEALLOCATE(ex)
-  DEALLOCATE(ey)
-  DEALLOCATE(bz)
-  DEALLOCATE(bz_exact)
-  DEALLOCATE(ex_exact)
-  DEALLOCATE(ey_exact)
-  DEALLOCATE(rho)
-
-contains
-
-
 =#
 
 end 

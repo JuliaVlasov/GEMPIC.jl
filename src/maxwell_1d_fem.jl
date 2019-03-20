@@ -232,6 +232,98 @@ function compute_e_from_rho(self, E, rho )
 
 end
 
+export compute_e_from_j
+"""
+    Compute E_i from j_i integrated over the time interval using weak Ampere formulation
+"""
+function compute_e_from_j(self, current, component, e)
+
+     n = self.n_dofs
+     eigvals = zeros(Float64, n)
+
+     # Multiply by inverse mass matrix  using the eigenvalues of the circulant inverse matrix
+
+     if (component == 1)
+         for i=1:n÷2+1
+            eigvals[i] = 1.0 / self.eig_mass1[i]
+         end
+         solve_circulant(self, eigvals, current)
+     elseif (component == 2)
+         for i=1:n÷2+1
+            eigvals[i] = 1.0 / self.eig_mass0[i]
+         end
+         solve_circulant(self, eigvals, current)
+     else
+         throw(ArgumentError("Component $component not implemented "))
+     end
+     
+     # Update the electric field and scale
+     e .= e - self.work ./ self.delta_x
+
+end
+
+export l2norm_squared
+
+"""
+
+    Compute square of the L2norm 
+
+"""
+function l2norm_squared(self, coefs_dofs, degree)
+
+    # Multiply coefficients by mass matrix (use diagonalization FFT and mass matrix eigenvalues)
+    if (degree == self.s_deg_0 )
+
+        solve_circulant(self, self.eig_mass0, coefs_dofs)
+
+    elseif (degree == self.s_deg_1)
+
+        solve_circulant(self, self.eig_mass1, coefs_dofs)
+
+    end
+
+    # Multiply by the coefficients from the left (inner product)
+    r = sum(coefs_dofs .* self.work)
+    # Scale by delt_x
+    r .* self.delta_x
+
+end 
+
+export l2projection
+
+"""
+    Compute the L2 projection of a given function f on periodic splines of given degree
+"""
+function l2projection(self, func, degree, coefs_dofs)
+
+    n = self.n_dofs
+    eigvals = zeros(Float64, n)
+
+    # Compute right-hand-side
+    compute_rhs_from_function(self, func, degree, self.work)
+
+    # Multiply by inverse mass matrix 
+    if (degree == self.s_deg_0)
+       for i=1:n÷2+1
+          eigvals[i] = 1.0 / self.eig_mass0[i]
+       end
+    elseif  (degree == self.s_deg_0-1)
+       for i=1:n÷2+1
+          eigvals[i] = 1.0 / self.eig_mass1[i]
+       end
+    else
+       throw(ArgumentError("degree $degree not available")) 
+    end
+
+    solve_circulant(self, eigvals, coefs_dofs)
+
+    # Account for scaling in the mass matrix by dx
+
+    coefs_dofs .= coefs_dofs ./ self.delta_x
+
+end
+  
+
 #=
 
 contains
@@ -272,101 +364,11 @@ contains
     field_out(1) = field_out(1) + coef * ( field_in(self%n_dofs) - field_in(1) )
    end subroutine sll_s_compute_b_from_e_1d_fem
 
-   !> Compute E_i from j_i integrated over the time interval using weak Ampere formulation
-   subroutine compute_E_from_j_1d_fem(self, current, component, E)
-     class(sll_t_maxwell_1d_fem)           :: self !< Maxwell solver class
-     sll_real64,dimension(:),intent(in)    :: current !< Component \a component of the current integrated over time interval
-     sll_int32, intent(in)                 :: component !< Component of the Efield to be computed
-     sll_real64,dimension(:),intent(inout) :: E !< Updated electric field
-     ! local variables
-     sll_int32 :: i 
-     sll_real64, dimension(self%n_dofs) :: eigvals
-
-     ! Multiply by inverse mass matrix  using the eigenvalues of the circulant inverse matrix
-     eigvals=0.0
-     if (component == 1) then
-        do i=1,self%n_dofs/2+1
-           eigvals(i) = 1.0 / self%eig_mass1(i)
-        end do
-        call solve_circulant(self, eigvals, current, self%work)
-     elseif (component == 2) then
-        do i=1,self%n_dofs/2+1
-           eigvals(i) = 1.0 / self%eig_mass0(i)
-        end do
-        call solve_circulant(self, eigvals, current, self%work)
-     else
-        print*, 'Component ', component, 'not implemented in compute_E_from_j_1d_fem.'
-     end if
-     
-
-     ! Update the electric field and scale
-     E = E - self%work/self%delta_x
-
-   end subroutine compute_E_from_j_1d_fem
-  
 
 
 
 
-   !> Compute the L2 projection of a given function f on periodic splines of given degree
-   subroutine L2projection_1d_fem(self, func, degree, coefs_dofs)
-     class(sll_t_maxwell_1d_fem) :: self
-     procedure(sll_i_function_1d_real64) :: funcFFTW.FFTWPlan
-     sll_int32, intent(in) :: degree
-     sll_real64, intent(out) :: coefs_dofs(:)  ! spline coefficients of projection
-     ! local variables
-     sll_int32 :: i
-     !sll_real64 :: coef
-     !sll_real64, dimension(2,degree+1) :: xw_gauss
-     !sll_real64, dimension(degree+1,degree+1) :: bspl
-     sll_real64, dimension(self%n_dofs) :: eigvals
 
-     ! Compute right-hand-side
-     call sll_s_compute_fem_rhs(self, func, degree, self%work)
-
-     ! Multiply by inverse mass matrix (! complex numbers stored in real array with fftpack ordering)
-     eigvals=0.0
-     if (degree == self%s_deg_0) then
-        do i=1,self%n_dofs/2+1
-           eigvals(i) = 1.0 / self%eig_mass0(i)
-        end do
-     elseif  (degree == self%s_deg_0-1) then
-        do i=1,self%n_dofs/2+1
-           eigvals(i) = 1.0 / self%eig_mass1(i)
-        end do
-     else
-        print*, 'degree ', degree, 'not availlable in maxwell_1d_fem object' 
-     endif
-
-     call solve_circulant(self, eigvals, self%work, coefs_dofs)
-     ! Account for scaling in the mass matrix by dx
-     coefs_dofs = coefs_dofs/self%delta_x
-
-   end subroutine L2projection_1d_fem
-
-   !> Compute square of the L2norm 
-   function L2norm_squared_1d_fem(self, coefs_dofs, degree) result (r)
-     class(sll_t_maxwell_1d_fem) :: self !< Maxwell solver object
-     sll_real64 :: coefs_dofs(:) !< Coefficient for each DoF
-     sll_int32  :: degree !< Specify the degree of the basis functions
-     sll_real64 :: r !< Result: squared L2 norm
-
-     ! Multiply coefficients by mass matrix (use diagonalization FFT and mass matrix eigenvalues)
-     if (degree == self%s_deg_0 ) then
-
-        call solve_circulant(self, self%eig_mass0, coefs_dofs, self%work)
-
-     elseif (degree == self%s_deg_1) then
-
-        call solve_circulant(self, self%eig_mass1, coefs_dofs, self%work)
-
-     end if
-     ! Multiply by the coefficients from the left (inner product)
-     r = sum(coefs_dofs*self%work)
-     ! Scale by delt_x
-     r = r*self%delta_x
-
-   end function L2norm_squared_1d_fem
 
    function inner_product_1d_fem( self, coefs1_dofs, coefs2_dofs, degree ) result (r)
      class(sll_t_maxwell_1d_fem) :: self !< Maxwell solver object
