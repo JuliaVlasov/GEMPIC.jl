@@ -411,6 +411,7 @@ end
 
   end subroutine evaluate_field_single_spline_1d
 
+
   !---------------------------------------------------------------------------!
   !> Evaluate several fields at position \a position
   subroutine evaluate_multiple_spline_1d(self, position, components, field_dofs, field_value)
