@@ -111,15 +111,11 @@ function b_to_pp( self, ncells, b_coeffs)
     pp_coeffs = zeros(Float64, (self.degree+1,ncells)) 
        
     for i=1:self.degree   
-        b_to_pp!(self,
-                 vcat(b_coeffs[end-self.degree+i:end],b_coeffs[1:i]),
-                 pp_coeffs[:,i])
+        pp_coeffs[:,i] .= b_to_pp(self, vcat(b_coeffs[end-self.degree+i:end],b_coeffs[1:i]))
     end
     
     for i=self.degree+1:ncells
-        b_to_pp!(self, 
-                 b_coeffs[i-self.degree:i], 
-                 pp_coeffs[:,i])
+        pp_coeffs[:,i] .= b_to_pp(self, b_coeffs[i-self.degree:i])
     end
 
     pp_coeffs
@@ -129,13 +125,14 @@ end
 """
 Convert 1d spline in B form in a cell to spline in pp form with periodic boundary conditions
 """
-function b_to_pp!( self, b_coeffs, pp_coeffs )
+function b_to_pp( self, b_coeffs )
     
-    degp1      = self.degree+1
-    pp_coeffs .= 0.0 
+    degp1     = self.degree+1
+    pp_coeffs = zeros(Float64, degp1)
     for i=1:degp1, j=1:degp1
         pp_coeffs[j] += b_coeffs[i] * self.poly_coeffs[j,i]
     end
+    pp_coeffs
     
 end
 
