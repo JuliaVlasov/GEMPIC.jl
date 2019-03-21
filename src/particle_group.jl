@@ -1,7 +1,10 @@
-export ParticleGroup1D2V
+export ParticleGroup
 
-mutable struct ParticleGroup1D2V
+abstract type AbstractParticleGroup end
 
+mutable struct ParticleGroup{D,V} <:  AbstractParticleGroup 
+
+    dims              :: Tuple{Int64, Int64}
     n_particles       :: Int64
     n_total_particles :: Int64
     particle_array    :: Array{Float64, 2} 
@@ -10,16 +13,18 @@ mutable struct ParticleGroup1D2V
     mass              :: Float64
     n_weights         :: Int64
 
-    function ParticleGroup1D2V( n_particles, 
-                            n_total_particles, 
-                            charge, 
-                            mass, 
-                            n_weights)
+    function ParticleGroup{D,V}( n_particles, 
+                                 n_total_particles, 
+                                 charge, 
+                                 mass, 
+                                 n_weights) where {D, V}
 
-        particle_array = zeros( Float64, (3+n_weights, n_particles)) 
+        dims = (D, V)
+        particle_array = zeros( Float64, (sum(dims)+n_weights, n_particles)) 
         common_weight  = 1.0
 
-        new( n_particles,
+        new( dims,
+             n_particles,
              n_total_particles,
              particle_array,
              common_weight,
@@ -33,18 +38,26 @@ end
 """  
 Get position
 """
-function get_x( self :: ParticleGroup1D2V, i )
+@generated function get_x( p :: ParticleGroup{D,V}, i ) where {D, V}
 
-    self.particle_array[1, i]
+    if D == 1
+        return :(p.particle_array[1, i])
+    else
+        return :(p.particle_array[1:$D, i])
+    end
     
 end 
 
 """  
 Get velocities
 """
-function get_v( self :: ParticleGroup1D2V, i )
+@generated function get_v( p :: ParticleGroup{D,V}, i ) where {D, V}
 
-    self.particle_array[2:3, i]
+    if V == 1
+        return :(p.particle_array[$D+1, i])
+    else
+        return :(p.particle_array[$D+1:$D+$V, i])
+    end
     
 end
 
@@ -52,9 +65,9 @@ end
 """
 Get charge of particle (q * particle_weight)
 """
-function get_charge( self :: ParticleGroup1D2V, i; i_wi=1)
+@generated function get_charge( p :: ParticleGroup{D,V}, i; i_wi=1) where {D, V}
 
-    self.charge * self.particle_array[3+i_wi, i] * self.common_weight
+    return :(p.charge * p.particle_array[$D+$V+i_wi, i] * p.common_weight)
 
 end 
 
@@ -62,53 +75,61 @@ end
 """
 Get mass of particle (m * particle_weight)
 """
-function get_mass( self :: ParticleGroup1D2V, i; i_wi=1) 
+@generated function get_mass( p :: ParticleGroup{D,V}, i; i_wi=1) where {D,V}
 
-    self.mass * self.particle_array[3+i_wi, i] * self.common_weight
+    return :(p.mass * p.particle_array[$D+$V+i_wi, i] * p.common_weight)
 
 end
 
 """
 Get particle weights
 """
-function get_weights( self :: ParticleGroup1D2V, i) 
+@generated function get_weights( p :: ParticleGroup{D,V}, i) where {D, V}
 
-    self.particle_array[4:3+self.n_weights, i]
+    return :(p.particle_array[$D+$V+1:$D+$V+p.n_weights, i])
 
 end
 
 """
 Set position of particle @ i
 """
-function set_x( self :: ParticleGroup1D2V, i, x )
+@generated function set_x( p :: ParticleGroup{D,V}, i, x ) where {D, V}
 
-    self.particle_array[1, i] = x
+    if D == 1
+        return :(p.particle_array[1, i] = x)
+    else
+        return :(p.particle_array[1:$D, i] .= x)
+    end
     
 end
 
 """
 Set velocity of particle @ i
 """
-function set_v( self :: ParticleGroup1D2V, i, x )
+@generated function set_v( p :: ParticleGroup{D,V}, i, x ) where {D, V}
 
-    self.particle_array[2:3, i] .= x
+    if V == 1
+        return :(p.particle_array[$D+1, i] = x)
+    else
+        return :(p.particle_array[$D+1:$D+$V, i] .= x)
+    end
     
 end
   
 """
 Set weights of particle @ i
 """
-function set_weights( self :: ParticleGroup1D2V, i, x )
+@generated function set_weights( p :: ParticleGroup{D,V}, i, x ) where {D, V}
 
-    self.particle_array[4:3+self.n_weights, i] .= x
+    return :(p.particle_array[$D+$V+1:$D+$V+p.n_weights, i] .= x)
     
 end
 
 """
 Set the common weight
 """
-function set_common_weight( self :: ParticleGroup1D2V, x )
+function set_common_weight( p :: AbstractParticleGroup, x ) 
 
-    self.common_weight = x
+    p.common_weight = x
     
 end

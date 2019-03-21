@@ -5,3 +5,4 @@ deps/deps.jl
 Manifest.toml
 *.swp
 .ipynb_checkpoints/maxwell_1d_fem-checkpoint.ipynb
+.ipynb_checkpoints/particle_group-checkpoint.ipynb
