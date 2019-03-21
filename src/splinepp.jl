@@ -103,46 +103,56 @@ mutable struct SplinePP
      
 end 
 
-#=
-  
-contains
-  
-  !> Convert 1d spline in B form to spline in pp form with periodic boundary conditions
-  subroutine sll_s_spline_pp_b_to_pp_1d( self, ncells, b_coeffs, pp_coeffs)
-    type( sll_t_spline_pp_1d), intent(in)::  self !< arbitrary degree 1d spline 
-    sll_int32, intent(in) ::  ncells !< number of gridcells
-    sll_real64,intent(in) :: b_coeffs(ncells)   !< coefficients of spline in B-form
-    sll_real64,intent(out):: pp_coeffs(self%degree+1,ncells)  !< coefficients of spline in pp-form
-    sll_int32 :: i
+"""
+Convert 1d spline in B form to spline in pp form with periodic boundary conditions
+"""
+function b_to_pp( self, ncells, b_coeffs)
+
+    pp_coeffs = zeros(Float64, (self.degree+1,ncells)) 
        
-    do i=1, self%degree   
-       call sll_s_spline_pp_b_to_pp_1d_cell(self,(/b_coeffs(ncells-self%degree+i:ncells),b_coeffs(1:i)/),pp_coeffs(:,i))
-    end do
+    for i=1:self.degree   
+        b_to_pp!(self,
+                 vcat(b_coeffs[end-self.degree+i:end],b_coeffs[1:i]),
+                 pp_coeffs[:,i])
+    end
     
-    do i=self%degree+1,ncells
-       call sll_s_spline_pp_b_to_pp_1d_cell(self,b_coeffs(i-self%degree:i),pp_coeffs(:,i))
-    end do
+    for i=self.degree+1:ncells
+        b_to_pp!(self, 
+                 b_coeffs[i-self.degree:i], 
+                 pp_coeffs[:,i])
+    end
 
-  end subroutine sll_s_spline_pp_b_to_pp_1d
+    pp_coeffs
 
-  !> Convert 1d spline in B form in a cell to spline in pp form with periodic boundary conditions
-  subroutine sll_s_spline_pp_b_to_pp_1d_cell( self, b_coeffs, pp_coeffs )
-    type( sll_t_spline_pp_1d), intent(in)::  self !< arbitrary degree 1d spline 
-    sll_real64, intent( in )  :: b_coeffs(self%degree+1)   !< coefficients of spline in B-form
-    sll_real64, intent( out ) :: pp_coeffs(self%degree+1)  !< coefficients of spline in pp-form
-    sll_int32 :: i
-    sll_int32 :: j
-    sll_int32 :: degp1
-    degp1 = self%degree+1
-    pp_coeffs=0.0 
-    do i=1, degp1
-       do j=1, degp1
-          pp_coeffs(j)=pp_coeffs(j)+b_coeffs(i)* self%poly_coeffs(j,i)
-       end do
-    end do
+end
+
+"""
+Convert 1d spline in B form in a cell to spline in pp form with periodic boundary conditions
+"""
+function b_to_pp!( self, b_coeffs, pp_coeffs )
     
-  end subroutine sll_s_spline_pp_b_to_pp_1d_cell
- Benedikt Perse
+    degp1      = self.degree+1
+    pp_coeffs .= 0.0 
+    for i=1:degp1, j=1:degp1
+        pp_coeffs[j] += b_coeffs[i] * self.poly_coeffs[j,i]
+    end
+    
+end
+
+"""
+    Perform a 1d hornerschema on the pp_coeffs at index
+"""
+function horner_1d(degree :: Int, pp_coeffs, x :: Float64, index :: Int)
+    
+    res = pp_coeffs[1,index]
+    for i=1:degree
+       res = res*x + pp_coeffs[i+1,index]
+    end
+    res
+
+end
+
+#=
 
   !> Convert 2d spline in B form to spline in pp form with periodic boundary conditions   
   subroutine sll_s_spline_pp_b_to_pp_2d( self, ncells, b_coeffs, pp_coeffs)
@@ -378,20 +388,6 @@ contains
   end subroutine sll_s_spline_pp_horner_primitive_1d
   
   
-  !> Perform a 1d hornerschema on the pp_coeffs at index
-  function sll_f_spline_pp_horner_1d(degree, pp_coeffs, x, index) result(res)
-    sll_int32,  intent(in) :: degree !< degree of the spline
-    sll_real64, intent(in) :: pp_coeffs(:,:)  !< coefficients of spline in pp-form
-    sll_real64, intent(in) :: x !< point at which we evaluate our spline
-    sll_int32,  intent(in) :: index !< index of cell in which is x
-    sll_real64 :: res !< value of the splinefunction at point x
-    sll_int32 :: i
-    
-    res=pp_coeffs(1,index)
-    do i=1,degree
-       res=res*x+pp_coeffs(i+1,index)
-    end do
-  end function sll_f_spline_pp_horner_1d
   
   !> Perform a 2d hornerschema on the pp_coeffs at the indices
   function sll_f_spline_pp_horner_2d(degree, pp_coeffs, x, indices, ncells) result(res)
