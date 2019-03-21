@@ -39,29 +39,30 @@ values_grid[:,1,2] .= [7.0312500000000000e-002,
 
 kernel = ParticleMeshCoupling( domain, [n_cells], n_particles, 
              spline_degree, :collocation)
-  
-#=
-  ! Check that the constructors for the abstract type are working.
-  call sll_s_new_particle_mesh_coupling_spline_1d_ptr(ksp, domain, [n_cells], n_particles, spline_degree, sll_p_collocation)
+@test true
 
-  ! Accumulate rho
-  rho_dofs = 0.0
-  rho_dofs1 = 0.0
-  do i_part = 1, n_particles
-     xi = particle_group%get_x(i_part)
-     wi = particle_group%get_charge(i_part)
-     call kernel%add_charge(xi(1), wi(1), rho_dofs)
-     call kernel%add_charge_pp(xi(1), wi(1), rho_dofs1)
-  end do
-  !rho_dofs = rho_dofs
-  rho_dofs_ref = 0.0
-  rho_dofs_ref(8:10) = values_grid(1:3,1,1)
-  rho_dofs_ref(1) = values_grid(4,1,1)
-  rho_dofs_ref(1:4) = rho_dofs_ref(1:4) + values_grid(:,1,2) + values_grid(:,1,3)
-  rho_dofs_ref(5:8) = rho_dofs_ref(5:8) + values_grid(:,1,4)
-  rho_dofs_ref = rho_dofs_ref/real(n_particles, f64) * real(n_cells,f64)/domain(2)
-  error = maxval(abs(rho_dofs-rho_dofs_ref))
-  error1 = maxval(abs(rho_dofs1-rho_dofs_ref))
+#=
+  
+# Accumulate rho
+rho_dofs = 0.0
+rho_dofs1 = 0.0
+for i_part = 1:n_particles
+     xi = get_x(particle_group, i_part)
+     wi = get_charge(particle_group, i_part)
+     add_charge(kernel, xi[1], wi[1], rho_dofs)
+     add_charge_pp(kernel, xi[1], wi[1], rho_dofs1)
+end
+  
+rho_dofs_ref       .= 0.0
+rho_dofs_ref[8:10] .= values_grid[1:3,1,1]
+rho_dofs_ref[1]    .= values_grid(4,1,1)
+rho_dofs_ref[1:4]  .= rho_dofs_ref(1:4) + values_grid(:,1,2) + values_grid(:,1,3)
+rho_dofs_ref[5:8]  .= rho_dofs_ref(5:8) + values_grid(:,1,4)
+rho_dofs_ref       .= rho_dofs_ref/real(n_particles, f64) * real(n_cells,f64)/domain(2)
+
+error = maxval(abs(rho_dofs-rho_dofs_ref))
+error1 = maxval(abs(rho_dofs1-rho_dofs_ref))
+
 
   if (error > 1.e-14) then
      passed = .FALSE.
