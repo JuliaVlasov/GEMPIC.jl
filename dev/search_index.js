@@ -97,7 +97,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "#GEMPIC.get_charge-Tuple{ParticleGroup1D2V,Any}",
+    "location": "#GEMPIC.get_charge-Union{Tuple{V}, Tuple{D}, Tuple{ParticleGroup{D,V},Any}} where V where D",
     "page": "Documentation",
     "title": "GEMPIC.get_charge",
     "category": "method",
@@ -105,7 +105,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "#GEMPIC.get_mass-Tuple{ParticleGroup1D2V,Any}",
+    "location": "#GEMPIC.get_mass-Union{Tuple{V}, Tuple{D}, Tuple{ParticleGroup{D,V},Any}} where V where D",
     "page": "Documentation",
     "title": "GEMPIC.get_mass",
     "category": "method",
@@ -113,7 +113,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "#GEMPIC.get_v-Tuple{ParticleGroup1D2V,Any}",
+    "location": "#GEMPIC.get_v-Union{Tuple{V}, Tuple{D}, Tuple{ParticleGroup{D,V},Any}} where V where D",
     "page": "Documentation",
     "title": "GEMPIC.get_v",
     "category": "method",
@@ -121,7 +121,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "#GEMPIC.get_weights-Tuple{ParticleGroup1D2V,Any}",
+    "location": "#GEMPIC.get_weights-Union{Tuple{V}, Tuple{D}, Tuple{ParticleGroup{D,V},Any}} where V where D",
     "page": "Documentation",
     "title": "GEMPIC.get_weights",
     "category": "method",
@@ -129,7 +129,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "#GEMPIC.get_x-Tuple{ParticleGroup1D2V,Any}",
+    "location": "#GEMPIC.get_x-Union{Tuple{V}, Tuple{D}, Tuple{ParticleGroup{D,V},Any}} where V where D",
     "page": "Documentation",
     "title": "GEMPIC.get_x",
     "category": "method",
@@ -145,7 +145,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "#GEMPIC.set_common_weight-Tuple{ParticleGroup1D2V,Any}",
+    "location": "#GEMPIC.set_common_weight-Tuple{GEMPIC.AbstractParticleGroup,Any}",
     "page": "Documentation",
     "title": "GEMPIC.set_common_weight",
     "category": "method",
@@ -153,7 +153,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "#GEMPIC.set_v-Tuple{ParticleGroup1D2V,Any,Any}",
+    "location": "#GEMPIC.set_v-Union{Tuple{V}, Tuple{D}, Tuple{ParticleGroup{D,V},Any,Any}} where V where D",
     "page": "Documentation",
     "title": "GEMPIC.set_v",
     "category": "method",
@@ -161,7 +161,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "#GEMPIC.set_weights-Tuple{ParticleGroup1D2V,Any,Any}",
+    "location": "#GEMPIC.set_weights-Union{Tuple{V}, Tuple{D}, Tuple{ParticleGroup{D,V},Any,Any}} where V where D",
     "page": "Documentation",
     "title": "GEMPIC.set_weights",
     "category": "method",
@@ -169,7 +169,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "#GEMPIC.set_x-Tuple{ParticleGroup1D2V,Any,Any}",
+    "location": "#GEMPIC.set_x-Union{Tuple{V}, Tuple{D}, Tuple{ParticleGroup{D,V},Any,Any}} where V where D",
     "page": "Documentation",
     "title": "GEMPIC.set_x",
     "category": "method",
