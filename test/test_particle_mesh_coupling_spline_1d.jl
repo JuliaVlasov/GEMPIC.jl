@@ -1,45 +1,44 @@
-using GEMPIC
+@testset " particle-mesh coupling with spline 1d " begin
 
+using GEMPIC
 import GEMPIC: set_common_weight, set_x, set_v, set_weights
 
-function test_particle_mesh_coupling_spline_1d()
+n_cells       = 10            # Number of cells
+n_particles   = 4             # Number of particles
+spline_degree = 3             # Spline degree
+domain        = [0.0, 2.0]    # x_min, x_max
+x_vec = [0.1, 0.65, 0.7, 1.5] # Particle positions
+v_vec = [1.5  -3.0  0.0  6.0; 
+         0.0   0.5  0.0  0.0]'
 
-    n_cells       = 10            # Number of cells
-    n_particles   = 4             # Number of particles
-    spline_degree = 3             # Spline degree
-    domain        = [0.0, 2.0]    # x_min, x_max
-    x_vec = [0.1, 0.65, 0.7, 1.5] # Particle positions
-    v_vec = [1.5  -3.0  0.0  6.0; 
-             0.0   0.5  0.0  0.0]'
+particle_group = ParticleGroup1D2V( n_particles, n_particles ,1.0, 1.0, 1)
 
-    particle_group = ParticleGroup1D2V( n_particles, n_particles ,1.0, 1.0, 1)
-  
-    set_common_weight(particle_group, 1.0/n_particles)
+set_common_weight(particle_group, 1.0/n_particles)
 
-    for i_part = 1:n_particles
-        set_x(particle_group, i_part, x_vec[i_part])
-        set_weights(particle_group, i_part, 1.0)
-        set_v(particle_group, i_part, v_vec[i_part,:])
-    end
-  
-    values_grid = zeros(Float64,(4,1,4))
+for i_part = 1:n_particles
+    set_x(particle_group, i_part, x_vec[i_part])
+    set_weights(particle_group, i_part, 1.0)
+    set_v(particle_group, i_part, v_vec[i_part,:])
+end
 
-    values_grid[:,1,1] .= [ 2.0833333333333332e-002,  
-                            0.47916666666666663, 
-                            0.47916666666666663, 
-                            2.0833333333333332e-002]
+values_grid = zeros(Float64,(4,1,4))
 
-    values_grid[:,1,3] .= values_grid[:,1,1]   
+values_grid[:,1,1] .= [ 2.0833333333333332e-002,  
+                        0.47916666666666663, 
+                        0.47916666666666663, 
+                        2.0833333333333332e-002]
 
-    values_grid[:,1,4] .= values_grid[:,1,1] 
+values_grid[:,1,3] .= values_grid[:,1,1]   
 
-    values_grid[:,1,2] .= [7.0312500000000000e-002,  
-                           0.61197916666666663,
-                           0.31510416666666663,        
-                           2.6041666666666665E-003 ]
+values_grid[:,1,4] .= values_grid[:,1,1] 
 
-    kernel = ParticleMeshCoupling( domain, [n_cells], n_particles, 
-                 spline_degree, :collocation)
+values_grid[:,1,2] .= [7.0312500000000000e-002,  
+                       0.61197916666666663,
+                       0.31510416666666663,        
+                       2.6041666666666665E-003 ]
+
+kernel = ParticleMeshCoupling( domain, [n_cells], n_particles, 
+             spline_degree, :collocation)
   
 #=
   ! Check that the constructors for the abstract type are working.
@@ -147,4 +146,5 @@ function test_particle_mesh_coupling_spline_1d()
 
 
 =#
+
 end
