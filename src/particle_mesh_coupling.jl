@@ -64,6 +64,7 @@ struct ParticleMeshCoupling
         quad_w .= 0.5 .* quad_w
 
         #spl = Spline1d( spline_degree, n_grid[1])
+
         new(dims, domain, delta_x, n_grid, no_particles, spline_degree,
             n_span, scaling, n_quad_points, spline_val,
             spline_val_more, quad_x, quad_w)
@@ -75,61 +76,52 @@ end
      
 #=
 
-  !---------------------------------------------------------------------------!
-!> Add charge of one particle
-  subroutine add_charge_single_spline_pp_1d(self, position, marker_charge, rho_dofs)
-    class( sll_t_particle_mesh_coupling_spline_1d ), intent(inout)   :: self !< kernel smoother object
-    sll_real64,                               intent( in )    :: position(self%dim) !< Position of the particle
-    sll_real64,                               intent( in )    :: marker_charge !< Particle weights time charge
-    sll_real64,                               intent( inout ) :: rho_dofs(self%n_dofs) !< Coefficient vector of the charge distribution
+"""
+Add charge of one particle
+- self          : kernel smoother object
+- position      : Position of the particle
+- marker_charge : Particle weights time charge
+- rho_dofs      : Coefficient vector of the charge distribution
+"""
+function add_charge_pp(self, position, marker_charge, rho_dofs)
     
-    !local variables
-    sll_int32 :: i1
-    sll_int32 :: index1d, index
-    sll_real64 :: xi(1)
-       
-    xi(1) = (position(1) - self%domain(1,1))/self%delta_x(1)
-    index = floor(xi(1))+1
-    xi(1) = xi(1) - real(index-1, f64)
-    index = index - self%spline_degree
+    xi    = (position - self.domain[1,1])/self.delta_x
+    index = floor(xi)+1
+    xi    = xi    - (index-1)
+    index = index - self.spline_degree
 
-    call sll_s_spline_pp_horner_m_1d(self%spline_pp, self%spline_val, self%spline_degree, xi(1))
+    call sll_s_spline_pp_horner_m_1d(self.spline_pp, self%spline_val, self%spline_degree, xi(1))
 
-    do i1 = 1, self%n_span
-       index1d = modulo(index+i1-2,self%n_grid(1))+1
-       rho_dofs(index1d) = rho_dofs(index1d) +&
-            (marker_charge * self%spline_val(i1)* self%scaling)
+    for i1 = 1:self.n_span
+       index1d = modulo(index+i1-2,self.n_grid(1))+1
+       rho_dofs[index1d] = rho_dofs[index1d] + (marker_charge * self.spline_val[i1] * self%scaling)
+    end
+
+end
+
+"""
+Add charge of one particle
+- self           : kernel smoother object
+- position       : Position of the particle
+- marker_charge  : Particle weights time charge
+- rho_dofs       : Coefficient vector of the charge distribution
+"""
+function add_charge(self, position, marker_charge, rho_dofs)
+
+    xi    = (position - self.domain[1,1])/self.delta_x[1]
+    index = floor(xi)+1
+    xi    = xi - (index-1)
+    index = index - self.spline_degree
+
+    eval_basis(self.spline_degree, xi, self.spline_val)
+
+    for i1 = 1:self.n_span
+       index1d = modulo(index+i1-2,self.n_grid[1])+1
+       rho_dofs[index1d] += marker_charge * self.spline_val[i1] * self.scaling
     end do
 
-  end subroutine add_charge_single_spline_pp_1d
+end
 
- !---------------------------------------------------------------------------!
-!> Add charge of one particle
-  subroutine add_charge_single_spline_1d(self, position, marker_charge, rho_dofs)
-    class( sll_t_particle_mesh_coupling_spline_1d ), intent(inout)   :: self !< kernel smoother object
-    sll_real64,                               intent( in )    :: position(self%dim) !< Position of the particle
-    sll_real64,                               intent( in )    :: marker_charge !< Particle weights time charge
-    sll_real64,                               intent( inout ) :: rho_dofs(self%n_dofs) !< Coefficient vector of the charge distribution
-
-    !local variables
-    sll_int32 :: i1
-    sll_int32 :: index1d, index
-    sll_real64 :: xi(1) 
-   
-    xi(1) = (position(1) - self%domain(1,1))/self%delta_x(1)
-    index = floor(xi(1))+1
-    xi(1) = xi(1) - real(index-1, f64)
-    index = index - self%spline_degree
-    !self%spline_val = sll_f_uniform_b_splines_at_x(self%spline_degree, xi(1))
-    call sll_s_uniform_bsplines_eval_basis(self%spline_degree, xi(1), self%spline_val)
-
-    do i1 = 1, self%n_span
-       index1d = modulo(index+i1-2,self%n_grid(1))+1
-       rho_dofs(index1d) = rho_dofs(index1d) +&
-            (marker_charge * self%spline_val(i1)* self%scaling)
-    end do
-
-  end subroutine add_charge_single_spline_1d
   
   !> Add current for one particle and update v (according to H_p1 part in Hamiltonian splitting)
   subroutine add_current_update_v_spline_pp_1d (self, position_old, position_new, marker_charge, qoverm, bfield_dofs, vi, j_dofs)
