@@ -64,7 +64,7 @@ compute_e_from_rho( maxwell_1d, ex, rho )
 # Ex is a 1-form, i.e. one spline degree lower
 sval = eval_uniform_periodic_spline_curve(deg-1, ex)
 err_ex = maximum(abs.(sval .- ex_exact))
-println( " error Poisson  $err_ex ")
+#println( " error Poisson  $err_ex ")
 @test err_ex ≈ 0.0 atol = 1e-6
 
 # Test Ampere
@@ -85,12 +85,12 @@ compute_e_from_j(maxwell_1d, dt .* rho, 1, ex )
 # Ex is a 1-form, i.e. one spline degree lower
 sval =  eval_uniform_periodic_spline_curve(deg-1, ex)
 err_ex2 = maximum(abs.(sval .- ex_exact))
-println( " error Ampere  $err_ex2 ")
+#println( " error Ampere  $err_ex2 ")
 @test err_ex2 ≈ 0.0 atol = 1e-6
 
 l2norm =  l2norm_squared(maxwell_1d, ex, deg-1)
 err_l2norm = l2norm - dt^2*pi
-println( " error l2 norm $err_l2norm ")
+#println( " error l2 norm $err_l2norm ")
 
 # Test Maxwell on By and Ez 
 #--------------------------
@@ -111,7 +111,7 @@ for istep = 1:nstep
    compute_b_from_e( maxwell_1d, 0.5*dt, ey, bz)
    
    time = time + dt
-   println( " time = $time " )
+   #println( " time = $time " )
 
    for i = 1:nc_eta1
       xi = eta1_min + (i-1)*delta_eta1
@@ -121,10 +121,10 @@ for istep = 1:nstep
 
    sval = eval_uniform_periodic_spline_curve(deg, ey)
    err_ey = norm(sval .- ey_exact)
-   println( " error Maxwell Ey  $err_ey ")
+   #println( " error Maxwell Ey  $err_ey ")
    sval = eval_uniform_periodic_spline_curve(deg-1, bz)
    err_bz = norm(sval .- bz_exact)
-   println( " error Maxwell Bz  $err_bz ")
+   #println( " error Maxwell Bz  $err_bz ")
 
    @test err_ey ≈ 0.0 atol = 1e-2
    @test err_bz ≈ 0.0 atol = 1e-2
