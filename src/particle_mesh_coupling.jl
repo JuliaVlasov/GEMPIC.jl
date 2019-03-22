@@ -1,10 +1,10 @@
 export ParticleMeshCoupling
 
 """
-Kernel smoother for 2d with splines of arbitrary degree placed on a uniform mesh.
+Kernel smoother with splines of arbitrary degree placed on a uniform mesh.
 Spline with index i starts at point i
 - Value of grid spacing along both directions.
-- Definition of the domain: domain(1,1:2) = x1_min, x1_max
+- Definition of the domain: domain(1:2) = x1_min, x1_max
 - Number of particles of underlying PIC method (processor local)
 - Degree of smoothing kernel spline
 - Number of intervals where spline non zero (spline_degree + 1)
