@@ -10,9 +10,9 @@ requested degree, evaluated at a given cell offset. The cell size is
 normalized between 0 and 1, thus the offset given must be a number
 between 0 and 1.
 
-Output: bspl(1:d+1)= B_d(-(d+1)/2+d+x),...,B_d(-(d+1)/2+x) 
+Output: ``bspl(1:d+1)= B_d(-(d+1)/2+d+x),...,B_d(-(d+1)/2+x)`` 
 with d=spline_degree and x=normalized_offset
-where B_d=B_{d-1}*B_0 and B_0=1_[-1/2,1/2] and * is convolution
+where ``B_d=B_{d-1}*B_0 and B_0=1_[-1/2,1/2]`` and * is convolution
 the following code can be used for comparison with [deboor](http://pages.cs.wisc.edu/~deboor/)
 
 ```fortran
@@ -23,7 +23,9 @@ call bsplvb(t,d+1,1,normalized_offset,d+1,out)
 ```
 
 We also have the property (from the symmetry of the B-spline)
+```math
 out(1:d+1)= B_d(-(d+1)/2+xx),...,B_d(-(d+1)/2+d+xx),..., 
+```
 where xx=1-normalized_offset
 
 """
