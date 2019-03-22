@@ -2,6 +2,7 @@
 
 using GEMPIC
 import GEMPIC: set_common_weight, set_x, set_v, set_weights
+import GEMPIC: get_x, get_charge, add_charge, add_charge_pp
 
 n_cells       = 10            # Number of cells
 n_particles   = 4             # Number of particles
@@ -39,40 +40,31 @@ values_grid[:,1,2] .= [7.0312500000000000e-002,
 
 kernel = ParticleMeshCoupling( domain, [n_cells], n_particles, 
              spline_degree, :collocation)
-@test true
 
-#=
   
 # Accumulate rho
-rho_dofs = 0.0
-rho_dofs1 = 0.0
+rho_dofs  = zeros(Float64, n_cells)
+rho_dofs1 = zeros(Float64, n_cells)
 for i_part = 1:n_particles
-     xi = get_x(particle_group, i_part)
-     wi = get_charge(particle_group, i_part)
-     add_charge(kernel, xi[1], wi[1], rho_dofs)
-     add_charge_pp(kernel, xi[1], wi[1], rho_dofs1)
+    xi = get_x(particle_group, i_part)
+    wi = get_charge(particle_group, i_part)
+    add_charge(kernel, xi, wi, rho_dofs)
+    add_charge_pp(kernel, xi, wi, rho_dofs1)
 end
+
   
-rho_dofs_ref       .= 0.0
+rho_dofs_ref        = zeros(Float64, n_cells)
 rho_dofs_ref[8:10] .= values_grid[1:3,1,1]
-rho_dofs_ref[1]    .= values_grid(4,1,1)
-rho_dofs_ref[1:4]  .= rho_dofs_ref(1:4) + values_grid(:,1,2) + values_grid(:,1,3)
-rho_dofs_ref[5:8]  .= rho_dofs_ref(5:8) + values_grid(:,1,4)
-rho_dofs_ref       .= rho_dofs_ref/real(n_particles, f64) * real(n_cells,f64)/domain(2)
+rho_dofs_ref[1]     = values_grid[4,1,1]
+rho_dofs_ref[1:4]  .= rho_dofs_ref[1:4] + values_grid[:,1,2] + values_grid[:,1,3]
+rho_dofs_ref[5:8]  .= rho_dofs_ref[5:8] + values_grid[:,1,4]
+rho_dofs_ref       .= rho_dofs_ref/n_particles * n_cells/domain[2]
 
-error = maxval(abs(rho_dofs-rho_dofs_ref))
-error1 = maxval(abs(rho_dofs1-rho_dofs_ref))
-
-
-  if (error > 1.e-14) then
-     passed = .FALSE.
-     print*, 'Error in procedure add_charge .'
-  elseif (error1 >1.e-14)then 
-     passed = .FALSE.
-     print*, 'Error in procedure add_charge_pp .'
-  end if
+@test maximum(abs.(rho_dofs  .- rho_dofs_ref)) < 1e-15
+@test maximum(abs.(rho_dofs1 .- rho_dofs_ref)) < 1e-15
 
 
+#=
   ! Test j accumulations
   j_dofs = 0.0
   j_dofs1 = 0.0
@@ -147,5 +139,7 @@ error1 = maxval(abs(rho_dofs1-rho_dofs_ref))
 
 
 =#
+
+@test true
 
 end
