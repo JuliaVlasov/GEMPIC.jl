@@ -21,7 +21,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Documentation",
     "title": "GEMPIC.ParticleMeshCoupling",
     "category": "type",
-    "text": "Kernel smoother for 2d with splines of arbitrary degree placed on a uniform mesh. Spline with index i starts at point i\n\nValue of grid spacing along both directions.\nDefinition of the domain: domain(1,1:2) = x1min, x1max\nNumber of particles of underlying PIC method (processor local)\nDegree of smoothing kernel spline\nNumber of intervals where spline non zero (spline_degree + 1)\nScaling factor depending on whether Galerkin or collocation\nNumber of quadrature points\nscratch data for spline evaluation\nmore scratch data for spline evaluation\nquadrature weights and points\n\n\n\n\n\n"
+    "text": "Kernel smoother with splines of arbitrary degree placed on a uniform mesh. Spline with index i starts at point i\n\nValue of grid spacing along both directions.\nDefinition of the domain: domain(1:2) = x1min, x1max\nNumber of particles of underlying PIC method (processor local)\nDegree of smoothing kernel spline\nNumber of intervals where spline non zero (spline_degree + 1)\nScaling factor depending on whether Galerkin or collocation\nNumber of quadrature points\nscratch data for spline evaluation\nmore scratch data for spline evaluation\nquadrature weights and points\n\n\n\n\n\n"
 },
 
 {
