@@ -148,3 +148,16 @@ function horner_1d(degree :: Int, pp_coeffs, x :: Float64, index :: Int)
 
 end
 
+"""
+Perform a 1d hornerschema on the pp_coeffs evaluate at x
+"""
+function horner_primitive_1d(val :: Vector{Float64}, degree, pp_coeffs, x)
+
+  for i in eachindex(val)
+
+     val[i] = horner_1d(degree, pp_coeffs, x, i) * x
+
+  end
+
+end 
+
