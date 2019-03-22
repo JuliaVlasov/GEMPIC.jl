@@ -6,6 +6,8 @@ julia: 1.0
 notifications:
   email: true
 
+after_sucess:
+  - julia -e 'using Pkg; cd(Pkg.dir("GEMPIC")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
 
 jobs:
   include:
@@ -16,7 +18,3 @@ jobs:
         - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
         - julia --project=docs/ docs/make.jL
       name: "HTML"
-    - stage: "Coverage"
-      script:
-        - julia -e 'using Pkg; cd(Pkg.dir("GEMPIC")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
-
