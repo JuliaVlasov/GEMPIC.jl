@@ -4,6 +4,7 @@ using  GEMPIC
 import GEMPIC: set_common_weight, set_x, set_v, set_weights
 import GEMPIC: get_x, get_v, get_charge, add_charge, add_charge_pp
 import GEMPIC: add_current_update_v, add_current_update_v_pp
+import GEMPIC: b_to_pp, evaluate, evaluate_pp
 
 n_cells       = 10            # Number of cells
 n_particles   = 4             # Number of particles
@@ -42,7 +43,6 @@ values_grid[:,1,2] .= [7.0312500000000000e-002,
 kernel = ParticleMeshCoupling( domain, [n_cells], n_particles, 
              spline_degree, :collocation)
 
-  
 # Accumulate rho
 rho_dofs  = zeros(Float64, n_cells)
 rho_dofs1 = zeros(Float64, n_cells)
@@ -117,43 +117,25 @@ j_dofs_ref .= j_dofs_ref .+ [ 6.5104166666666696e-004,
 @test maximum(abs.(j_dofs  .- j_dofs_ref)) < 1e-15
 @test maximum(abs.(j_dofs1 .- j_dofs_ref)) < 1e-15
   
-#=
+rho_dofs_pp = b_to_pp(kernel.spline_pp, n_cells, rho_dofs)
 
-  call sll_s_spline_pp_b_to_pp_1d(kernel%spline_pp,n_cells,rho_dofs,rho_dofs_pp)
+particle_values  = zeros(Float64, 4)
+particle_values1 = zeros(Float64, 4)
    
-  ! Test function evaluation
-  do i_part = 1, n_particles
-     xi = particle_group%get_x(i_part)
-     call kernel%evaluate(xi(1), rho_dofs, particle_values(i_part))
-     call kernel%evaluate_pp(xi(1), rho_dofs_pp, particle_values1(i_part))
-  end do
-  particle_values_ref = [1.1560058593749998,       2.3149278428819446, &
-       2.2656250000000000,        1.1512586805555554]/domain(2);
-  error = maxval(abs(particle_values-particle_values_ref))
-  error1 = maxval(abs(particle_values1-particle_values_ref))
-  !print*,'fehler=', maxval(abs(particle_values1-particle_values))
+for i_part = 1:n_particles
+    xi = get_x(particle_group, i_part)
+    particle_values[i_part]  = evaluate(    kernel, xi, rho_dofs)    
+    particle_values1[i_part] = evaluate_pp( kernel, xi, rho_dofs_pp)
+end
 
-  if (error > 1.e-14) then
-     passed = .FALSE.
-     print*, 'Error in procedure evaluate_field_single.'
-  else  if (error1 > 1.e-14) then
-     passed = .FALSE.
-     print*, 'Error in procedure evaluate_field_single_spline_pp.'
-  end if
+particle_values_ref = [ 1.1560058593749998,
+                        2.3149278428819446,
+                        2.2656250000000000,
+                        1.1512586805555554 ] 
 
-  if (passed .EQV. .TRUE.) then
-     print*, 'PASSED'
-  else
-     print*, 'FAILED'
-     stop
-  end if
+particle_values_ref ./= domain[2]
 
-  call kernel%free()
-  call particle_group%free()
-
-
-=#
-
-@test true
+@test maximum(abs.(particle_values  .- particle_values_ref)) < 1e-15
+@test maximum(abs.(particle_values1 .- particle_values_ref)) < 1e-15
 
 end
