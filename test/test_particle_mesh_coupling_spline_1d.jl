@@ -1,8 +1,9 @@
 @testset " particle-mesh coupling with spline 1d " begin
 
-using GEMPIC
+using  GEMPIC
 import GEMPIC: set_common_weight, set_x, set_v, set_weights
-import GEMPIC: get_x, get_charge, add_charge, add_charge_pp
+import GEMPIC: get_x, get_v, get_charge, add_charge, add_charge_pp
+import GEMPIC: add_current_update_v, add_current_update_v_pp
 
 n_cells       = 10            # Number of cells
 n_particles   = 4             # Number of particles
@@ -63,47 +64,60 @@ rho_dofs_ref       .= rho_dofs_ref/n_particles * n_cells/domain[2]
 @test maximum(abs.(rho_dofs  .- rho_dofs_ref)) < 1e-15
 @test maximum(abs.(rho_dofs1 .- rho_dofs_ref)) < 1e-15
 
+j_dofs  = zeros(Float64, n_cells)
+j_dofs1 = zeros(Float64, n_cells)
+b_dofs  = zeros(Float64, n_cells)
 
-#=
-  ! Test j accumulations
-  j_dofs = 0.0
-  j_dofs1 = 0.0
-  b_dofs = 0.0
-  do i_part=1, n_particles 
-     xi = particle_group%get_x(i_part)
-     wi = particle_group%get_charge(i_part)
-     vi = particle_group%get_v(i_part)
-     vi1 = vi
-     x_new = xi(1) + vi(1)/10.0
+for i_part = 1:n_particles 
 
-     call kernel%add_current_update_v( xi(1), x_new, wi(1), 1.0, b_dofs, vi, j_dofs )
-     call kernel%add_current_update_v_pp( xi(1), x_new, wi(1), 1.0, b_dofs, vi1, j_dofs1 )
+    xi    = get_x(particle_group, i_part)
+    wi    = get_charge(particle_group, i_part)
+    vi    = get_v(particle_group, i_part)
+    vi1   = vi
+    x_new = xi + vi[1]/10.0
+
+    add_current_update_v(    kernel, xi, x_new, wi, 1.0, b_dofs, vi,  j_dofs  )
+    add_current_update_v_pp( kernel, xi, x_new, wi, 1.0, b_dofs, vi1, j_dofs1 )
      
-  end do
-  j_dofs_ref = [ 2.4617513020833336D-002,   4.0690104166666692D-005, 0.0, &
-       0.0, 0.0, 0.0,  0.0,  6.5104166666666674D-004, &
-       4.6834309895833329D-002,    0.11535644531249999];
-  j_dofs_ref = j_dofs_ref + [ -0.16219075520833331, -0.16219075520833331, &
-       -2.52685546875D-002,  -4.0690104166666692D-005 , &
-       0.0, 0.0, 0.0, 0.0,  &
-       -4.0690104166666692D-005,  -2.52685546875D-002];
-  j_dofs_ref = j_dofs_ref + [ 6.5104166666666696D-004,  0.0, 0.0,  &
-       0.0, 6.5104166666666674D-004, 5.0130208333333329D-002,  &
-       0.19986979166666666, 0.24869791666666663,  &
-       0.19986979166666666, 5.0130208333333329D-002];
+end
+
+j_dofs_ref = [ 2.4617513020833336e-002,   
+               4.0690104166666692e-005, 
+                                   0.0,
+                                   0.0, 
+                                   0.0, 
+                                   0.0,  
+                                   0.0,  
+               6.5104166666666674e-004,
+               4.6834309895833329e-002,    
+                   0.11535644531249999]
+
+j_dofs_ref .= j_dofs_ref .+ [ -0.16219075520833331, 
+                              -0.16219075520833331,
+                               -2.52685546875e-002, 
+                          -4.0690104166666692e-005, 
+                                               0.0, 
+                                               0.0, 
+                                               0.0, 
+                                               0.0, 
+                          -4.0690104166666692e-005,  
+                               -2.52685546875e-002]
+
+j_dofs_ref .= j_dofs_ref .+ [ 6.5104166666666696e-004,  
+                                                  0.0, 
+                                                  0.0,
+                                                  0.0, 
+                              6.5104166666666674e-004, 
+                              5.0130208333333329e-002,
+                                  0.19986979166666666, 
+                                  0.24869791666666663,
+                                  0.19986979166666666, 
+                              5.0130208333333329e-002]
  
-  error = maxval(abs(j_dofs-j_dofs_ref))
-  error1= maxval(abs(j_dofs1-j_dofs_ref))
+@test maximum(abs.(j_dofs  .- j_dofs_ref)) < 1e-15
+@test maximum(abs.(j_dofs1 .- j_dofs_ref)) < 1e-15
   
-  if (error > 1.e-14) then
-     passed = .FALSE.
-     print*, 'Error in procedure add_current_update_v.'
-
-  elseif (error1 > 1.e-14) then
-     passed = .FALSE.
-     print*, 'Error in procedure add_current_update_v_spline_pp.'
-  end if
-
+#=
 
   call sll_s_spline_pp_b_to_pp_1d(kernel%spline_pp,n_cells,rho_dofs,rho_dofs_pp)
    
