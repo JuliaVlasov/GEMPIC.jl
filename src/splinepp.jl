@@ -109,7 +109,8 @@ mutable struct SplinePP
 end 
 
 """
-Convert 1d spline in B form to spline in pp form with periodic boundary conditions
+Convert 1d spline in B form to spline in pp form with 
+periodic boundary conditions
 """
 function b_to_pp( self, ncells, b_coeffs)
 
