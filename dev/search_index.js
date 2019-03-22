@@ -89,6 +89,22 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "#GEMPIC.add_charge-Tuple{ParticleMeshCoupling,Float64,Float64,Array{Float64,1}}",
+    "page": "Documentation",
+    "title": "GEMPIC.add_charge",
+    "category": "method",
+    "text": "Add charge of one particle\n\nself           : kernel smoother object\nposition       : Position of the particle\nmarker_charge  : Particle weights time charge\nrho_dofs       : Coefficient vector of the charge distribution\n\n\n\n\n\n"
+},
+
+{
+    "location": "#GEMPIC.add_charge_pp-NTuple{4,Any}",
+    "page": "Documentation",
+    "title": "GEMPIC.add_charge_pp",
+    "category": "method",
+    "text": "Add charge of one particle\n\nself          : kernel smoother object\nposition      : Position of the particle\nmarker_charge : Particle weights time charge\nrho_dofs      : Coefficient vector of the charge distribution\n\n\n\n\n\n"
+},
+
+{
     "location": "#GEMPIC.b_to_pp-Tuple{Any,Any,Any}",
     "page": "Documentation",
     "title": "GEMPIC.b_to_pp",
@@ -181,7 +197,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Documentation",
     "title": "GEMPIC.uniform_bsplines_eval_basis",
     "category": "method",
-    "text": "uniform_bsplines_eval_basis( spline_degree, normalized_offset, bspl )\n\nUNIFORM B-SPLINE FUNCTIONS\n\nEvaluate all non vanishing uniform B-Splines in unit cell.\n\nReturns an array with the values of the b-splines of the  requested degree, evaluated at a given cell offset. The cell size is normalized between 0 and 1, thus the offset given must be a number between 0 and 1.\n\nOutput: bspl(1:d+1)= Bd(-(d+1)/2+d+x),...,Bd(-(d+1)/2+x)  with d=splinedegree and x=normalizedoffset where Bd=B{d-1}*B0 and B0=1_[-1/2,1/2] and * is convolution the following code can be used for comparison with deboor\n\ndo i=-d,d+1\n    t(i+d+1)=real(i,8)\nend do\ncall bsplvb(t,d+1,1,normalized_offset,d+1,out)\n\nWe also have the property (from the symmetry of the B-spline) out(1:d+1)= Bd(-(d+1)/2+xx),...,Bd(-(d+1)/2+d+xx),...,  where xx=1-normalized_offset\n\n\n\n\n\n"
+    "text": "uniform_bsplines_eval_basis( spline_degree, normalized_offset, bspl )\n\nUNIFORM B-SPLINE FUNCTIONS\n\nEvaluate all non vanishing uniform B-Splines in unit cell.\n\nReturns an array with the values of the b-splines of the  requested degree, evaluated at a given cell offset. The cell size is normalized between 0 and 1, thus the offset given must be a number between 0 and 1.\n\nOutput: bspl(1d+1)= B_d(-(d+1)2+d+x)B_d(-(d+1)2+x)  with d=splinedegree and x=normalizedoffset where B_d=B_d-1*B_0 and B_0=1_-1212 and * is convolution the following code can be used for comparison with deboor\n\ndo i=-d,d+1\n    t(i+d+1)=real(i,8)\nend do\ncall bsplvb(t,d+1,1,normalized_offset,d+1,out)\n\nWe also have the property (from the symmetry of the B-spline)\n\nout(1d+1)= B_d(-(d+1)2+xx)B_d(-(d+1)2+d+xx) \n\nwhere xx=1-normalized_offset\n\n\n\n\n\n"
 },
 
 {
