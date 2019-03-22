@@ -7,7 +7,7 @@ Geometric ElectroMagnetic Particle-In-Cell Methods
 [![codecov](https://codecov.io/gh/JuliaVlasov/GEMPIC.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaVlasov/GEMPIC.jl)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliavlasov.github.io/GEMPIC.jl/latest)
 
-A Julia example of implementation of the [GEMPIC](https://arxiv.org/abs/1609.03053)
+A Julia implementation of the [GEMPIC](https://arxiv.org/abs/1609.03053)
 
 This is a translation from a Fortran code written by :
 
