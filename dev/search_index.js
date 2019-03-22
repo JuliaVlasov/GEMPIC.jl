@@ -125,7 +125,23 @@ var documenterSearchIndex = {"docs": [
     "page": "Documentation",
     "title": "GEMPIC.b_to_pp",
     "category": "method",
-    "text": "Convert 1d spline in B form to spline in pp form with periodic boundary conditions\n\n\n\n\n\n"
+    "text": "Convert 1d spline in B form to spline in pp form with  periodic boundary conditions\n\n\n\n\n\n"
+},
+
+{
+    "location": "#GEMPIC.evaluate-Tuple{Any,Any,Any}",
+    "page": "Documentation",
+    "title": "GEMPIC.evaluate",
+    "category": "method",
+    "text": "Evaluate field at at position  position\n\np : Kernel smoother object \nposition(p.dim) : Position of the particle\nfield_dofs(p.n_dofs) : Coefficient vector for the field DoFs\nfield_value : Value(s) of the electric fields at given position\n\n\n\n\n\n"
+},
+
+{
+    "location": "#GEMPIC.evaluate_pp-Tuple{Any,Any,Any}",
+    "page": "Documentation",
+    "title": "GEMPIC.evaluate_pp",
+    "category": "method",
+    "text": "Evaluate field at at position  position using horner scheme\n\np : Kernel smoother object \nposition(p.dim) : Position of the particle\nfield_dofs_pp(:,:) : Degrees of freedom in kernel representation.\nfield_value : Value(s) of the electric fields at given position\n\n\n\n\n\n"
 },
 
 {
