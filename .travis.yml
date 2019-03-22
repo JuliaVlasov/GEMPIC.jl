@@ -10,7 +10,7 @@ notifications:
   email: true
 
 after_success:
-  - julia -e 'using Pkg; import GEMPIC; joinpath(dirname(pathof(GEMPIC)), "..", paths...); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+  - julia -e 'using Pkg; cd(Pkg.dir("GEMPIC")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())';
 
 jobs:
   include:
