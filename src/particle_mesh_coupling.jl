@@ -29,6 +29,7 @@ struct ParticleMeshCoupling
     spline_val_more :: Vector{Float64}
     quad_x          :: Vector{Float64}
     quad_w          :: Vector{Float64}
+    spline_pp       :: SplinePP
 
     function ParticleMeshCoupling( domain         :: Vector{Float64}, 
                                    n_grid         :: Vector{Int64}, 
@@ -38,8 +39,7 @@ struct ParticleMeshCoupling
 
         dims    = 1
         n_dofs  = prod(n_grid)
-        @show domain[2]-domain[1]
-        @show delta_x = (domain[2]-domain[1])/n_grid[1]
+        delta_x = (domain[2]-domain[1])/n_grid[1]
         n_span  = spline_degree + 1
 
         if smoothing_type == :collocation
@@ -63,18 +63,17 @@ struct ParticleMeshCoupling
         quad_x .= 0.5 .* ( 1.0 .+ quad_x )
         quad_w .= 0.5 .* quad_w
 
-        #spl = Spline1d( spline_degree, n_grid[1])
+        spline_pp = SplinePP( spline_degree, n_grid[1])
 
         new(dims, domain, delta_x, n_grid, no_particles, spline_degree,
             n_span, scaling, n_quad_points, spline_val,
-            spline_val_more, quad_x, quad_w)
+            spline_val_more, quad_x, quad_w, spline_pp)
 
   end
     
      
 end
      
-#=
 
 """
 Add charge of one particle
@@ -86,18 +85,25 @@ Add charge of one particle
 function add_charge_pp(self, position, marker_charge, rho_dofs)
     
     xi    = (position - self.domain[1,1])/self.delta_x
-    index = floor(xi)+1
+    index = floor(Int64, xi)+1
     xi    = xi    - (index-1)
     index = index - self.spline_degree
 
-    call sll_s_spline_pp_horner_m_1d(self.spline_pp, self%spline_val, self%spline_degree, xi(1))
+    for i in eachindex(self.spline_val)
 
-    for i1 = 1:self.n_span
-       index1d = modulo(index+i1-2,self.n_grid(1))+1
-       rho_dofs[index1d] = rho_dofs[index1d] + (marker_charge * self.spline_val[i1] * self%scaling)
+        self.spline_val[i] = horner_1d(self.spline_degree, 
+                                       self.spline_pp.poly_coeffs, xi, i)
+
+    end
+
+    for i = 1:self.n_span
+       index1d = mod(index+i-2, self.n_grid[1]) + 1
+       rho_dofs[index1d] = rho_dofs[index1d] + (marker_charge * 
+                                           self.spline_val[i] * self.scaling)
     end
 
 end
+
 
 """
 Add charge of one particle
@@ -106,22 +112,26 @@ Add charge of one particle
 - marker_charge  : Particle weights time charge
 - rho_dofs       : Coefficient vector of the charge distribution
 """
-function add_charge(self, position, marker_charge, rho_dofs)
+function add_charge(self          :: ParticleMeshCoupling,
+                    position      :: Float64, 
+                    marker_charge :: Float64, 
+                    rho_dofs      :: Vector{Float64})
 
     xi    = (position - self.domain[1,1])/self.delta_x[1]
-    index = floor(xi)+1
+    index = floor(Int64, xi)+1
     xi    = xi - (index-1)
     index = index - self.spline_degree
 
-    eval_basis(self.spline_degree, xi, self.spline_val)
+    self.spline_val .= uniform_bsplines_eval_basis(self.spline_degree, xi)
 
-    for i1 = 1:self.n_span
-       index1d = modulo(index+i1-2,self.n_grid[1])+1
-       rho_dofs[index1d] += marker_charge * self.spline_val[i1] * self.scaling
-    end do
+    for i = 1:self.n_span
+       index1d = mod(index+i-2,self.n_grid[1]) + 1
+       rho_dofs[index1d] += marker_charge * self.spline_val[i] * self.scaling
+    end
 
 end
 
+#=
   
   !> Add current for one particle and update v (according to H_p1 part in Hamiltonian splitting)
   subroutine add_current_update_v_spline_pp_1d (self, position_old, position_new, marker_charge, qoverm, bfield_dofs, vi, j_dofs)
