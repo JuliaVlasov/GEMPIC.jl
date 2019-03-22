@@ -81,7 +81,7 @@ Add charge of one particle
 """
 function add_charge_pp(p, position, marker_charge, rho_dofs)
     
-    xi    = (position - p.domain[1,1])/p.delta_x
+    xi    = (position - p.domain[1])/p.delta_x
     index = floor(Int64, xi)+1
     xi    = xi    - (index-1)
     index = index - p.spline_degree
@@ -114,7 +114,7 @@ function add_charge(p             :: ParticleMeshCoupling,
                     marker_charge :: Float64, 
                     rho_dofs      :: Vector{Float64})
 
-    xi    = (position - p.domain[1,1])/p.delta_x[1]
+    xi    = (position - p.domain[1])/p.delta_x[1]
     index = floor(Int64, xi)+1
     xi    = xi - (index-1)
     index = index - p.spline_degree
@@ -140,12 +140,12 @@ function add_current_update_v_pp(p, position_old, position_new,
     # Compute index_old, the index of the last DoF on the grid the particle
     # contributes to, and r_old, its position (normalized to cell size one).
 
-    xi = (position_old[1] - p.domain[1,1]) / p.delta_x[1]
+    xi = (position_old[1] - p.domain[1]) / p.delta_x[1]
     index_old = floor(Int64, xi)
     r_old = xi - index_old
 
     # Compute the new box index index_new and normalized position r_old.
-    xi = (position_new[1] - p.domain[1,1]) / p.delta_x[1]
+    xi = (position_new[1] - p.domain[1]) / p.delta_x[1]
     index_new = floor(Int64, xi)
     r_new = xi - index_new
  
@@ -231,12 +231,12 @@ function add_current_update_v(p             :: ParticleMeshCoupling,
     # particle contributes to, and r_old, its position 
     # (normalized to cell size one).
 
-    xi = (position_old[1] - p.domain[1,1]) / p.delta_x[1]
+    xi = (position_old[1] - p.domain[1]) / p.delta_x[1]
     index_old = floor(Int64,xi)
     r_old = xi - index_old
 
     # Compute the new box index index_new and normalized position r_old.
-    xi = (position_new[1] - p.domain[1,1]) / p.delta_x[1]
+    xi = (position_new[1] - p.domain[1]) / p.delta_x[1]
     index_new = floor(Int64, xi)
     r_new = xi - index_new
  
@@ -317,61 +317,50 @@ function update_jv(p, lower, upper, index, marker_charge, qoverm,
 
 end
 
-#=
 
-  !---------------------------------------------------------------------------
-  !> Evaluate field at at position \a position using horner scheme
- 
-  subroutine evaluate_field_single_spline_pp_1d(p, position, field_dofs_pp, field_value)
-    class (sll_t_particle_mesh_coupling_spline_1d), intent( inout ) :: p !< Kernel smoother object 
-    sll_real64,                              intent( in )    :: position(p.dim) !< Position of the particle
-    sll_real64,                              intent(in)      :: field_dofs_pp(:,:) !< Degrees of freedom in kernel representation.
-    sll_real64,                              intent( out )   :: field_value !< Value(s) of the electric fields at given position
+"""
+Evaluate field at at position \a position using horner scheme
+- `p` : Kernel smoother object 
+- `position(p.dim)` : Position of the particle
+- `field_dofs_pp(:,:)` : Degrees of freedom in kernel representation.
+- `field_value` : Value(s) of the electric fields at given position
 
-    !local variables
-    sll_int32 :: index
-    sll_real64 :: xi[1]
-           
-    xi[1] = (position[1] - p.domain(1,1))/p.delta_x[1]
-    index = floor(xi[1])+1
-    xi[1] = xi[1] - (index-1)
+""" 
+function evaluate_pp(p, position, field_dofs_pp)
+
+    xi = (position - p.domain[1])/p.delta_x[1]
+    index = floor(Int64, xi)+1
+    xi = xi - (index-1)
    
-    field_value= sll_f_spline_pp_horner_1d(p.spline_degree, field_dofs_pp, xi[1], index)
+    horner_1d(p.spline_degree, field_dofs_pp, xi, index)
 
-  end subroutine evaluate_field_single_spline_pp_1d
+end
 
+"""
+Evaluate field at at position \a position
+- `p` : Kernel smoother object 
+- `position(p.dim)` : Position of the particle
+- `field_dofs(p.n_dofs)` : Coefficient vector for the field DoFs
+- `field_value` : Value(s) of the electric fields at given position
+"""
+function evaluate(p, position, field_dofs)
 
-  !---------------------------------------------------------------------------!
- !> Evaluate field at at position \a position
-  subroutine evaluate_field_single_spline_1d(p, position, field_dofs, field_value)
-    class (sll_t_particle_mesh_coupling_spline_1d), intent( inout ) :: p !< Kernel smoother object 
-    sll_real64,                              intent( in )    :: position(p.dim) !< Position of the particle
-    sll_real64,                              intent( in )    :: field_dofs(p.n_dofs) !< Coefficient vector for the field DoFs
-    sll_real64,                              intent( out )   :: field_value !< Value(s) of the electric fields at given position
-    
-    !local variables
-    sll_int32 :: i1
-    sll_int32 :: index1d, index
-    sll_real64 :: xi[1]
-
-
-    xi[1] = (position[1] - p.domain(1,1))/p.delta_x[1]
-    index = floor(xi[1])+1
-    xi[1] = xi[1] - (index-1)
+    xi = (position - p.domain[1])/p.delta_x[1]
+    index = floor(Int64, xi)+1
+    xi = xi - (index-1)
     index = index - p.spline_degree
-    !p.spline_val = sll_f_uniform_b_splines_at_x(p.spline_degree, xi[1])
-    call sll_s_uniform_bsplines_eval_basis(p.spline_degree, xi[1], p.spline_val)
+    p.spline_val .= uniform_bsplines_eval_basis(p.spline_degree, xi)
 
     field_value = 0.0
-    do i1 = 1, p.n_span
-       index1d = modulo(index+i1-2, p.n_grid[1])+1
-       field_value = field_value + 
-            field_dofs(index1d) *  
-            p.spline_val(i1)
-    end do
+    for i = 1:p.n_span
+       index1d = mod(index+i-2, p.n_grid[1])+1
+       field_value += field_dofs[index1d] * p.spline_val[i]
+    end
+    field_value
 
-  end subroutine evaluate_field_single_spline_1d
+end
 
+#=
 
   !---------------------------------------------------------------------------!
   !> Evaluate several fields at position \a position
@@ -390,7 +379,7 @@ end
     SLL_ASSERT( size(field_dofs,1) == p.n_dofs )
     SLL_ASSERT( size(field_dofs,2) == size(field_value) )
 
-    xi[1] = (position[1] - p.domain(1,1))/p.delta_x[1]
+    xi[1] = (position[1] - p.domain(1))/p.delta_x[1]
     index = ceiling(xi[1])
     xi[1] = xi[1] - (index-1)
     index = index - p.spline_degree    
