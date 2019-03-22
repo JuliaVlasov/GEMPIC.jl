@@ -9,7 +9,7 @@ julia: 1.1
 notifications:
   email: true
 
-after_sucess:
+after_success:
   - julia -e 'using Pkg; import GEMPIC; joinpath(dirname(pathof(GEMPIC)), "..", paths...); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
 
 jobs:
@@ -21,3 +21,4 @@ jobs:
         - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
         - julia --project=docs/ docs/make.jL
       name: "HTML"
+      after_success: skip
