@@ -8,22 +8,18 @@ Particle initializer class with various functions to initialize a particle.
 struct ParticleSampler
 
     sampling_type :: Symbol
-    dims          :: Vector{Int64}
+    dims          :: Tuple{Int64, Int64}
     n_particles   :: Int
     symmetric     :: Bool
+    seed          :: Int64
 
-    function ParticleSampler( sampling_type, dims, n_particles)
+    function ParticleSampler( sampling_type :: Symbol, 
+                              symmetric     :: Bool, 
+                              dims          :: Tuple{Int64,Int64}, 
+                              n_particles   :: Int64)
 
-        if sampling_type == :random
-            symmetric = false
-        elseif sampling_type == :sobol
-            symmetric = false
-        elseif sampling_type == :random_symmetric
-            symmetric = true
-        elseif sampling_type == :sobol_symmetric
-            symmetric = true
-        else 
-            throw(ArgumentError("Sampling type not implemented"))
+        if !(sampling_type in [:random, :sobol])
+            throw(ArgumentError("Sampling type $sampling_type not implemented"))
         end
 
         # Make sure that the particle number is conforming 
@@ -38,7 +34,9 @@ struct ParticleSampler
             ncopies = 1
         end
 
-        new( sampling_type, dims, n_particles, symmetric)
+        seed = 1234
+
+        new( sampling_type, dims, n_particles, symmetric, seed)
 
     end
 
@@ -80,43 +78,43 @@ function sample_particle_sampling_all( self,  particle_group, params, xmin, Lx )
     sll_real64                                         :: wi(particle_group%n_weights)
     sll_real64                                         :: rnd_no
     sll_real64                                         :: delta(params%n_gaussians)
+=#
 
     n_rnds = 0
-    if ( params%n_gaussians > 1 ) then
+    if params.n_gaussians > 1
        n_rnds = 1
-    end if
+    end
 
-    do i_v=1,params%n_gaussians
-       delta(i_v) = sum(params%delta(1:i_v))
-    end do
+    for i_v=1:params.n_gaussians
+       delta[i_v] = sum(params.delta[1:i_v])
+    end
     
+    n_rnds += params.dims[1] + params.dims[2]
+    rdn = zeros(params.dims[1]+params.dims[2]+1)
     
-    n_rnds = n_rnds+params%dims(1)+params%dims(2)
-    allocate( rdn(params%dims(1)+params%dims(2)+1) )
-    rdn = 0.0_f64
-    
-    ! 1/Np in common weight
-    call particle_group%set_common_weight &
-         (1.0_f64/real(particle_group%n_total_particles, f64))
+    # 1/Np in common weight
+    set_common_weight(particle_group, (1.0/particle_group.n_total_particles))
 
-    if ( self%random_numbers == sll_p_random_numbers ) then
-       call random_seed(put=self%random_seed)
-    end if
+
+    if self.sampling_type == :sobol
+       rng_sobol  = SobolSeq(1)
+    else
+       rng_random = rand(MersenneTwister(self.seed))
+    end 
    
-    do i_part = 1, particle_group%n_particles
-       ! Generate Random or Sobol numbers on [0,1]
-       select case( self%random_numbers )
-       case( sll_p_sobol_numbers )
-          call sll_s_i8_sobol( int(n_rnds,8), self%sobol_seed, rdn(1:n_rnds))
-       case( sll_p_random_numbers )
-          call random_number( rdn(1:n_rnds) )
-       end select
+#=
    
-       ! Transform rdn to the interval
-       x(1:params%dims(1)) = xmin + Lx * rdn(1:params%dims(1))
+    for i_part = 1:particle_group.n_particles
 
-       ! Set weight according to value of perturbation
-       wi(1) = params%eval_x_density(x(1:params%dims(1)))*product(Lx)
+       if self.sampling_type == :sobol
+           x = next!(rng_sobol)
+       else
+           x = rand(rng_random)
+       end
+       x = xmin + Lx * x
+
+       # Set weight according to value of perturbation
+       wi = params.eval_x_density(x) * prod(Lx)
 
        ! Maxwellian distribution of the temperature
        do i_v = 1,params%dims(2)
