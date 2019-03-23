@@ -25,6 +25,14 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "#GEMPIC.ParticleSampler",
+    "page": "Documentation",
+    "title": "GEMPIC.ParticleSampler",
+    "category": "type",
+    "text": "Particle initializer class with various functions to initialize a particle.\n\n\n\n\n\n"
+},
+
+{
     "location": "#GEMPIC.compute_b_from_e-NTuple{4,Any}",
     "page": "Documentation",
     "title": "GEMPIC.compute_b_from_e",
@@ -78,6 +86,14 @@ var documenterSearchIndex = {"docs": [
     "title": "GEMPIC.l2projection",
     "category": "method",
     "text": "Compute the L2 projection of a given function f on periodic splines of given degree\n\n\n\n\n\n"
+},
+
+{
+    "location": "#GEMPIC.sample-Tuple{ParticleSampler,ParticleGroup{1,2},NamedTuple,Float64,Float64}",
+    "page": "Documentation",
+    "title": "GEMPIC.sample",
+    "category": "method",
+    "text": "Sample from distribution defined by  params\n\nxmin : lower bound of the domain\nLx   : length of the domain.\n\n\n\n\n\n"
 },
 
 {
@@ -198,6 +214,22 @@ var documenterSearchIndex = {"docs": [
     "title": "GEMPIC.horner_primitive_1d",
     "category": "method",
     "text": "Perform a 1d hornerschema on the pp_coeffs evaluate at x\n\n\n\n\n\n"
+},
+
+{
+    "location": "#GEMPIC.sample_particle_sampling_all-NTuple{5,Any}",
+    "page": "Documentation",
+    "title": "GEMPIC.sample_particle_sampling_all",
+    "category": "method",
+    "text": "Helper function for pure sampling\n\n\n\n\n\n"
+},
+
+{
+    "location": "#GEMPIC.sample_sym_1d2v-NTuple{5,Any}",
+    "page": "Documentation",
+    "title": "GEMPIC.sample_sym_1d2v",
+    "category": "method",
+    "text": "Helper function for antithetic sampling in 1d2v\n\n\n\n\n\n"
 },
 
 {
