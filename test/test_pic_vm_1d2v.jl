@@ -25,7 +25,8 @@ x1_min = 0.0
 x1_max = 5.02654824574
 
 n_particles    = 100000
-sampling_case  = :sobol_symmetric
+sampling_case  = :sobol
+symmetric      = true
 splitting_case = :symplectic
 spline_degree  = 3
 
@@ -35,7 +36,7 @@ domain = [x1_min, x1_max, x1_max - x1_min ]
 n_total_particles = n_particles
 degree_smoother   = spline_degree
 
-sampler = ParticleSampler( sampling_case, [1,2], n_particles)
+sampler = ParticleSampler( sampling_case, symmetric, (1,2), n_particles)
 
 #=
 
