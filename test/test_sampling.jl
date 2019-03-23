@@ -1,6 +1,6 @@
 @testset "Sampling" begin
 
-function test_sampling( sampling_type, dims, pg, params, tolerance )
+function test_sampling( sampling_type, symmetric, dims, pg, params, tolerance )
 
    mean  = zeros(3)
    sigma = zeros(3)
@@ -8,7 +8,7 @@ function test_sampling( sampling_type, dims, pg, params, tolerance )
 
    n_particles = pg.n_particles
    
-   sampling = ParticleSampler( sampling_type, dims, n_particles )
+   sampling = ParticleSampler( sampling_type, symmetric, dims, n_particles )
    sample( sampling, pg, params, xmin, Lx )
    
    for i_part = 1:n_particles
@@ -62,10 +62,10 @@ params = ( dims        = dims,
 mean_ref  = [Lx*0.5+xmin, 0.0, 0.0]
 sigma_ref = [Lx^2/12.0, v_thermal[1]^2, v_thermal[2]^2 ]
 
-#@test test_sampling( :sobol,            [1,2], pg, params, 1e2/sqrt(n_particles))
-#@test test_sampling( :sobol_symmetric,  [1,2], pg, params, 1e-12)
-#@test test_sampling( :random,           [1,2], pg, params, 1e2/sqrt(n_particles))
-#@test test_sampling( :random_symmetric, [1,2], pg, params, 1e-12)
+#@test test_sampling( :sobol,  false, [1,2], pg, params, 1e2/sqrt(n_particles))
+#@test test_sampling( :sobol,  true,  [1,2], pg, params, 1e-12)
+#@test test_sampling( :random, false  [1,2], pg, params, 1e2/sqrt(n_particles))
+#@test test_sampling( :random, true,  [1,2], pg, params, 1e-12)
    
 # Expected mean:
 # 2π+1, 0, 0
@@ -98,7 +98,7 @@ for j=1:2
     end
 end
   
-#@test test_sampling( :sobol,           [1,2], pg, params, 1e2/sqrt(n_particles))
-#@test test_sampling( :sobol_symmetric, [1,2], pg, params, 1e2/sqrt(n_particles))
+#@test test_sampling( :sobol, false, [1,2], pg, params, 1e2/sqrt(n_particles))
+#@test test_sampling( :sobol, true,  [1,2], pg, params, 1e2/sqrt(n_particles))
 
 end
