@@ -35,7 +35,7 @@ domain = [x1_min, x1_max, x1_max - x1_min ]
 n_total_particles = n_particles
 degree_smoother   = spline_degree
 
-sampler = ParticleSampler{1,2}( sampling_case, n_particles)
+sampler = ParticleSampler( sampling_case, [1,2], n_particles)
 
 #=
 
