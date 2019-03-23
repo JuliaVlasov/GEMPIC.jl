@@ -1,167 +1,104 @@
 @testset "Sampling" begin
 
-mean_ref    = zeros(3)
-sigma_ref   = zeros(3)
-n_particles = 80000
+function test_sampling( sampling_type, dims, pg, params, tolerance )
 
-particle_group = ParticleGroup{1,2}(n_particles, n_particles, 1.0, 1.0, 1)
+   mean  = zeros(3)
+   sigma = zeros(3)
+   xi    = zeros(3)
 
-xmin     = 1.0
-Lx       = 4π
-mean_ref = [Lx*0.5+xmin, 0.0, 0.0]
-
-dims        = [1,2]
-kx          = zeros(dims[1],1)
-alpha       = zeros(dims[1])
-v_thermal   = zeros(dims[2],1)
-v_mean      = zeros(dims[2],1)
-normal      = 1.0
-delta       = 1.0
-n_cos       = 1
-n_gaussians = 1
-kx          = 0.5
-alpha       = 0.01
-v_thermal   = [0.1, 2.0]
-v_mean      = 0.0
-delta       = 0.0
-normal      = 1.0/((2π)^(0.5*dims[2])*prod(v_thermal))
-#=
-
-  sigma_ref = [Lx**2/12.0_f64, params%v_thermal(1,1)**2, params%v_thermal(2,1)**2 ]
-
-  ! Landau
-  print*, 'Sobol'
-  call test( "particle_sampling_sobol", [1,2], particle_group,  &
-       1d2/sqrt(real(n_particles,f64)) )
-  print*, 'Sobol symmetric'
-  call test( "particle_sampling_sobol_symmetric", [1,2], particle_group, &
-       1d-12)
-  print*, 'Random'
-  call test( "particle_sampling_random", [1,2], particle_group,  &
-       1d2/sqrt(real(n_particles,f64)) )
-  print*, 'Random symmetric'
-  call test( "particle_sampling_random_symmetric", [1,2], particle_group, &
-       1d-12)
+   n_particles = pg.n_particles
    
-  
-  ! Expected mean:
-  ! 2Pi+1, 0, 0
-
-  ! Expected variance:
-  ! 16/12 pi**2 , 0.01, 4
-
-
-  ! Next we consider an example with two Gaussians
-  call params%free()
-
-  ! Two gaussian parameters
-  params%dims = [1,2]
-  allocate( params%kx(params%dims(1),1) )
-  allocate( params%alpha(params%dims(1)) )
-  allocate( params%v_thermal(params%dims(2),2) )
-  allocate( params%v_mean(params%dims(2),2) )
-  allocate( params%normal(2) )
-  allocate( params%delta(2) )
-  params%n_cos = 1
-  params%n_gaussians = 2
-  params%kx = 0.5_f64
-  params%alpha = 0.01_f64
-  params%v_thermal(:,1) = [0.1_f64, 2.0_f64]
-  params%v_thermal(:,2) = [2.0_f64, 2.0_f64]
-  params%v_mean(:,1) = 0.0_f64
-  params%v_mean(:,2) = 1.0_f64
-  params%delta(1)  = 0.7_f64
-  params%delta(2) = 0.3_f64
-  params%normal(1) = 1.0_f64/(sll_p_twopi**(0.5_f64*real(params%dims(2),f64))*&
-       product(params%v_thermal(:,1)))
-  params%normal(2) = 1.0_f64/(sll_p_twopi**(0.5_f64*real(params%dims(2),f64))*&
-       product(params%v_thermal(:,2)))
-
-  
-  mean_ref = [Lx*0.5_f64+xmin, 0.3_f64, 0.3_f64]
-  sigma_ref(1) = Lx**2/12.0_f64
-  
-  do j=1,2
-     sigma_ref(j+1) = - (params%delta(1)*params%v_mean(j,1)+&
-          (params%delta(2)-params%delta(1))*params%v_mean(j,2))**2
-     do k=1,2
-        sigma_ref(j+1) = sigma_ref(j+1) + &
-             params%delta(k) * (params%v_thermal(j,k)**2+params%v_mean(j,k)**2)
-     end do
-          
-  end do
-  
-  ! TSI
-  print*, 'Sobol'
-  call test( "particle_sampling_sobol", [1,2], particle_group,  &
-       1d2/sqrt(real(n_particles,f64)) )
-  print*, 'Sobol symmetric'
-  call test( "particle_sampling_sobol_symmetric", [1,2], particle_group, &
-       1d2/sqrt(real(n_particles,f64)) )
-
-  ! If we never stop due to tolerance not met, the test passed.
-  print*, 'PASSED.'
-
-  call particle_group%free()
-  call params%free()
-  deallocate(particle_group)
-
-contains
-
-
- subroutine test( sampling_type, dims, particle_group, tolerance )
-   character(len=*), intent( in    ) :: sampling_type
-   sll_int32, intent( in    ) :: dims(2)
-   class( sll_c_particle_group_base ), intent( inout ) :: particle_group
-   sll_real64, intent( in   ) :: tolerance
-
-   !local
-   sll_real64 :: mean(3), sigma(3), xi(3)
-   sll_int32  :: i_part
-   type(sll_t_particle_sampling)                :: sampling
-   sll_int32  :: n_particles
-
-   n_particles = particle_group%n_particles
+   sampling = ParticleSampler( sampling_type, dims, n_particles )
+   sample( sampling, pg, params, xmin, Lx )
    
-   ! Sobol symmetric
-   ! Set sampling type: Sobol symmetric
-   call sampling%init( sampling_type, dims, n_particles )
-   ! Sample particles
-   call sampling%sample( particle_group, params, [xmin], [Lx] )
-   call sampling%free()
-   
-   mean = 0.0_f64
-   sigma = 0.0_f64
-   do i_part = 1, n_particles
-      xi = particle_group%get_x(i_part)
-      mean(1) = mean(1) + xi(1)
-      xi = particle_group%get_v(i_part)
-      mean(2) = mean(2) + xi(1)
-      mean(3) = mean(3) + xi(2)
-   end do
-   mean = mean/real(n_particles, f64)
-   do i_part = 1, n_particles
-      xi = particle_group%get_x(i_part)
-      sigma(1) = sigma(1) + (xi(1)-mean(1))**2
-      xi = particle_group%get_v(i_part)
-      sigma(2) = sigma(2) + (xi(1)-mean(2))**2
-      sigma(3) = sigma(3) + (xi(2)-mean(3))**2
-   end do
+   for i_part = 1:n_particles
+       xi = get_x(pg, i_part)
+       vi = get_v(pg, i_part)
+       mean[1] += xi
+       mean[2] += vi[1]
+       mean[3] += vi[2]
+   end
+
+   mean = mean/n_particles
+
+   for i_part = 1:n_particles
+       xi = get_x(pg, i_part)
+       vi = get_v(pg, i_part)
+       sigma[1] += (xi    - mean[1])^2
+       sigma[2] += (vi[1] - mean[2])^2
+       sigma[3] += (vi[2] - mean[3])^2
+   end
    
    sigma = sigma/real(n_particles-1, f64)
    
-   mean = mean - mean_ref
-   sigma = sigma - sigma_ref
-   print*, 'Mean error:',  mean
-   print*, 'Variance error:', sigma
+   @show mean  .= mean  .- mean_ref
+   @show sigma .= sigma .- sigma_ref
    
-   if ( maxval(abs(mean)) > tolerance) then
-      print*, 'FAILED'
-      stop
-   end if
+   maximum(abs.(mean)) < tolerance
    
- end subroutine test
+end
 
-=#
+n_particles = 80000
+
+pg = ParticleGroup{1,2}(n_particles, n_particles, 1.0, 1.0, 1)
+
+xmin     = 1.0
+Lx       = 4π
+
+dims = pg.dims
+v_thermal = [0.1, 2.0]
+
+params = ( dims        = dims,
+           n_cos       = 1,
+           n_gaussians = 1,
+           kx          = 0.5,
+           alpha       = 0.01,
+           v_thermal   = v_thermal,
+           v_mean      = 0.0,
+           delta       = 0.0,
+           normal      = 1.0/((2π)^(0.5*dims[2])*prod(v_thermal))
+)
+
+mean_ref  = [Lx*0.5+xmin, 0.0, 0.0]
+sigma_ref = [Lx^2/12.0, v_thermal[1]^2, v_thermal[2]^2 ]
+
+#@test test_sampling( :sobol,            [1,2], pg, params, 1e2/sqrt(n_particles))
+#@test test_sampling( :sobol_symmetric,  [1,2], pg, params, 1e-12)
+#@test test_sampling( :random,           [1,2], pg, params, 1e2/sqrt(n_particles))
+#@test test_sampling( :random_symmetric, [1,2], pg, params, 1e-12)
+   
+# Expected mean:
+# 2π+1, 0, 0
+# Expected variance:
+# 16/12 π^2 , 0.01, 4
+v_thermal = hcat([0.1, 2.0], [2.0, 2.0])
+
+params = (
+    dims        = dims,
+    n_cos       = 1,
+    n_gaussians = 2,
+    kx          = 0.5,
+    alpha       = 0.01,
+    v_thermal   = v_thermal,
+    v_mean      = hcat([0.0, 0.0], [1.0, 1.0]),
+    delta       = [0.7, 0.3],
+    normal      = [1.0/((2π)^(0.5*dims[2]) * prod(v_thermal[:,1])),
+                   1.0/((2π)^(0.5*dims[2]) * prod(v_thermal[:,2]))]
+)
+
+mean_ref = [Lx*0.5+xmin, 0.3, 0.3]
+
+sigma_ref[1] = Lx^2/12.0
+for j=1:2
+    sigma_ref[j+1] = - (params.delta[1] * params.v_mean[j,1]
+                     +(params.delta[2] - params.delta[1])*params.v_mean[j,2])^2
+    for k=1:2
+        sigma_ref[j+1] += params.delta[k] * (params.v_thermal[j,k]^2
+                                            +params.v_mean[j,k]^2)
+    end
+end
+  
+#@test test_sampling( :sobol,           [1,2], pg, params, 1e2/sqrt(n_particles))
+#@test test_sampling( :sobol_symmetric, [1,2], pg, params, 1e2/sqrt(n_particles))
 
 end
