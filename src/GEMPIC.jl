@@ -5,5 +5,7 @@ module GEMPIC
     include("maxwell_1d_fem.jl")
     include("particle_group.jl")
     include("particle_mesh_coupling.jl")
+    include("particle_sampling.jl")
+    include("pic_vm.jl")
 
 end 
