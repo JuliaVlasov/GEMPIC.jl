@@ -10,27 +10,22 @@ xmin     = 1.0
 Lx       = 4π
 mean_ref = [Lx*0.5+xmin, 0.0, 0.0]
 
+dims        = [1,2]
+kx          = zeros(dims[1],1)
+alpha       = zeros(dims[1])
+v_thermal   = zeros(dims[2],1)
+v_mean      = zeros(dims[2],1)
+normal      = 1.0
+delta       = 1.0
+n_cos       = 1
+n_gaussians = 1
+kx          = 0.5
+alpha       = 0.01
+v_thermal   = [0.1, 2.0]
+v_mean      = 0.0
+delta       = 0.0
+normal      = 1.0/((2π)^(0.5*dims[2])*prod(v_thermal))
 #=
-
-
-  ! Set initial parameters
-  ! One gaussian parameters
-  params%dims = [1,2]
-  allocate( params%kx(params%dims(1),1) )
-  allocate( params%alpha(params%dims(1)) )
-  allocate( params%v_thermal(params%dims(2),1) )
-  allocate( params%v_mean(params%dims(2),1) )
-  allocate( params%normal(1) )
-  allocate( params%delta(1) )
-  params%n_cos = 1
-  params%n_gaussians = 1
-  params%kx = 0.5_f64
-  params%alpha = 0.01_f64
-  params%v_thermal(:,1) = [0.1_f64, 2.0_f64]
-  params%v_mean = 0.0_f64
-  params%delta = 0.0_f64
-  params%normal = 1.0_f64/(sll_p_twopi**(0.5_f64*real(params%dims(2),f64))*&
-       product(params%v_thermal(:,1)))
 
   sigma_ref = [Lx**2/12.0_f64, params%v_thermal(1,1)**2, params%v_thermal(2,1)**2 ]
 
