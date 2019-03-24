@@ -1,4 +1,5 @@
 using Sobol, Random
+using VlasovBase
 
 export ParticleSampler
 
