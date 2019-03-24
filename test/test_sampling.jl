@@ -1,8 +1,9 @@
+using VlasovBase
+
 @testset "Sampling" begin
 
 function test_sampling( sampling_type, symmetric, dims, pg, params, tolerance )
 
-   using VlasovBase
 
    mean  = zeros(3)
    sigma = zeros(3)
@@ -52,15 +53,15 @@ params = ( dims        = (1,2),
            n_gaussians = 1,
            kx          = hcat([0.5]),
            alpha       = [0.01],
-           v_thermal   = hcat([0.1, 2.0])
+           v_thermal   = hcat([0.1, 2.0]),
            v_mean      = hcat([0.0, 0.0]),
            δ           = 0.0
 )
 
-df = CosGaussian(params...)
+df1 = CosGaussian(params...)
 
 mean_ref  = [Lx*0.5+xmin, 0.0, 0.0]
-sigma_ref = [Lx^2/12.0, v_thermal[1]^2, v_thermal[2]^2 ]
+sigma_ref = [Lx^2/12.0,   df1.v_thermal[1,1]^2, df1.v_thermal[2,1]^2 ]
 
 #@test test_sampling( :sobol,  false, [1,2], pg, params, 1e2/sqrt(n_particles))
 #@test test_sampling( :sobol,  true,  [1,2], pg, params, 1e-12)
@@ -71,30 +72,28 @@ sigma_ref = [Lx^2/12.0, v_thermal[1]^2, v_thermal[2]^2 ]
 # 2π+1, 0, 0
 # Expected variance:
 # 16/12 π^2 , 0.01, 4
-v_thermal = hcat([0.1, 2.0], [2.0, 2.0])
 
 params = (
-    dims        = dims,
+    dims        = (1,2),
     n_cos       = 1,
     n_gaussians = 2,
-    kx          = 0.5,
-    alpha       = 0.01,
-    v_thermal   = v_thermal,
+    kx          = hcat([0.5]),
+    alpha       = [0.01],
+    v_thermal   = hcat([0.1, 2.0], [2.0, 2.0]),
     v_mean      = hcat([0.0, 0.0], [1.0, 1.0]),
-    delta       = [0.7, 0.3],
-    normal      = [1.0/((2π)^(0.5*dims[2]) * prod(v_thermal[:,1])),
-                   1.0/((2π)^(0.5*dims[2]) * prod(v_thermal[:,2]))]
+    δ           = 0.7,
 )
 
-mean_ref = [Lx*0.5+xmin, 0.3, 0.3]
+df2 = CosGaussian(params...)
 
+mean_ref = [Lx*0.5+xmin, 0.3, 0.3]
 sigma_ref[1] = Lx^2/12.0
 for j=1:2
-    sigma_ref[j+1] = - (params.delta[1] * params.v_mean[j,1]
-                     +(params.delta[2] - params.delta[1])*params.v_mean[j,2])^2
+    sigma_ref[j+1] = - (df2.delta[1] * df2.v_mean[j,1]
+                      +(df2.delta[2] - df2.delta[1])*df2.v_mean[j,2])^2
     for k=1:2
-        sigma_ref[j+1] += params.delta[k] * (params.v_thermal[j,k]^2
-                                            +params.v_mean[j,k]^2)
+        sigma_ref[j+1] += df2.delta[k] * (df2.v_thermal[j,k]^2
+                                            +df2.v_mean[j,k]^2)
     end
 end
   
