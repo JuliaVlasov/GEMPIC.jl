@@ -1,6 +1,7 @@
-using VlasovBase
 
 @testset "Sampling" begin
+
+using VlasovBase
 
 function test_sampling( sampling_type, symmetric, dims, pg, params, tolerance )
 
