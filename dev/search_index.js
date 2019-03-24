@@ -89,7 +89,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "#GEMPIC.sample-Tuple{ParticleSampler,ParticleGroup{1,2},NamedTuple,Float64,Float64}",
+    "location": "#GEMPIC.sample-Tuple{ParticleSampler,ParticleGroup{1,2},VlasovBase.CosGaussian,Float64,Float64}",
     "page": "Documentation",
     "title": "GEMPIC.sample",
     "category": "method",
