@@ -2,6 +2,8 @@
 
 function test_sampling( sampling_type, symmetric, dims, pg, params, tolerance )
 
+   using VlasovBase
+
    mean  = zeros(3)
    sigma = zeros(3)
    xi    = zeros(3)
@@ -45,19 +47,17 @@ pg = ParticleGroup{1,2}(n_particles, n_particles, 1.0, 1.0, 1)
 xmin     = 1.0
 Lx       = 4π
 
-dims = pg.dims
-v_thermal = [0.1, 2.0]
-
-params = ( dims        = dims,
+params = ( dims        = (1,2),
            n_cos       = 1,
            n_gaussians = 1,
-           kx          = 0.5,
-           alpha       = 0.01,
-           v_thermal   = v_thermal,
-           v_mean      = 0.0,
-           delta       = 0.0,
-           normal      = 1.0/((2π)^(0.5*dims[2])*prod(v_thermal))
+           kx          = hcat([0.5]),
+           alpha       = [0.01],
+           v_thermal   = hcat([0.1, 2.0])
+           v_mean      = hcat([0.0, 0.0]),
+           δ           = 0.0
 )
+
+df = CosGaussian(params...)
 
 mean_ref  = [Lx*0.5+xmin, 0.0, 0.0]
 sigma_ref = [Lx^2/12.0, v_thermal[1]^2, v_thermal[2]^2 ]
