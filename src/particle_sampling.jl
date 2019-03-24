@@ -19,7 +19,8 @@ struct ParticleSampler
                               n_particles   :: Int64)
 
         if !(sampling_type in [:random, :sobol])
-            throw(ArgumentError("Sampling type $sampling_type not implemented"))
+            throw(ArgumentError("Sampling type $sampling_type 
+                      not implemented"))
         end
 
         # Make sure that the particle number is conforming 
@@ -51,7 +52,7 @@ Sample from distribution defined by \a params
 """
 function sample( self           :: ParticleSampler, 
                  particle_group :: ParticleGroup{1,2}, 
-                 params         :: NamedTuple, 
+                 df             :: CosGaussian, 
                  xmin           :: Float64, 
                  Lx             :: Float64 )
 
