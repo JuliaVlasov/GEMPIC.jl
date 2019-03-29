@@ -6,3 +6,5 @@ Manifest.toml
 *.swp
 .ipynb_checkpoints/maxwell_1d_fem-checkpoint.ipynb
 .ipynb_checkpoints/particle_group-checkpoint.ipynb
+.ipynb_checkpoints/distributions-checkpoint.ipynb
+.ipynb_checkpoints/quietstart-checkpoint.ipynb
