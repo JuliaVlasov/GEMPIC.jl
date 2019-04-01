@@ -58,9 +58,9 @@ function sample( ps   :: ParticleSampler,
                  Lx )
 
     if ps.symmetric 
-        sample_sym_1d2v( ps, pg, params, xmin, Lx )
+        sample_sym_1d2v( ps, pg, df, xmin, Lx )
     else
-        sample_all( ps, pg, params, xmin, Lx )
+        sample_all( ps, pg, df, xmin, Lx )
     end 
     
 end
@@ -88,7 +88,7 @@ function sample_all( ps,  particle_group, params, xmin, Lx )
     end
 
     for i_v=1:params.n_gaussians
-       delta[i_v] = sum(params.delta[1:i_v])
+       delta[i_v] = sum(params.δ[1:i_v])
     end
     
     n_rnds += params.dims[1] + params.dims[2]
