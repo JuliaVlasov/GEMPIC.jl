@@ -51,16 +51,16 @@ Sample from distribution defined by \a params
 - `xmin` : lower bound of the domain
 - `Lx`   : length of the domain.
 """
-function sample( self           :: ParticleSampler, 
-                 particle_group :: ParticleGroup{1,2}, 
-                 df             :: CosGaussian, 
-                 xmin           :: Float64, 
-                 Lx             :: Float64 )
+function sample( ps   :: ParticleSampler, 
+                 pg   :: ParticleGroup{1,2}, 
+                 df   :: NamedTuple, 
+                 xmin :: Float64, 
+                 Lx )
 
-    if self.symmetric 
-        sample_sym_1d2v( self, particle_group, params, xmin, Lx )
+    if ps.symmetric 
+        sample_sym_1d2v( ps, pg, params, xmin, Lx )
     else
-        sample_all( self, particle_group, params, xmin, Lx )
+        sample_all( ps, pg, params, xmin, Lx )
     end 
     
 end
@@ -69,17 +69,17 @@ end
 """
 Helper function for pure sampling
 """
-function sample_particle_sampling_all( self,  particle_group, params, xmin, Lx )
+function sample_all( ps,  particle_group, params, xmin, Lx )
 
 #=
-    sll_int32 :: n_rnds
-    sll_real64                                         :: x(3),v(3)
-    sll_int32                                          :: i_part
-    sll_int32                                          :: i_v, i_gauss
-    sll_real64, allocatable                            :: rdn(:)
-    sll_real64                                         :: wi(particle_group%n_weights)
-    sll_real64                                         :: rnd_no
-    sll_real64                                         :: delta(params%n_gaussians)
+    sll_int32                  :: n_rnds
+    sll_real64                 :: x(3),v(3)
+    sll_int32                  :: i_part
+    sll_int32                  :: i_v, i_gauss
+    sll_real64, allocatable    :: rdn(:)
+    sll_real64                 :: wi(particle_group%n_weights)
+    sll_real64                 :: rnd_no
+    sll_real64                 :: delta(params%n_gaussians)
 =#
 
     n_rnds = 0
@@ -97,18 +97,17 @@ function sample_particle_sampling_all( self,  particle_group, params, xmin, Lx )
     # 1/Np in common weight
     set_common_weight(particle_group, (1.0/particle_group.n_total_particles))
 
-
-    if self.sampling_type == :sobol
+    if ps.sampling_type == :sobol
        rng_sobol  = SobolSeq(1)
     else
-       rng_random = rand(MersenneTwister(self.seed))
+       rng_random = rand(MersenneTwister(ps.seed))
     end 
    
 #=
    
     for i_part = 1:particle_group.n_particles
 
-       if self.sampling_type == :sobol
+       if ps.sampling_type == :sobol
            x = next!(rng_sobol)
        else
            x = rand(rng_random)
@@ -148,7 +147,7 @@ end
 """
 Helper function for antithetic sampling in 1d2v
 """
-function sample_sym_1d2v( self, particle_group, params, xmin, Lx )
+function sample_sym_1d2v( ps, particle_group, params, xmin, Lx )
 
 #=
     sll_int32 :: n_rnds
@@ -178,17 +177,17 @@ function sample_sym_1d2v( self, particle_group, params, xmin, Lx )
     call particle_group%set_common_weight &
          (1.0_f64/real(particle_group%n_total_particles, f64))
 
-    if ( self%random_numbers == sll_p_random_numbers ) then
-       call random_seed(put=self%random_seed)
+    if ( ps%random_numbers == sll_p_random_numbers ) then
+       call random_seed(put=ps%random_seed)
     end if
 
     do i_part = 1, particle_group%n_particles
        ip = modulo(i_part, 8 )
        if ( ip == 1) then
           ! Generate Random or Sobol numbers on [0,1]
-          select case( self%random_numbers )
+          select case( ps%random_numbers )
           case( sll_p_sobol_numbers )
-             call sll_s_i8_sobol( int(n_rnds,8), self%sobol_seed, rdn(1:n_rnds))
+             call sll_s_i8_sobol( int(n_rnds,8), ps%sobol_seed, rdn(1:n_rnds))
           case( sll_p_random_numbers )
              call random_number( rdn(1:n_rnds) )
           end select
