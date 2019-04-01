@@ -1,10 +1,11 @@
-
 @testset "Sampling" begin
 
 using VlasovBase
 
-function test_sampling( sampling_type, symmetric, dims, pg, params, tolerance )
+xmin     = 1.0 :: Float64
+Lx       = 4π  
 
+function test_sampling( sampling_type, symmetric, dims, pg, params, tolerance )
 
    mean  = zeros(3)
    sigma = zeros(3)
@@ -13,6 +14,7 @@ function test_sampling( sampling_type, symmetric, dims, pg, params, tolerance )
    n_particles = pg.n_particles
    
    sampling = ParticleSampler( sampling_type, symmetric, dims, n_particles )
+
    sample( sampling, pg, params, xmin, Lx )
    
    for i_part = 1:n_particles
@@ -46,9 +48,6 @@ n_particles = 80000
 
 pg = ParticleGroup{1,2}(n_particles, n_particles, 1.0, 1.0, 1)
 
-xmin     = 1.0
-Lx       = 4π
-
 params = ( dims        = (1,2),
            n_cos       = 1,
            n_gaussians = 1,
@@ -64,8 +63,8 @@ df1 = CosGaussian(params...)
 mean_ref  = [Lx*0.5+xmin, 0.0, 0.0]
 sigma_ref = [Lx^2/12.0,   df1.v_thermal[1,1]^2, df1.v_thermal[2,1]^2 ]
 
-#@test test_sampling( :sobol,  false, [1,2], pg, params, 1e2/sqrt(n_particles))
-#@test test_sampling( :sobol,  true,  [1,2], pg, params, 1e-12)
+@test test_sampling( :sobol, false, (1,2), pg, params, 1e2/sqrt(n_particles))
+#@test test_sampling( :sobol, true,  (1,2), pg, params, 1e-12)
 #@test test_sampling( :random, false  [1,2], pg, params, 1e2/sqrt(n_particles))
 #@test test_sampling( :random, true,  [1,2], pg, params, 1e-12)
    
