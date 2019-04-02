@@ -74,7 +74,7 @@ for i_part = 1:n_particles
     wi    = get_charge(particle_group, i_part)
     vi    = get_v(particle_group, i_part)
     vi1   = vi
-    x_new = xi + vi[1]/10.0
+    x_new = xi .+ vi[1]/10.0
 
     add_current_update_v(    kernel, xi, x_new, wi, 1.0, b_dofs, vi,  j_dofs  )
     add_current_update_v_pp( kernel, xi, x_new, wi, 1.0, b_dofs, vi1, j_dofs1 )
