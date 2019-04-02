@@ -34,31 +34,25 @@ mutable struct ParticleGroup{D,V} <:  AbstractParticleGroup
     end
 end 
 
+export get_x
 
 """  
 Get position
 """
 @generated function get_x( p :: ParticleGroup{D,V}, i ) where {D, V}
 
-    if D == 1
-        return :(p.particle_array[1, i])
-    else
-        return :(p.particle_array[1:$D, i])
-    end
+    :(p.particle_array[1:$D, i])
     
 end 
+
+export get_v
 
 """  
 Get velocities
 """
 @generated function get_v( p :: ParticleGroup{D,V}, i ) where {D, V}
 
-    if V == 1
-        return :(p.particle_array[$D+1, i])
-    else
-        return :(p.particle_array[$D+1:$D+$V, i])
-    end
-    
+    :(p.particle_array[$D+1:$D+$V, i])
 end
 
 
@@ -67,7 +61,7 @@ Get charge of particle (q * particle_weight)
 """
 @generated function get_charge( p :: ParticleGroup{D,V}, i; i_wi=1) where {D, V}
 
-    return :(p.charge * p.particle_array[$D+$V+i_wi, i] * p.common_weight)
+    :(p.charge * p.particle_array[$D+$V+i_wi, i] * p.common_weight)
 
 end 
 
@@ -77,7 +71,7 @@ Get mass of particle (m * particle_weight)
 """
 @generated function get_mass( p :: ParticleGroup{D,V}, i; i_wi=1) where {D,V}
 
-    return :(p.mass * p.particle_array[$D+$V+i_wi, i] * p.common_weight)
+    :(p.mass * p.particle_array[$D+$V+i_wi, i] * p.common_weight)
 
 end
 
@@ -86,7 +80,7 @@ Get particle weights
 """
 @generated function get_weights( p :: ParticleGroup{D,V}, i) where {D, V}
 
-    return :(p.particle_array[$D+$V+1:$D+$V+p.n_weights, i])
+    :(p.particle_array[$D+$V+1:$D+$V+p.n_weights, i])
 
 end
 
@@ -95,11 +89,7 @@ Set position of particle @ i
 """
 @generated function set_x( p :: ParticleGroup{D,V}, i, x ) where {D, V}
 
-    if D == 1
-        return :(p.particle_array[1, i] = x)
-    else
-        return :(p.particle_array[1:$D, i] .= x)
-    end
+    :(p.particle_array[1:$D, i] .= x)
     
 end
 
@@ -108,11 +98,7 @@ Set velocity of particle @ i
 """
 @generated function set_v( p :: ParticleGroup{D,V}, i, x ) where {D, V}
 
-    if V == 1
-        return :(p.particle_array[$D+1, i] = x)
-    else
-        return :(p.particle_array[$D+1:$D+$V, i] .= x)
-    end
+    :(p.particle_array[$D+1:$D+$V, i] .= x)
     
 end
   
@@ -121,7 +107,7 @@ Set weights of particle @ i
 """
 @generated function set_weights( p :: ParticleGroup{D,V}, i, x ) where {D, V}
 
-    return :(p.particle_array[$D+$V+1:$D+$V+p.n_weights, i] .= x)
+    :(p.particle_array[$D+$V+1:$D+$V+p.n_weights, i] .= x)
     
 end
 
