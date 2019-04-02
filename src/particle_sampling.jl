@@ -1,5 +1,6 @@
 using Sobol, Random
 using VlasovBase
+using Distributions
 
 export ParticleSampler
 
@@ -53,7 +54,7 @@ Sample from distribution defined by \a params
 """
 function sample( ps   :: ParticleSampler, 
                  pg   :: ParticleGroup{1,2}, 
-                 df   :: NamedTuple, 
+                 df   :: CosGaussian, 
                  xmin :: Float64, 
                  Lx )
 
@@ -69,85 +70,73 @@ end
 """
 Helper function for pure sampling
 """
-function sample_all( ps,  particle_group, params, xmin, Lx )
+function sample_all( ps, pg, df, xmin, Lx )
 
-#=
-    sll_int32                  :: n_rnds
-    sll_real64                 :: x(3),v(3)
-    sll_int32                  :: i_part
-    sll_int32                  :: i_v, i_gauss
-    sll_real64, allocatable    :: rdn(:)
-    sll_real64                 :: wi(particle_group%n_weights)
-    sll_real64                 :: rnd_no
-    sll_real64                 :: delta(params%n_gaussians)
-=#
+    ndx, ndv = df.dims
+
+    x = zeros( ndx )
+    v = zeros( ndv )
 
     n_rnds = 0
-    if params.n_gaussians > 1
+    if df.n_gaussians > 1
        n_rnds = 1
     end
 
-    for i_v=1:params.n_gaussians
-       delta[i_v] = sum(params.δ[1:i_v])
+    delta = zeros(df.n_gaussians)
+    for i_v=1:df.n_gaussians
+       delta[i_v] = sum(df.delta[1:i_v])
     end
     
-    n_rnds += params.dims[1] + params.dims[2]
-    rdn = zeros(params.dims[1]+params.dims[2]+1)
+    n_rnds += ndx + ndv
+    rdn = zeros(ndx + ndv + 1)
     
     # 1/Np in common weight
-    set_common_weight(particle_group, (1.0/particle_group.n_total_particles))
+    set_common_weight(pg, (1.0/pg.n_total_particles))
 
     if ps.sampling_type == :sobol
-       rng_sobol  = SobolSeq(1)
+       rng_sobol  = SobolSeq(ndx)
     else
        rng_random = rand(MersenneTwister(ps.seed))
     end 
+
+    d = Normal()
    
-#=
-   
-    for i_part = 1:particle_group.n_particles
+    for i_part = 1:pg.n_particles
 
        if ps.sampling_type == :sobol
-           x = next!(rng_sobol)
+           x .= xmin .+ next!(rng_sobol) .* Lx
        else
-           x = rand(rng_random)
+           x .= xmin .+ rand!(rng_random, x) * Lx
        end
-       x = xmin + Lx * x
 
        # Set weight according to value of perturbation
-       wi = params.eval_x_density(x) * prod(Lx)
+       wi = eval_x_density(df, x) * Lx
 
-       ! Maxwellian distribution of the temperature
-       do i_v = 1,params%dims(2)
-          call sll_s_normal_cdf_inv( rdn(i_v+params%dims(1)), 0.0_f64, 1.0_f64, &
-               v(i_v))
-       end do
-       ! For multiple Gaussian, draw which one to take
-       rnd_no = rdn(params%dims(1)+params%dims(2)+1)
+       v .= rand!(d, v)
+
+       # For multiple Gaussian, draw which one to take
+       rnd_no = rdn[ndx+ndv+1]
        i_gauss = 1
-       do while( rnd_no > delta(i_gauss) )
-          i_gauss = i_gauss+1
-       end do
-       v(1:params%dims(2)) = v(1:params%dims(2)) * params%v_thermal(:,i_gauss) + params%v_mean(:,i_gauss)
+       while( rnd_no > delta[i_gauss] )
+          i_gauss += 1
+       end
+       v .= v .* df.v_thermal[:,i_gauss] .+ df.v_mean[:,i_gauss]
        
-       ! Copy the generated numbers to the particle
-       call particle_group%set_x(i_part, x)
-       call particle_group%set_v(i_part, v)
-       ! Set weights.
-       call particle_group%set_weights(i_part, &
-            wi)
-       
-    end do
+       # Copy the generated numbers to the particle
+       set_x(pg, i_part, x)
+       set_v(pg, i_part, v)
+       # Set weights.
+       set_weights(pg, i_part, wi)
+
+    end
        
     
-=#
-
 end
 
 """
 Helper function for antithetic sampling in 1d2v
 """
-function sample_sym_1d2v( ps, particle_group, params, xmin, Lx )
+function sample_sym_1d2v( ps, pg, params, xmin, Lx )
 
 #=
     sll_int32 :: n_rnds
@@ -174,14 +163,14 @@ function sample_sym_1d2v( ps, particle_group, params, xmin, Lx )
     rdn = 0.0_f64
     
     ! 1/Np in common weight
-    call particle_group%set_common_weight &
-         (1.0_f64/real(particle_group%n_total_particles, f64))
+    call pg%set_common_weight &
+         (1.0_f64/real(pg%n_total_particles, f64))
 
     if ( ps%random_numbers == sll_p_random_numbers ) then
        call random_seed(put=ps%random_seed)
     end if
 
-    do i_part = 1, particle_group%n_particles
+    do i_part = 1, pg%n_particles
        ip = modulo(i_part, 8 )
        if ( ip == 1) then
           ! Generate Random or Sobol numbers on [0,1]
@@ -219,10 +208,10 @@ function sample_sym_1d2v( ps, particle_group, params, xmin, Lx )
        end if
           
        ! Copy the generated numbers to the particle
-       call particle_group%set_x(i_part, x)
-       call particle_group%set_v(i_part, v)
+       call pg%set_x(i_part, x)
+       call pg%set_v(i_part, v)
        ! Set weights.
-       call particle_group%set_weights(i_part, &
+       call pg%set_weights(i_part, &
             wi)
        
     end do    
