@@ -81,7 +81,7 @@ Add charge of one particle
 """
 function add_charge_pp(p, position, marker_charge, rho_dofs)
     
-    xi    = (position - p.domain[1])/p.delta_x
+    xi    = (position[1] - p.domain[1])/p.delta_x
     index = floor(Int64, xi)+1
     xi    = xi    - (index-1)
     index = index - p.spline_degree
@@ -110,11 +110,11 @@ Add charge of one particle
 - rho_dofs       : Coefficient vector of the charge distribution
 """
 function add_charge(p             :: ParticleMeshCoupling,
-                    position      :: Float64, 
+                    position      :: Vector{Float64}, 
                     marker_charge :: Float64, 
                     rho_dofs      :: Vector{Float64})
 
-    xi    = (position - p.domain[1])/p.delta_x[1]
+    xi    = (position[1] - p.domain[1])/p.delta_x[1]
     index = floor(Int64, xi)+1
     xi    = xi - (index-1)
     index = index - p.spline_degree
@@ -218,8 +218,8 @@ end
 Add current for one particle and update v (according to H_p1 part in Hamiltonian splitting)
 """
 function add_current_update_v(p             :: ParticleMeshCoupling, 
-                              position_old  :: Float64, 
-                              position_new  :: Float64, 
+                              position_old  :: Vector{Float64}, 
+                              position_new  :: Vector{Float64}, 
                               marker_charge :: Float64, 
                               qoverm        :: Float64, 
                               bfield_dofs   :: Vector{Float64}, 
@@ -328,7 +328,7 @@ Evaluate field at at position \a position using horner scheme
 """ 
 function evaluate_pp(p, position, field_dofs_pp)
 
-    xi = (position - p.domain[1])/p.delta_x[1]
+    xi = (position[1] - p.domain[1])/p.delta_x[1]
     index = floor(Int64, xi)+1
     xi = xi - (index-1)
    
@@ -345,7 +345,7 @@ Evaluate field at at position \a position
 """
 function evaluate(p, position, field_dofs)
 
-    xi = (position - p.domain[1])/p.delta_x[1]
+    xi = (position[1] - p.domain[1])/p.delta_x[1]
     index = floor(Int64, xi)+1
     xi = xi - (index-1)
     index = index - p.spline_degree
