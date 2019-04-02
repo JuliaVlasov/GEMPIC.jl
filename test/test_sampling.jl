@@ -5,7 +5,7 @@ using VlasovBase
 xmin     = 1.0 :: Float64
 Lx       = 4π  
 
-function test_sampling( sampling_type, symmetric, dims, pg, params, tolerance )
+function test_sampling( sampling_type, symmetric, dims, pg, df )
 
    mean  = zeros(3)
    sigma = zeros(3)
@@ -15,12 +15,12 @@ function test_sampling( sampling_type, symmetric, dims, pg, params, tolerance )
    
    sampling = ParticleSampler( sampling_type, symmetric, dims, n_particles )
 
-   sample( sampling, pg, params, xmin, Lx )
+   sample( sampling, pg, df, xmin, Lx )
    
    for i_part = 1:n_particles
        xi = get_x(pg, i_part)
        vi = get_v(pg, i_part)
-       mean[1] += xi
+       mean[1] += xi[1]
        mean[2] += vi[1]
        mean[3] += vi[2]
    end
@@ -30,17 +30,14 @@ function test_sampling( sampling_type, symmetric, dims, pg, params, tolerance )
    for i_part = 1:n_particles
        xi = get_x(pg, i_part)
        vi = get_v(pg, i_part)
-       sigma[1] += (xi    - mean[1])^2
+       sigma[1] += (xi[1] - mean[1])^2
        sigma[2] += (vi[1] - mean[2])^2
        sigma[3] += (vi[2] - mean[3])^2
    end
    
-   sigma = sigma/real(n_particles-1, f64)
+   sigma = sigma/(n_particles-1)
    
-   @show mean  .= mean  .- mean_ref
-   @show sigma .= sigma .- sigma_ref
-   
-   maximum(abs.(mean)) < tolerance
+   mean, sigma
    
 end
 
@@ -63,10 +60,16 @@ df1 = CosGaussian(params...)
 mean_ref  = [Lx*0.5+xmin, 0.0, 0.0]
 sigma_ref = [Lx^2/12.0,   df1.v_thermal[1,1]^2, df1.v_thermal[2,1]^2 ]
 
-@test test_sampling( :sobol, false, (1,2), pg, params, 1e2/sqrt(n_particles))
-#@test test_sampling( :sobol, true,  (1,2), pg, params, 1e-12)
-#@test test_sampling( :random, false  [1,2], pg, params, 1e2/sqrt(n_particles))
-#@test test_sampling( :random, true,  [1,2], pg, params, 1e-12)
+mean, sigma = test_sampling( :sobol, false, (1,2), pg, df1 )
+
+@show sigma .- sigma_ref
+@show mean  .- mean_ref
+
+tol =  1e2/sqrt(n_particles)
+   
+#@test test_sampling( :sobol, true,  (1,2), pg, df1, 1e-12)
+#@test test_sampling( :random, false  [1,2], pg, df1, 1e2/sqrt(n_particles))
+#@test test_sampling( :random, true,  [1,2], pg, df1, 1e-12)
    
 # Expected mean:
 # 2π+1, 0, 0
@@ -81,7 +84,7 @@ params = (
     alpha       = [0.01],
     v_thermal   = hcat([0.1, 2.0], [2.0, 2.0]),
     v_mean      = hcat([0.0, 0.0], [1.0, 1.0]),
-    δ           = 0.7,
+    δ           = 0.7
 )
 
 df2 = CosGaussian(params...)
@@ -97,7 +100,7 @@ for j=1:2
     end
 end
   
-#@test test_sampling( :sobol, false, [1,2], pg, params, 1e2/sqrt(n_particles))
-#@test test_sampling( :sobol, true,  [1,2], pg, params, 1e2/sqrt(n_particles))
+#@test test_sampling( :sobol, false, [1,2], pg, df2, 1e2/sqrt(n_particles))
+#@test test_sampling( :sobol, true,  [1,2], pg, df2, 1e2/sqrt(n_particles))
 
 end
