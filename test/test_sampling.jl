@@ -112,7 +112,7 @@ for j=1:2
                       +(df2.delta[2] - df2.delta[1])*df2.v_mean[j,2])^2
     for k=1:2
         sigma_ref[j+1] += df2.delta[k] * (df2.v_thermal[j,k]^2
-                                            +df2.v_mean[j,k]^2)
+                                       +  df2.v_mean[j,k]^2)
     end
 end
   
