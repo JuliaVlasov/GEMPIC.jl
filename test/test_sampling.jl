@@ -60,16 +60,29 @@ df1 = CosGaussian(params...)
 mean_ref  = [Lx*0.5+xmin, 0.0, 0.0]
 sigma_ref = [Lx^2/12.0,   df1.v_thermal[1,1]^2, df1.v_thermal[2,1]^2 ]
 
+@info "Sobol non symmetric"
 mean, sigma = test_sampling( :sobol, false, (1,2), pg, df1 )
+@show abs.(mean  .- mean_ref)
+@show abs.(sigma .- sigma_ref)
+@test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e2/sqrt(n_particles)
 
-@show sigma .- sigma_ref
-@show mean  .- mean_ref
+@info "Sobol symmetric"
+mean, sigma = test_sampling( :sobol, true,  (1,2), pg, df1 )
+@show abs.(mean  .- mean_ref)
+@show abs.(sigma .- sigma_ref)
+@test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e-12
 
-tol =  1e2/sqrt(n_particles)
-   
-#@test test_sampling( :sobol, true,  (1,2), pg, df1, 1e-12)
-#@test test_sampling( :random, false  [1,2], pg, df1, 1e2/sqrt(n_particles))
-#@test test_sampling( :random, true,  [1,2], pg, df1, 1e-12)
+@info "Random non symmetric"
+mean, sigma = test_sampling( :random, false, (1,2), pg, df1)
+@show abs.(mean  .- mean_ref)
+@show abs.(sigma .- sigma_ref)
+@test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e2/sqrt(n_particles)
+
+@info "Random symmetric"
+mean, sigma = test_sampling( :random, true,  (1,2), pg, df1)
+@show abs.(mean  .- mean_ref)
+@show abs.(sigma .- sigma_ref)
+@test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e-12
    
 # Expected mean:
 # 2π+1, 0, 0
@@ -100,7 +113,17 @@ for j=1:2
     end
 end
   
-#@test test_sampling( :sobol, false, [1,2], pg, df2, 1e2/sqrt(n_particles))
-#@test test_sampling( :sobol, true,  [1,2], pg, df2, 1e2/sqrt(n_particles))
+@info "Sobol non symmetric"
+mean, sigma =  test_sampling( :sobol, false, (1,2), pg, df2) 
+@show abs.(mean  .- mean_ref)
+@show abs.(sigma .- sigma_ref)
+@test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e2/sqrt(n_particles)
+
+
+@info "Sobol symmetric"
+mean, sigma =  test_sampling( :sobol, true,  (1,2), pg, df2) 
+@show abs.(mean  .- mean_ref)
+@show abs.(sigma .- sigma_ref)
+@test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e2/sqrt(n_particles)
 
 end
