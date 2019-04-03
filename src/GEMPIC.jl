@@ -1,5 +1,6 @@
 module GEMPIC
 
+    include("mesh.jl")
     include("low_level_bsplines.jl")
     include("splinepp.jl")
     include("maxwell_1d_fem.jl")
