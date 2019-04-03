@@ -2,8 +2,6 @@
 
 using VlasovBase
 
-xmin     = 1.0 :: Float64
-Lx       = 4π  
 
 function test_sampling( sampling_type :: Symbol, 
                         symmetric     :: Bool, 
@@ -18,7 +16,7 @@ function test_sampling( sampling_type :: Symbol,
    
    sampling = ParticleSampler( sampling_type, symmetric, (D, V), n_particles )
 
-   sample( sampling, pg, df, xmin, Lx )
+   sample( sampling, pg, df, mesh )
    
    for i_part = 1:n_particles
        xi = get_x(pg, i_part)
@@ -44,7 +42,13 @@ function test_sampling( sampling_type :: Symbol,
    
 end
 
-n_particles = 80000
+n_particles = 100000
+xmin        = 1.0 :: Float64
+xmax        = 4π + 1.0
+Lx          = xmax - xmin  
+nx          = 64
+
+mesh = Mesh( xmax, xmin, nx)
 
 pg = ParticleGroup{1,2}(n_particles, n_particles, 1.0, 1.0, 1)
 
