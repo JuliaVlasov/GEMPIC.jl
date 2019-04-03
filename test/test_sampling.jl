@@ -5,7 +5,10 @@ using VlasovBase
 xmin     = 1.0 :: Float64
 Lx       = 4π  
 
-function test_sampling( sampling_type, symmetric, dims, pg, df )
+function test_sampling( sampling_type :: Symbol, 
+                        symmetric     :: Bool, 
+                        pg            :: ParticleGroup{D,V}, 
+                        df            :: CosGaussian ) where {D, V}
 
    mean  = zeros(3)
    sigma = zeros(3)
@@ -13,7 +16,7 @@ function test_sampling( sampling_type, symmetric, dims, pg, df )
 
    n_particles = pg.n_particles
    
-   sampling = ParticleSampler( sampling_type, symmetric, dims, n_particles )
+   sampling = ParticleSampler( sampling_type, symmetric, (D, V), n_particles )
 
    sample( sampling, pg, df, xmin, Lx )
    
@@ -61,25 +64,25 @@ mean_ref  = [Lx*0.5+xmin, 0.0, 0.0]
 sigma_ref = [Lx^2/12.0,   df1.v_thermal[1,1]^2, df1.v_thermal[2,1]^2 ]
 
 @info "Sobol non symmetric"
-mean, sigma = test_sampling( :sobol, false, (1,2), pg, df1 )
+mean, sigma = test_sampling( :sobol, false, pg, df1 )
 @show abs.(mean  .- mean_ref)
 @show abs.(sigma .- sigma_ref)
 @test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e2/sqrt(n_particles)
 
 @info "Sobol symmetric"
-mean, sigma = test_sampling( :sobol, true,  (1,2), pg, df1 )
+mean, sigma = test_sampling( :sobol, true,  pg, df1 )
 @show abs.(mean  .- mean_ref)
 @show abs.(sigma .- sigma_ref)
 @test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e-12
 
 @info "Random non symmetric"
-mean, sigma = test_sampling( :random, false, (1,2), pg, df1)
+mean, sigma = test_sampling( :random, false, pg, df1)
 @show abs.(mean  .- mean_ref)
 @show abs.(sigma .- sigma_ref)
 @test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e2/sqrt(n_particles)
 
 @info "Random symmetric"
-mean, sigma = test_sampling( :random, true,  (1,2), pg, df1)
+mean, sigma = test_sampling( :random, true,  pg, df1)
 @show abs.(mean  .- mean_ref)
 @show abs.(sigma .- sigma_ref)
 @test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e-12
@@ -114,14 +117,14 @@ for j=1:2
 end
   
 @info "Sobol non symmetric"
-mean, sigma =  test_sampling( :sobol, false, (1,2), pg, df2) 
+mean, sigma =  test_sampling( :sobol, false, pg, df2) 
 @show abs.(mean  .- mean_ref)
 @show abs.(sigma .- sigma_ref)
 @test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e2/sqrt(n_particles)
 
 
 @info "Sobol symmetric"
-mean, sigma =  test_sampling( :sobol, true,  (1,2), pg, df2) 
+mean, sigma =  test_sampling( :sobol, true,  pg, df2) 
 @show abs.(mean  .- mean_ref)
 @show abs.(sigma .- sigma_ref)
 @test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e2/sqrt(n_particles)
