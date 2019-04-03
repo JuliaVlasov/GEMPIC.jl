@@ -55,13 +55,12 @@ Sample from distribution defined by \a params
 function sample( ps   :: ParticleSampler, 
                  pg   :: ParticleGroup{1,2}, 
                  df   :: CosGaussian, 
-                 xmin :: Float64, 
-                 Lx )
+                 mesh :: Mesh )
 
     if ps.symmetric 
-        sample_sym_1d2v( ps, pg, df, xmin, Lx )
+        sample_sym( ps, pg, df, mesh )
     else
-        sample_all( ps, pg, df, xmin, Lx )
+        sample_all( ps, pg, df, mesh )
     end 
     
 end
@@ -70,7 +69,7 @@ end
 """
 Helper function for pure sampling
 """
-function sample_all( ps, pg, df, xmin, Lx )
+function sample_all( ps, pg, df, mesh )
 
     ndx, ndv = df.dims
 
@@ -104,13 +103,13 @@ function sample_all( ps, pg, df, xmin, Lx )
     for i_part = 1:pg.n_particles
 
        if ps.sampling_type == :sobol
-           x .= xmin .+ next!(rng_sobol) .* Lx
+           x .= mesh.xmin .+ next!(rng_sobol) .* mesh.Lx
        else
-           x .= xmin .+ rand(rng_random, ndx) * Lx
+           x .= mesh.xmin .+ rand(rng_random, ndx) .* mesh.Lx
        end
 
        # Set weight according to value of perturbation
-       wi = eval_x_density(df, x) * Lx
+       wi = eval_x_density(df, x) .* prod(mesh.Lx)
 
        v .= rand!(d, v)
 
@@ -136,7 +135,7 @@ end
 """
 Helper function for antithetic sampling in 1d2v
 """
-function sample_sym_1d2v( ps, pg, df, xmin, Lx )
+function sample_sym( ps, pg, df, mesh )
 
 #=
     sll_int32 :: n_rnds
@@ -194,10 +193,10 @@ function sample_sym_1d2v( ps, pg, df, xmin, Lx )
             end 
             
             # Transform rdn to the interval
-            x[1:ndx] .= xmin .+ Lx .* rdn[1:ndx]
+            x[1:ndx] .= mesh.xmin .+ mesh.Lx .* rdn[1:ndx]
             
             # Set weight according to value of perturbation
-            wi = eval_x_density(df, x[1:ndx] * Lx)
+            wi = eval_x_density(df, x[1:ndx] * prod(mesh.Lx))
             
             # Maxwellian distribution of the temperature
 
@@ -206,7 +205,7 @@ function sample_sym_1d2v( ps, pg, df, xmin, Lx )
             # For multiple Gaussian, draw which one to take
             rnd_no = rdn[ndx+ndv+1]
             i_gauss = 1
-			while i_gauss < df.n_gaussians && rnd_no > delta[i_gauss]
+            while i_gauss < df.n_gaussians && rnd_no > delta[i_gauss]
                i_gauss += 1
             end
 
@@ -214,7 +213,7 @@ function sample_sym_1d2v( ps, pg, df, xmin, Lx )
 
         elseif ip == 5
 
-            x[1] = Lx - x[1] + 2.0 * xmin
+            x[1] = mesh.Lx[1] - x[1] + 2.0 * mesh.xmin[1]
 
         elseif ip % 2 == 0
 
