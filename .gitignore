@@ -8,3 +8,6 @@ Manifest.toml
 .ipynb_checkpoints/particle_group-checkpoint.ipynb
 .ipynb_checkpoints/distributions-checkpoint.ipynb
 .ipynb_checkpoints/quietstart-checkpoint.ipynb
+*.mod
+*.o
+*.exe
