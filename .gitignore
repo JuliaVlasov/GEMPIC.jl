@@ -11,3 +11,4 @@ Manifest.toml
 *.mod
 *.o
 *.exe
+*.dat
