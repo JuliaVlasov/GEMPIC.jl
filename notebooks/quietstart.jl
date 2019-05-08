@@ -4,9 +4,9 @@
 #   jupytext:
 #     comment_magics: false
 #     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.2'
+#       extension: .jl
+#       format_name: light
+#       format_version: '1.4'
 #       jupytext_version: 1.1.1
 #   kernelspec:
 #     display_name: Julia 1.1.0
@@ -14,13 +14,10 @@
 #     name: julia-1.1
 # ---
 
-# %%
 using Plots, BenchmarkTools, Sobol, KahanSummation
 
-# %%
 s = SobolSeq(2)
 
-# %%
 n = 1000
 points = zeros(Float64,(2,n))
 for i = 1:n
@@ -28,7 +25,6 @@ for i = 1:n
 end
 scatter(points[1,:], points[2,:])
 
-# %%
 """
 Solve ``P(x) = \\frac{2\\pi R}{k} ``
 
@@ -58,9 +54,7 @@ function dichotomie(R)
     end
 end
 
-# %%
 """
-
 Input r is a random number ``\\in [0,1]``
 
 ```math
@@ -94,19 +88,15 @@ function newton(r)
     x1
 end
 
-# %%
 ?newton
 
-# %%
 @btime newton(0.9)
 
-# %%
 ?dichotomie
 
-# %%
 @btime dichotomie(0.9)
 
-# %%
+# +
 function landau( nbpart :: Int64)
     
    xp = Float64[]
@@ -125,18 +115,16 @@ function landau( nbpart :: Int64)
    end
 
    xp, vp
-    
+
 end
 
-# %%
 xp, vp = landau(100000);
+# -
 
-# %%
 p = histogram([xp,vp], normalize=true, bins = 100,  layout=(2,1), lab = "draws")
 plot!(p[1,1], x-> (1+0.1*cos(0.5*x))/4π, 0., 4π)
 plot!(p[2,1], x-> (exp(-x^2/2))/sqrt(2π), -6, 6)
 
-# %%
 ρ(x) = exp(-x^2/2)
 xmin, xmax, nx = -5, 5, 100
 x = range( xmin, stop=xmax, length=nx)
@@ -144,13 +132,11 @@ f = map(ρ, x)
 plot(ρ, xmin, xmax)
 scatter!(x, f)
 
-# %%
 dx = (xmax - xmin)/(nx-1)
 @show nx * dx == xmax - xmin
 v = (cumsum(f) .* dx) / sqrt(2π)
 plot( x, v)
 
-# %%
 samples  = rand(10000) 
 for i in eachindex(samples)
     j = findmin(abs.(v .- samples[i] ))[2]
@@ -159,7 +145,6 @@ end
 histogram(samples, normalize=true, bins = 100)
 plot!(x, f ./ sqrt(2π))
 
-# %%
 s = SobolSeq(1)
 for i in eachindex(samples)
     rnd = next!(s)[1]
@@ -169,7 +154,6 @@ end
 histogram(samples, normalize=true, bins = 100)
 plot!(x, f ./ sqrt(2π))
 
-# %%
 alpha, kx = 0.5, 0.5
 xmin, xmax, nx = 0.0, 2π/kx, 10000
 dx = (xmax - xmin) / (nx-1)
@@ -178,10 +162,8 @@ f = 1 .+ alpha*cos.(kx .* x)
 v = cumsum(f)*dx 
 plot(x, v)
 
-# %% [markdown]
 # Construct the CDF numerically and find the closest value 
 
-# %%
 nbpart = 10000
 s  = SobolSeq(1)
 xp = Float64[]
@@ -194,4 +176,4 @@ end
 histogram(xp, normalize=true, bins = 100)
 plot!(x-> (1+alpha*cos(kx*x))/4π, 0., 4π)
 
-# %%
+

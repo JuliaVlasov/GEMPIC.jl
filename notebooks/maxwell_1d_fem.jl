@@ -4,9 +4,9 @@
 #   jupytext:
 #     comment_magics: false
 #     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.2'
+#       extension: .jl
+#       format_name: light
+#       format_version: '1.4'
 #       jupytext_version: 1.1.1
 #   kernelspec:
 #     display_name: Julia 1.1.0
@@ -14,14 +14,12 @@
 #     name: julia-1.1
 # ---
 
-# %%
 using Plots
 
-# %%
 const mode = 2
 
-include("src/low_level_bsplines.jl")
-include("src/maxwell_1d_fem.jl")
+include("../src/low_level_bsplines.jl")
+include("../src/maxwell_1d_fem.jl")
 
 const eta1_min = .0
 const eta1_max = 2π
@@ -33,7 +31,6 @@ deg = 3
 
 maxwell_1d = Maxwell1DFEM(domain, nc_eta1, deg);
 
-# %%
 ex = zeros(Float64, nc_eta1)
 ey = zeros(Float64, nc_eta1)
 bz = zeros(Float64, nc_eta1)
@@ -57,7 +54,6 @@ end
 
 x = range(eta1_min , stop=eta1_max, length=nc_eta1+1)[1:end-1] |> collect;
 
-# %%
 compute_rhs_from_function( maxwell_1d, cos_k, deg, rho)
 
 compute_e_from_rho( maxwell_1d, ex, rho ) 
@@ -67,7 +63,6 @@ sval = eval_uniform_periodic_spline_curve(deg-1, ex)
 
 scatter!(x, sval)
 
-# %%
 dt = .5 * delta_eta1
 
 for i = 1:nc_eta1
@@ -83,4 +78,4 @@ sval =  eval_uniform_periodic_spline_curve(deg-1, ex)
 plot(x, ex_exact)
 scatter!(x, sval)
 
-# %%
+

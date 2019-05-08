@@ -3,9 +3,9 @@
 #   jupytext:
 #     comment_magics: false
 #     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.2'
+#       extension: .jl
+#       format_name: light
+#       format_version: '1.4'
 #       jupytext_version: 1.1.1
 #   kernelspec:
 #     display_name: Julia 1.1.0
@@ -13,16 +13,13 @@
 #     name: julia-1.1
 # ---
 
-# %%
 using BayesianTools.ProductDistributions
 p = ProductDistribution(Normal(0,1), Beta(1.,1.))
 n = length(p) ## 2 -> Number of distributions in the product
 
-# %%
 using Random
 rand!(p, zeros(Float64,(2,100)))
 
-# %%
 using BayesianTools.Links
 function mcmc_wrong(iters)
    chain = zeros(Float64, iters)
@@ -39,7 +36,6 @@ function mcmc_wrong(iters)
    return chain
 end
 
-# %%
 function mcmc_right(iters)
    chain = zeros(Float64,iters)
    gamma = Gamma(2, 1)
@@ -57,9 +53,14 @@ function mcmc_right(iters)
    return chain
 end
 
-# %%
-Plots.histogram([mc0, mc1], normalize=true, bins = 100, fill=:slategray, layout = (1,2), lab = "draws")
+# +
+using Plots
+mc0 = mcmc_wrong(1_000_000)
+mc1 = mcmc_right(1_000_000)
+
+Plots.histogram([mc0, mc1], normalize=true, 
+    bins = 100, fill=:slategray, 
+    layout = (1,2), lab = "draws")
+# -
 
 
-
-# %%
