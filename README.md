@@ -17,4 +17,4 @@ This is a translation from a Fortran code written by :
 
 from Max-Planck-Institut fur Plasmaphysik - Garching (Germany)
 
-**NOTE: This package is still very much under development and is not fully tested.
+**NOTE: This package is still very much under development and is not fully tested.**
