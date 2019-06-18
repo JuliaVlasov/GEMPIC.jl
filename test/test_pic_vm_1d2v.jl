@@ -38,75 +38,58 @@ degree_smoother   = spline_degree
 
 sampler = ParticleSampler( sampling_case, symmetric, (1,2), n_particles)
 
-#=
+for splitting in [:symplectic, :boris]
 
-    select case(splitting_case)
-    case("splitting_symplectic")
-       sim%splitting_case = sll_p_splitting_symplectic
-    case("splitting_boris")
-       sim%splitting_case = sll_p_splitting_boris
-    case default
-       print*, '#splitting case ', splitting_case, ' not implemented.'
-    end select
+    # Initialize the particles   (mass and charge set to 1.0)
+    pg = ParticleGroup{1,2}( n_particles, n_particles ,1.0, 1.0, 1)
+    
+    # Init!ialize the field solver
+    maxwell = Maxwell1DFEM(domain, ng_x, spline_degree)
+    
+    kernel1 = ParticleMeshCoupling( domain, [ng_x], n_particles, 
+                 spline_degree, :galerkin)
+    
+    kernel0 = ParticleMeshCoupling( domain, [ng_x], n_particles, 
+             spline_degree, :galerkin)
 
-    ! Initialize the particles   (mass and charge set to 1.0)
-     call sll_s_new_particle_group_1d2v_ptr(sim%particle_group, sim%n_particles, &
-         sim%n_total_particles, 1.0_f64, 1.0_f64, 1)
+    # Initialize the arrays for the spline coefficients of the fields
+    efield_dofs = zeros(Float64, (n_gcells,2))
+    bfield_dofs = zeros(Float64, (n_gcells))
 
-    ! Initialize the field solver
-     allocate( sll_t_maxwell_1d_fem :: sim%maxwell_solver )
-     select type ( q=>sim%maxwell_solver )
-     type is ( sll_t_maxwell_1d_fem )
-        call q%init( sim%domain(1:2), sim%n_gcells, &
-             sim%degree_smoother)
-     end select
-
-    ! Initialize kernel smoother    
-    call sll_s_new_particle_mesh_coupling_spline_1d_ptr(sim%kernel_smoother_1, &
-         sim%domain(1:2), [sim%n_gcells], &
-         sim%n_particles, sim%degree_smoother-1, sll_p_galerkin) 
-    call sll_s_new_particle_mesh_coupling_spline_1d_ptr(sim%kernel_smoother_0, &
-         sim%domain(1:2), [sim%n_gcells], &
-         sim%n_particles, sim%degree_smoother, sll_p_galerkin) 
-   
-
-    ! Initialize the arrays for the spline coefficients of the fields
-    SLL_ALLOCATE(sim%efield_dofs(sim%n_gcells,2), ierr)
-    SLL_ALLOCATE(sim%bfield_dofs(sim%n_gcells), ierr)
-
-    ! Initialize the time-splitting propagator
-    if (sim%splitting_case == sll_p_splitting_symplectic) then
-       call sll_s_new_hamiltonian_splitting_pic_vm_1d2v(&
-            sim%propagator, sim%maxwell_solver, &
-            sim%kernel_smoother_0, sim%kernel_smoother_1, sim%particle_group, &
-            sim%efield_dofs, sim%bfield_dofs, &
-            sim%domain(1), sim%domain(3))
-       sim%efield_dofs_n => sim%efield_dofs
-    elseif( sim%splitting_case == sll_p_splitting_boris) then
-       allocate( sll_t_hamiltonian_splitting_pic_vm_1d2v_boris :: sim%propagator )
-       select type( qp=>sim%propagator )
-       type is ( sll_t_hamiltonian_splitting_pic_vm_1d2v_boris)
-          call qp%init( sim%maxwell_solver, &
-               sim%kernel_smoother_0, sim%kernel_smoother_1, sim%particle_group, &
-               sim%efield_dofs, sim%bfield_dofs, &
-               sim%domain(1), sim%domain(3))
-          sim%efield_dofs_n => qp%efield_dofs_mid
-       end select
-    end if
-
-   ! Allocate the vector holding the values of the fields at the grid points
-    SLL_ALLOCATE(sim%fields_grid(sim%n_gcells,3), ierr)
-
-    allocate(sim%x_array(sim%n_gcells))
-    allocate(sim%field_grid(sim%n_gcells))
-
-    sim%x_array(1) = sim%domain(1)
-    do j=2,sim%n_gcells
-       sim%x_array(j) = sim%x_array(j-1) + (sim%domain(3)/real(sim%n_gcells, f64))
-    end do
+#    # Initialize the time-splitting propagator
+#    if (sim%splitting_case == sll_p_splitting_symplectic) then
+#       call sll_s_new_hamiltonian_splitting_pic_vm_1d2v(&
+#            sim%propagator, sim%maxwell_solver, &
+#            sim%kernel_smoother_0, sim%kernel_smoother_1, sim%particle_group, &
+#            sim%efield_dofs, sim%bfield_dofs, &
+#            sim%domain(1), sim%domain(3))
+#       sim%efield_dofs_n => sim%efield_dofs
+#    elseif( sim%splitting_case == sll_p_splitting_boris) then
+#       allocate( sll_t_hamiltonian_splitting_pic_vm_1d2v_boris :: sim%propagator )
+#       select type( qp=>sim%propagator )
+#       type is ( sll_t_hamiltonian_splitting_pic_vm_1d2v_boris)
+#          call qp%init( sim%maxwell_solver, &
+#               sim%kernel_smoother_0, sim%kernel_smoother_1, sim%particle_group, &
+#               sim%efield_dofs, sim%bfield_dofs, &
+#               sim%domain(1), sim%domain(3))
+#          sim%efield_dofs_n => qp%efield_dofs_mid
+#       end select
+#    end if
+#
+#   ! Allocate the vector holding the values of the fields at the grid points
+#    SLL_ALLOCATE(sim%fields_grid(sim%n_gcells,3), ierr)
+#
+#    allocate(sim%x_array(sim%n_gcells))
+#    allocate(sim%field_grid(sim%n_gcells))
+#
+#    sim%x_array(1) = sim%domain(1)
+#    do j=2,sim%n_gcells
+#       sim%x_array(j) = sim%x_array(j-1) + (sim%domain(3)/real(sim%n_gcells, f64))
+#    end do
     
 
-  end subroutine init_pic_vm_1d2v
+end 
+#=
 
 !------------------------------------------------------------------------------!
 

@@ -1,125 +1,32 @@
-#=
-! Simulation of 1d2v Vlasov-Maxwell with simple PIC method, periodic boundary conditions, Weibel instability. FEM with splines, degree 3 for B and 2 for E
+"""
+Simulation of 1d2v Vlasov-Maxwell with simple PIC method:
+- periodic boundary conditions,
+- Weibel instability. 
+- FEM with splines, degree 3 for B and 2 for E
+"""
+function pic_vm_1d2v
 
-! author: Katharina Kormann, IPP
+  splitting_symplectic = 0
+  sll_p_splitting_boris = 1
 
-module sll_m_sim_pic_vm_1d2v_cart
+  onegaussian = 0
+  twogaussian = 1
 
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#include "sll_assert.h"
-#include "sll_errors.h"
-#include "sll_memory.h"
-#include "sll_working_precision.h"
-
-  use sll_m_low_level_bsplines, only: &
-       sll_s_uniform_bsplines_eval_basis
+  bfield_cos = 0
+  bfield_sin = 1
   
-  use sll_m_ascii_io, only: &
-    sll_s_ascii_file_create
 
-  use sll_m_cartesian_meshes, only: &
-    sll_f_new_cartesian_mesh_1d, &
-    sll_t_cartesian_mesh_1d
+  particle_group = ParticleGroup
 
-  use sll_m_collective, only: &
-    sll_o_collective_allreduce, &
-    sll_s_collective_reduce_real64, &
-    sll_f_get_collective_rank, &
-    sll_f_get_collective_size, &
-    sll_v_world_collective
+  efield_dofs(:,:)
+  efield_dofs_n(:,:)
+  bfield_dofs(:)
+  x_array(:)
+  field_grid(:)
 
-  use sll_m_constants, only: &
-    sll_p_pi
+  mesh  = CartesianMesh
 
-  use sll_m_hamiltonian_splitting_base, only: &
-    sll_c_hamiltonian_splitting_base
-
-  use sll_m_hamiltonian_splitting_pic_vm_1d2v, only: &
-    sll_s_new_hamiltonian_splitting_pic_vm_1d2v, &
-    sll_t_hamiltonian_splitting_pic_vm_1d2v
-  
-  use sll_m_hamiltonian_splitting_pic_vm_1d2v_boris, only: &
-       sll_t_hamiltonian_splitting_pic_vm_1d2v_boris
-
-  use sll_m_initial_distribution, only : &
-       sll_c_distribution_params, &
-       sll_s_initial_distribution_new
-  
-  use sll_m_io_utilities, only : &
-    sll_s_read_data_real_array, &
-    sll_s_concatenate_filename_and_path
-
-  use sll_m_particle_mesh_coupling_base, only: &
-    sll_p_galerkin, &
-    sll_c_particle_mesh_coupling
-
-  use sll_m_particle_mesh_coupling_spline_1d, only: &
-    sll_t_particle_mesh_coupling_spline_1d, &
-    sll_s_new_particle_mesh_coupling_spline_1d_ptr
-
-  use sll_m_maxwell_1d_base, only: &
-    sll_c_maxwell_1d_base
-
-  use sll_m_maxwell_1d_fem, only: &
-    sll_t_maxwell_1d_fem
-
-  use sll_m_particle_group_1d2v, only: &
-    sll_s_new_particle_group_1d2v_ptr, &
-    sll_t_particle_group_1d2v
-
-  use sll_m_particle_group_base, only: &
-       sll_c_particle_group_base
-
-  use sll_m_particle_sampling, only: &
-       sll_t_particle_sampling
-  
-  use sll_m_sim_base, only: &
-    sll_c_simulation_base_class
-
-  use sll_m_timer, only: &
-       sll_s_set_time_mark, &
-       sll_f_time_elapsed_between, &
-       sll_t_time_mark
-
-  use sll_mpi, only: &
-       mpi_sum
-
-  implicit none
-
-  public :: &
-    sll_t_sim_pic_vm_1d2v_cart
-
-  private
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-  sll_int32, parameter :: sll_p_splitting_symplectic = 0
-  sll_int32, parameter :: sll_p_splitting_boris = 1
-
-  sll_int32, parameter :: sll_p_onegaussian = 0
-  sll_int32, parameter :: sll_p_twogaussian = 1
-
-  sll_int32, parameter :: sll_p_bfield_cos = 0
-  sll_int32, parameter :: sll_p_bfield_sin = 1
-  
-    type, extends(sll_c_simulation_base_class) :: sll_t_sim_pic_vm_1d2v_cart
-
-     ! Abstract particle group
-     class(sll_c_particle_group_base), pointer :: particle_group
-
-     ! 
-     sll_real64, pointer :: efield_dofs(:,:)
-     sll_real64, pointer :: efield_dofs_n(:,:)
-     sll_real64, pointer :: bfield_dofs(:)
-
-     sll_real64, allocatable :: x_array(:)
-     sll_real64, allocatable :: field_grid(:)
-
-     ! Cartesian mesh
-     type(sll_t_cartesian_mesh_1d), pointer    :: mesh 
-
-     ! Maxwell solver 
-     ! Abstract 
-     class(sll_c_maxwell_1d_base), pointer :: maxwell_solver
+  maxwell_solver
 
      ! Abstract kernel smoothers
      class(sll_c_particle_mesh_coupling), pointer :: kernel_smoother_0     
@@ -310,6 +217,7 @@ contains
 
   end subroutine init_pic_vm_1d2v
 
+end 
 !------------------------------------------------------------------------------!
 
   subroutine run_pic_vm_1d2v (sim)
@@ -760,6 +668,5 @@ contains
 
   end subroutine solve_poisson
     
-
-end module sll_m_sim_pic_vm_1d2v_cart
 =#
+
