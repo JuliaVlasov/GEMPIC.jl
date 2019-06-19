@@ -6,89 +6,92 @@ periodic boundary conditions, Weibel instability.
 FEM with splines, degree 3 for B and 2 for E
 """
 
-
 @testset " PIC VM 1D2V " begin
 
-delta_t         = 0.05
-n_time_steps    = 300
-beta            = 0.0001
-initial_distrib = :cossum_onegaussian
-initial_bfield  = :cos
-
-kx        = 1.25
-alpha     = 0.0
-v_thermal = [0.2,  0.005773502691896]
-v_mean    = [0.0, 0.0]
-
-ng_x   = 32
-x1_min = 0.0
-x1_max = 5.02654824574
-
-n_particles    = 100000
-sampling_case  = :sobol
-symmetric      = true
-splitting_case = :symplectic
-spline_degree  = 3
-
-mesh1  = UniformMesh( x1_min, x1_max, ng_x)
-domain = [x1_min, x1_max, x1_max - x1_min ]
-
-n_total_particles = n_particles
-degree_smoother   = spline_degree
-
-sampler = ParticleSampler( sampling_case, symmetric, (1,2), n_particles)
-
-for splitting in [:symplectic, :boris]
-
-    # Initialize the particles   (mass and charge set to 1.0)
-    pg = ParticleGroup{1,2}( n_particles, n_particles ,1.0, 1.0, 1)
+    delta_t         = 0.05
+    n_time_steps    = 300
+    beta            = 0.0001
+    initial_distrib = :cossum_onegaussian
+    initial_bfield  = :cos
     
-    # Init!ialize the field solver
-    maxwell = Maxwell1DFEM(domain, ng_x, spline_degree)
+    kx        = 1.25
+    alpha     = 0.0
+    v_thermal = [0.2,  0.005773502691896]
+    v_mean    = [0.0, 0.0]
     
-    kernel1 = ParticleMeshCoupling( domain, [ng_x], n_particles, 
+    ng_x   = 32
+    x1_min = 0.0
+    x1_max = 5.02654824574
+    
+    n_particles    = 100000
+    sampling_case  = :sobol
+    symmetric      = true
+    splitting_case = :symplectic
+    spline_degree  = 3
+    
+    mesh1  = UniformMesh( x1_min, x1_max, ng_x)
+    domain = [x1_min, x1_max, x1_max - x1_min ]
+    
+    n_total_particles = n_particles
+    degree_smoother   = spline_degree
+    
+    sampler = ParticleSampler( sampling_case, symmetric, (1,2), n_particles)
+    
+    for splitting in [:symplectic, :boris]
+    
+        # Initialize the particles   (mass and charge set to 1.0)
+        pg = ParticleGroup{1,2}( n_particles, n_particles ,1.0, 1.0, 1)
+        
+        # Init!ialize the field solver
+        maxwell = Maxwell1DFEM(domain, ng_x, spline_degree)
+        
+        kernel1 = ParticleMeshCoupling( domain, [ng_x], n_particles, 
+                     spline_degree, :galerkin)
+        
+        kernel0 = ParticleMeshCoupling( domain, [ng_x], n_particles, 
                  spline_degree, :galerkin)
     
-    kernel0 = ParticleMeshCoupling( domain, [ng_x], n_particles, 
-             spline_degree, :galerkin)
-
-    # Initialize the arrays for the spline coefficients of the fields
-    efield_dofs = zeros(Float64, (n_gcells,2))
-    bfield_dofs = zeros(Float64, (n_gcells))
-
-#    # Initialize the time-splitting propagator
-#    if (sim%splitting_case == sll_p_splitting_symplectic) then
-#       call sll_s_new_hamiltonian_splitting_pic_vm_1d2v(&
-#            sim%propagator, sim%maxwell_solver, &
-#            sim%kernel_smoother_0, sim%kernel_smoother_1, sim%particle_group, &
-#            sim%efield_dofs, sim%bfield_dofs, &
-#            sim%domain(1), sim%domain(3))
-#       sim%efield_dofs_n => sim%efield_dofs
-#    elseif( sim%splitting_case == sll_p_splitting_boris) then
-#       allocate( sll_t_hamiltonian_splitting_pic_vm_1d2v_boris :: sim%propagator )
-#       select type( qp=>sim%propagator )
-#       type is ( sll_t_hamiltonian_splitting_pic_vm_1d2v_boris)
-#          call qp%init( sim%maxwell_solver, &
-#               sim%kernel_smoother_0, sim%kernel_smoother_1, sim%particle_group, &
-#               sim%efield_dofs, sim%bfield_dofs, &
-#               sim%domain(1), sim%domain(3))
-#          sim%efield_dofs_n => qp%efield_dofs_mid
-#       end select
-#    end if
-#
-#   ! Allocate the vector holding the values of the fields at the grid points
-#    SLL_ALLOCATE(sim%fields_grid(sim%n_gcells,3), ierr)
-#
-#    allocate(sim%x_array(sim%n_gcells))
-#    allocate(sim%field_grid(sim%n_gcells))
-#
-#    sim%x_array(1) = sim%domain(1)
-#    do j=2,sim%n_gcells
-#       sim%x_array(j) = sim%x_array(j-1) + (sim%domain(3)/real(sim%n_gcells, f64))
-#    end do
+        # Initialize the arrays for the spline coefficients of the fields
+        efield_dofs = zeros(Float64, (ng_x,2))
+        bfield_dofs = zeros(Float64, (ng_x))
     
-
-end 
+        # Initialize the time-splitting propagator
+        if splitting_case == :symplectic
+           splitting = HamiltonianSplitting( propagator, maxwell_solver,
+                                             kernel_smoother_0, 
+                                             kernel_smoother_1, 
+                                             particle_group,
+                                             efield_dofs, 
+                                             bfield_dofs,
+                                             domain[1], 
+                                             domain[3])
+           sim%efield_dofs_n => sim%efield_dofs
+        elseif splitting_case == :boris
+    #       splitting1d2v_boris :: sim%propagator )
+    #       select type( qp=>sim%propagator )
+    #       type is ( sll_t_hamiltonian_splitting_pic_vm_1d2v_boris)
+    #          call qp%init( sim%maxwell_solver, &
+    #               sim%kernel_smoother_0, sim%kernel_smoother_1, sim%particle_group, &
+    #               sim%efield_dofs, sim%bfield_dofs, &
+    #               sim%domain(1), sim%domain(3))
+    #          sim%efield_dofs_n => qp%efield_dofs_mid
+    #       end select
+        end
+    
+       #Allocate the vector holding the values of the fields at the grid points
+       fields_grid = zeros(Float64,(ng_x,3))
+    
+       x_array = zeros(Float64,ng_x)
+       field_grid = zeros(Float64,ng_x)
+    
+       x_array[1] = domain[1]
+       for j = 2:ng_x
+           x_array[j] = x_array[j-1] + domain[3]/ng_x
+       end
+        
+    
+    end 
+end
 #=
 
 !------------------------------------------------------------------------------!

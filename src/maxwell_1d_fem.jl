@@ -24,7 +24,7 @@ export Maxwell1DFEM
 - plan_bw              : fft plan (backward)
 
 """
-mutable struct Maxwell1DFEM
+mutable struct Maxwell1DFEM <: AbstractMaxwellSolver
 
     Lx               :: Float64  
     delta_x          :: Float64     
