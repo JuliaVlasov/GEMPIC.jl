@@ -21,6 +21,7 @@ mutable struct ParticleMeshCoupling
     domain          :: Vector{Float64}
     delta_x         :: Float64 
     n_grid          :: Vector{Int} 
+    n_dofs          :: Int
     no_particles    :: Int
     spline_degree   :: Int
     n_span          :: Int
@@ -37,7 +38,6 @@ mutable struct ParticleMeshCoupling
                                    no_particles   :: Int, 
                                    spline_degree  :: Int, 
                                    smoothing_type :: Symbol )
-
         dims    = 1
         n_dofs  = prod(n_grid)
         delta_x = (domain[2]-domain[1])/n_grid[1]
@@ -63,7 +63,8 @@ mutable struct ParticleMeshCoupling
 
         spline_pp = SplinePP( spline_degree, n_grid[1])
 
-        new(dims, domain, delta_x, n_grid, no_particles, spline_degree,
+        new(dims, domain, delta_x, n_grid, n_dofs,
+            no_particles, spline_degree,
             n_span, scaling, n_quad_points, spline_val,
             spline_val_more, quad_x, quad_w, spline_pp)
 
