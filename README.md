@@ -8,7 +8,6 @@ Geometric ElectroMagnetic Particle-In-Cell Methods
 ![Lifecycle](https://img.shields.io/badge/lifecycle-retired-orange.svg)
 ![Lifecycle](https://img.shields.io/badge/lifecycle-archived-red.svg)
 ![Lifecycle](https://img.shields.io/badge/lifecycle-dormant-blue.svg) -->
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/JuliaVlasov/GEMPIC.jl/master)
 [![Build Status](https://travis-ci.org/JuliaVlasov/GEMPIC.jl.svg?branch=master)](https://travis-ci.org/JuliaVlasov/GEMPIC.jl)
 [![codecov](https://codecov.io/gh/JuliaVlasov/GEMPIC.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaVlasov/GEMPIC.jl)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliavlasov.github.io/GEMPIC.jl/latest)
@@ -21,6 +20,6 @@ This is a translation from a Fortran code written by :
 - Benedikt Perse
 - Eric Sonnendrucker
 
-from Max-Planck-Institut fur Plasmaphysik - Garching (Germany)
+from [Max-Planck-Institut fur Plasmaphysik - Garching (Germany)](https://www.ipp.mpg.de/4098496/kgkm)
 
-**NOTE: This package is still very much under development and still unfinished.**
+**NOTE: This package is still very much under development.**
