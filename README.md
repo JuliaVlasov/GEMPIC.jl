@@ -20,6 +20,6 @@ This is a translation from a Fortran code written by :
 - Benedikt Perse
 - Eric Sonnendrucker
 
-from Max-Planck-Institut fur Plasmaphysik - Garching (Germany)
+from [Max-Planck-Institut fur Plasmaphysik - Garching (Germany)](https://www.ipp.mpg.de/4098496/kgkm)
 
 **NOTE: This package is still very much under development.**
