@@ -116,28 +116,39 @@ end
   
 
 """
-Push Hp1: Equations to solve are
 ```math
-\\begin{eqnaray}
-\\partial_t f + v_1 \\partial_{x_1} f = 0 & -> &  X_new = X_old + dt V_1 \\\\
-V_new,2 = V_old,2 + \\int_0 h V_old,1 B_old
+\\begin{eqnarray}
+\\partial_t f + v_1 \\partial_{x_1} f = 0 & -> &  X_{new} = X_{old} + dt V_1 \\\\
+V_{new},2 = V_{old},2 + \\int_0 h V_{old},1 B_{old} && \\\\
 \\partial_t E_1 = - \\int v_1 f(t,x_1, v) dv & -> & E_{1,new} = E_{1,old} - 
-\\int \\int v_1 f(t,x_1+s v_1,v) dv ds \\partial_t E_2 = 0 & -> & E_{2,new} = E_{2,old} \\\
-\\partial_t B = 0 & => & B_new = B_old 
+\\int \\int v_1 f(t,x_1+s v_1,v) dv ds  && \\\\
+\\partial_t E_2 = 0 & -> & E_{2,new} = E_{2,old} \\\\
+\\partial_t B = 0 & => & B_{new} = B_{old} 
 \\end{eqnarray}
+```
 
- Here we have to accumulate j and integrate over the time interval.
- At each k=1,...,n_grid, we have for s \in [0,dt]:
- j_k(s) =  \sum_{i=1,..,N_p} q_i N((x_k+sv_{1,k}-x_i)/h) v_k,
- where h is the grid spacing and N the normalized B-spline
- In order to accumulate the integrated j, we normalize the values of x to the grid spacing, calling them y, we have
- j_k(s) = \sum_{i=1,..,N_p} q_i N(y_k+s/h v_{1,k}-y_i) v_k.
- Now, we want the integral 
- \int_{0..dt} j_k(s) d s = \sum_{i=1,..,N_p} q_i v_k \int_{0..dt} N(y_k+s/h v_{1,k}-y_i) ds =  \sum_{i=1,..,N_p} q_i v_k  \int_{0..dt}  N(y_k + w v_{1,k}-y_i) dw
+Here we have to accumulate j and integrate over the time interval.
+At each ``k=1,...,n_{grid}``, we have for ``s \\in [0,dt]:
+ j_k(s) =  \\sum_{i=1,..,N_p} q_i N((x_k+sv_{1,k}-x_i)/h) v_k``,
+where ``h`` is the grid spacing and ``N`` the normalized B-spline
+ In order to accumulate the integrated ``j``, we normalize the values of ``x`` to the grid spacing, 
+    calling them ``y``, we have
+```math
+ j_k(s) = \\sum_{i=1,..,N_p} q_i N(y_k+\\frac{s}{h} v_{1,k}-y_i) v_k.
+```
+ Now, we want the integral
 
-For each particle compute the index of the first DoF on the grid it contributes to and its position (normalized to cell size one). Note: j_dofs(_local) does not hold the values for j itself but for the integrated j.
+```math
+\\int_{0..dt} j_k(s) d s = \\sum_{i=1}^{N_p} q_i v_k \\int_{0}{dt} N(y_k+\\frac{s}{h} v_{1,k}-y_i) ds 
+    =  \\sum_{i=1}^{N_p} q_i v_k  \\int_{0}^{dt}  N(y_k + w v_{1,k}-y_i) dw
+```
 
-Then update particle position:  X_new = X_old + dt * V
+For each particle compute the index of the first DoF on the grid it contributes 
+to and its position (normalized to cell size one). Note: `j_dofs(_local)` 
+does not hold the values for `j` itself but for the integrated `j`.
+
+Then update particle position:  
+``X_{new} = X_{old} + dt * V``
 """
 function operatorHp1(self :: HamiltonianSplitting, dt :: Float64)
 
@@ -186,9 +197,10 @@ Push Hp2: Equations to solve are
 X_new  =  X_old && \\\\
 V_new,1 = V_old,1 + \\int_0 h V_old,2 B_old && \\\\
 \\partial_t E_1 = 0 & -> & E_{1,new} = E_{1,old}  \\\\
-\\partial_t E_2 = - \\int v_2 f(t,x_1, v) dv & -> & \\\\ E_{2,new} = E_{2,old} 
-- \\int \\int v_2 f(t,x_1+s v_1,v) dv ds
-\\partial_t B = 0 => B_new = B_old
+\\partial_t E_2 = - \\int v_2 f(t,x_1, v) dv & -> & \\\\ 
+E_{2,new} = E_{2,old} - \\int \\int v_2 f(t,x_1 + s v_1,v) dv ds &&\\\\
+\\partial_t B = 0 => B_{new} = B_{old} && \\\\
+\\end{eqnarray}
 ```
 """
 function operatorHp2(self, dt)
@@ -239,7 +251,7 @@ Push H_E: Equations to be solved
 \\partial_t f + E_1 \\partial_{v_1} f + E_2 \\partial_{v_2} f = 0 &->& V_new = V_old + dt * E \\\\
 \\partial_t E_1 = 0 &->& E_{1,new} = E_{1,old} \\\\
 \\partial_t E_2 = 0 &->& E_{2,new} = E_{2,old} \\\\
-\\partial_t B + \\partial_{x_1} E_2 = 0 &->& B_new = B_old - dt \\partial_{x_1} E_2
+\\partial_t B + \\partial_{x_1} E_2 = 0 &->& B_{new} = B_{old} - dt \\partial_{x_1} E_2
 \\end{eqnarray}
 ```
 """
@@ -259,7 +271,7 @@ function operatorHE(self :: HamiltonianSplitting, dt)
        v_new[1:2] = v_new[1:2] + dt * qm * efield
        set_v(particle_group, i_part, v_new)
 
-    end do
+    end
     
     # Update bfield
     compute_B_from_E( maxwell_solver, dt, self.efield_dofs[:,2], 
