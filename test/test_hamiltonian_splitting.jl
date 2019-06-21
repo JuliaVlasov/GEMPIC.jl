@@ -29,7 +29,6 @@
                                  -1.5341205443525459,
                                   6.8636759376074723,
                                   5.7026946767517002], n_particles, 4)
-
     # Initialize particles from particle_info_ref
     xi = zeros(2)
     for i_part = 1:n_particles
@@ -53,15 +52,14 @@
     maxwell_solver = Maxwell1DFEM( [eta_min, eta_max], num_cells,
                                     degree_smoother)
     
-    ex         = zeros(Float64, (kernel_smoother_0.n_dofs))
-    efield     = zeros(Float64, (kernel_smoother_0.n_dofs,2))
-    bfield     = zeros(Float64, (kernel_smoother_0.n_dofs))
-    efield_ref = zeros(Float64, (kernel_smoother_0.n_dofs,2))
-    bfield_ref = zeros(Float64, (kernel_smoother_0.n_dofs))
-    rho        = zeros(Float64, (kernel_smoother_0.n_dofs))
-    rho_local  = zeros(Float64, (kernel_smoother_0.n_dofs))
-
-    efield = 1.0
+    n_dofs = kernel_smoother_0.n_dofs
+    ex         = zeros(Float64, (n_dofs))
+    efield     = ones(Float64, (n_dofs,2))
+    bfield     = ones(Float64, (n_dofs))
+    efield_ref = zeros(Float64, (n_dofs,2))
+    bfield_ref = zeros(Float64, (n_dofs))
+    rho        = zeros(Float64, (n_dofs))
+    rho_local  = zeros(Float64, (n_dofs))
 
     wi = zeros(1)
     for i_part = 1:n_particles
@@ -69,10 +67,11 @@
        wi[1] = get_charge( pg, i_part)
        add_charge( kernel_smoother_0, xi, wi[1], rho_local)
     end
+
     # Solve Poisson problem
+    ex = zeros(Float64, n_dofs) 
     compute_e_from_rho( maxwell_solver, rho, ex)
     efield[:,1] .= ex
-    bfield = 1.0_f64
 
     propagator = HamiltonianSplitting( maxwell_solver,
          kernel_smoother_0, kernel_smoother_1, pg,
