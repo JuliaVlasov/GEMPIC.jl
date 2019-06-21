@@ -1,5 +1,9 @@
 using StaticArrays
 
+export HamiltonianSplitting
+export operatorHB, operatorHE, operatorHp1, operatorHp2
+
+
 """
 Hamiltonian splitting type for Vlasov-Maxwell
 - Integral over the spline function on each interval (order p+1)
@@ -9,7 +13,6 @@ DoFs describing the magnetic field
 DoFs for kernel representation of current density. 
 MPI-processor local part of one component of \a j_dofs
 """
-
 struct HamiltonianSplitting
 
     maxwell_solver    :: AbstractMaxwellSolver
@@ -26,7 +29,7 @@ struct HamiltonianSplitting
     cell_integrals_1  :: SVector
 
     efield_dofs       :: Array{Float64,2}
-    bfield_dofs       :: Array{Float64,2}
+    bfield_dofs       :: Array{Float64,1}
     j_dofs            :: Array{Float64,2}
     j_dofs_local      :: Array{Float64,2}
 
@@ -43,7 +46,7 @@ struct HamiltonianSplitting
         @assert kernel_smoother_0.n_dofs == kernel_smoother_1.n_dofs
 
         j_dofs       = zeros(Float64,(kernel_smoother_0.n_dofs,2))
-        j_dofs_local = zeros(Float64,(self.kernel_smoother_0.n_dofs,2))
+        j_dofs_local = zeros(Float64,(kernel_smoother_0.n_dofs,2))
 
         spline_degree = 3
         delta_x = Lx/kernel_smoother_1.n_dofs
@@ -139,8 +142,9 @@ where ``h`` is the grid spacing and ``N`` the normalized B-spline
  Now, we want the integral
 
 ```math
-\\int_{0..dt} j_k(s) d s = \\sum_{i=1}^{N_p} q_i v_k \\int_{0}{dt} N(y_k+\\frac{s}{h} v_{1,k}-y_i) ds 
-    =  \\sum_{i=1}^{N_p} q_i v_k  \\int_{0}^{dt}  N(y_k + w v_{1,k}-y_i) dw
+\\int_{0..dt} j_k(s) d s = \\sum_{i=1}^{N_p} q_i v_k 
+\\int_{0}{dt} N(y_k+\\frac{s}{h} v_{1,k}-y_i) ds 
+=  \\sum_{i=1}^{N_p} q_i v_k  \\int_{0}^{dt}  N(y_k + w v_{1,k}-y_i) dw
 ```
 
 For each particle compute the index of the first DoF on the grid it contributes 
@@ -155,26 +159,26 @@ function operatorHp1(self :: HamiltonianSplitting, dt :: Float64)
     self :: HamiltonianSplitting 
     dt   :: Float64 
 
-    n_cells = kernel_smoother_0.n_dofs
+    n_cells = self.kernel_smoother_0.n_dofs
 
     j_dofs_local = 0.0
 
     for i_part=1:self.particle_group.n_particles  
        # Read out particle position and velocity
-       x_old = self.particle_group.get_x(i_part)
-       vi = self%particle_group%get_v(i_part)
+       x_old = get_x(self.particle_group,i_part)
+       vi = get_v(self.particle_group, i_part)
 
        # Then update particle position:  X_new = X_old + dt * V
        x_new = x_old + dt * vi
 
        # Get charge for accumulation of j
-       wi = self.particle_group.get_charge(i_part)
-       qoverm = self.particle_group.species%q_over_m();
+       wi = get_charge(self.particle_group, i_part)
+       qoverm = self.particle_group.species.q_over_m
 
        kernel_smoother_1.add_current_update_v( x_old, x_new, wi[1],
             qoverm, self.bfield_dofs, vi, self.j_dofs_local[:,1])
        # Accumulate rho for Poisson diagnostics
-       self.kernel_smoother_0.add_charge( x_new, wi[1], self.j_dofs_local[:,2])
+       add_charge(kernel_smoother_0, x_new, wi[1], self.j_dofs_local[:,2])
       
        x_new[1] = modulo(x_new[1], self.Lx)
        particle_group.set_x(i_part, x_new)
