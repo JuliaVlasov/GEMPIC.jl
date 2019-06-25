@@ -24,7 +24,7 @@ export Maxwell1DFEM
 - plan_bw              : fft plan (backward)
 
 """
-mutable struct Maxwell1DFEM <: AbstractMaxwellSolver
+mutable struct Maxwell1DFEM #<: AbstractMaxwellSolver
 
     Lx               :: Float64  
     delta_x          :: Float64     
@@ -173,7 +173,7 @@ Its components are ``\\int f N_i dx`` where ``N_i`` is the B-spline starting at 
 """
 function compute_rhs_from_function!( coefs_dofs :: Vector{Float64},
                                      self       :: Maxwell1DFEM, 
-                                     func       :: Any, 
+                                     func       :: Function, 
                                      degree     :: Int64 )
 
     bspl = zeros(Float64, (degree+1,degree+1))
@@ -348,7 +348,10 @@ export compute_e_from_b!
 compute Ey from Bz using weak Ampere formulation 
 
 """
-function compute_e_from_b!(field_out, self, field_in, delta_t)
+function compute_e_from_b!(field_out :: Vector{Float64}, 
+                           self      :: Maxwell1DFEM, 
+                           delta_t   :: Float64, 
+                           field_in  :: Vector{Float64} )
     
     coef = delta_t / self.delta_x
 

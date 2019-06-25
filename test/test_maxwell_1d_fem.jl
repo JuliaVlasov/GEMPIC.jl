@@ -62,7 +62,7 @@ compute_e_from_rho!( ex, maxwell_1d, rho )
 # Ex is a 1-form, i.e. one spline degree lower
 sval = eval_uniform_periodic_spline_curve(deg-1, ex)
 err_ex = maximum(abs.(sval .- ex_exact))
-#println( " error Poisson  $err_ex ")
+println( " error Poisson  $err_ex ")
 @test err_ex ≈ 0.0 atol = 1e-6
 
 # Test Ampere
