@@ -1,7 +1,7 @@
 @testset "Hamiltonian splitting" begin
 
     import GEMPIC: set_common_weight, set_x, set_v
-    import GEMPIC: set_weights, get_charge, add_charge
+    import GEMPIC: set_weights, get_charge, add_charge!
 
     # Tolerance for comparison of real numbers: set it here!
     eqv_tol = 1.0e-14
@@ -43,9 +43,10 @@
 
     set_common_weight(pg, 1.0)
 
-    # Initialize kernel smoother    
+    # Initialize kernel smoothers
     kernel_smoother_1 = ParticleMeshCoupling( domain[1:2], [num_cells],
          n_particles, degree_smoother-1, :galerkin) 
+
     kernel_smoother_0 = ParticleMeshCoupling( domain[1:2], [num_cells],
          n_particles, degree_smoother, :galerkin) 
     
@@ -54,19 +55,19 @@
                                     degree_smoother)
     
     n_dofs = kernel_smoother_0.n_dofs
+
     ex         = zeros(Float64, (n_dofs))
-    efield     = ones(Float64, (n_dofs,2))
-    bfield     = ones(Float64, (n_dofs))
+    efield     = ones( Float64, (n_dofs,2))
+    bfield     = ones( Float64, (n_dofs))
     efield_ref = zeros(Float64, (n_dofs,2))
     bfield_ref = zeros(Float64, (n_dofs))
     rho        = zeros(Float64, (n_dofs))
-    rho_local  = zeros(Float64, (n_dofs))
 
     wi = zeros(1)
     for i_part = 1:n_particles
        xi = get_x(pg, i_part)
        wi[1] = get_charge( pg, i_part)
-       add_charge( kernel_smoother_0, xi, wi[1], rho_local)
+       add_charge!( rho, kernel_smoother_0, xi, wi[1])
     end
 
     # Solve Poisson problem
