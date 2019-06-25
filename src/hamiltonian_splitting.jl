@@ -169,24 +169,32 @@ function operatorHp1(self :: HamiltonianSplitting, dt :: Float64)
     for i_part=1:self.particle_group.n_particles  
 
        # Read out particle position and velocity
-       x_old = get_x(self.particle_group,i_part)
+       x_old = get_x(self.particle_group, i_part)
        vi    = get_v(self.particle_group, i_part)
 
        # Then update particle position:  X_new = X_old + dt * V
-       x_new = x_old + dt * vi
+       x_new = x_old .+ dt * vi
 
        # Get charge for accumulation of j
        wi     = get_charge(self.particle_group, i_part)
        qoverm = self.particle_group.q_over_m
 
-       kernel_smoother_1.add_current_update_v( x_old, x_new, wi[1],
-            qoverm, self.bfield_dofs, vi, self.j_dofs_local[:,1])
+       add_current_update_v!( self.j_dofs_local[:,1], 
+                              self.kernel_smoother_1,
+                              x_old, 
+                              x_new, 
+                              wi[1],
+                              qoverm, 
+                              self.bfield_dofs, 
+                              vi)
 
        # Accumulate rho for Poisson diagnostics
-       add_charge(self.kernel_smoother_0, x_new, wi[1], 
-                  self.j_dofs_local[:,2])
+       add_charge!( self.j_dofs_local[:,2],
+                    self.kernel_smoother_0, 
+                    x_new, 
+                    wi[1])
       
-       x_new[1] = modulo(x_new[1], self.Lx)
+       x_new[1] = mod(x_new[1], self.Lx)
        set_x(self.particle_group, i_part, x_new)
        set_v(self.particle_group, i_part, vi)
 
