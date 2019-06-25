@@ -14,7 +14,7 @@ x_vec = [0.1, 0.65, 0.7, 1.5] # Particle positions
 v_vec = [1.5  -3.0  0.0  6.0; 
          0.0   0.5  0.0  0.0]'
 
-particle_group = ParticleGroup{1,2}( n_particles, n_particles ,1.0, 1.0, 1)
+particle_group = ParticleGroup{1,2}( n_particles, n_particles, 1.0, 1.0, 1)
 
 set_common_weight(particle_group, 1.0/n_particles)
 
@@ -53,7 +53,6 @@ for i_part = 1:n_particles
     add_charge_pp!(rho_dofs1, kernel, xi, wi)
 end
 
-  
 rho_dofs_ref        = zeros(Float64, n_cells)
 rho_dofs_ref[8:10] .= values_grid[1:3,1,1]
 rho_dofs_ref[1]     = values_grid[4,1,1]
