@@ -5,9 +5,7 @@ using GEMPIC
 using LinearAlgebra
 
 """
-   test_maxwell_1d_fem()
-
-   test 1D Maxwell spline finite element solver on a periodic grid
+Test 1D Maxwell spline finite element solver on a periodic grid
 
 `L_x` domain dimensions and M is an integer.
 
@@ -56,9 +54,9 @@ for i = 1:nc_eta1
    ex_exact[i] = sin_k(xi)/(2.0*mode*pi/Lx)
 end
 
-compute_rhs_from_function( maxwell_1d, cos_k, deg, rho)
+compute_rhs_from_function!( rho, maxwell_1d, cos_k, deg)
 
-compute_e_from_rho( maxwell_1d, ex, rho ) 
+compute_e_from_rho!( ex, maxwell_1d, rho ) 
 
 # Evaluate spline curve at grid points and compute error
 # Ex is a 1-form, i.e. one spline degree lower
@@ -77,9 +75,9 @@ for i = 1:nc_eta1
    ex_exact[i] = - cos_k(xi)*dt
 end
 
-compute_rhs_from_function(maxwell_1d, cos_k, deg-1, rho)
+compute_rhs_from_function!(rho, maxwell_1d, cos_k, deg-1)
 fill!(ex, 0.0)
-compute_e_from_j(maxwell_1d, dt .* rho, 1, ex )
+compute_e_from_j!(ex, maxwell_1d, dt .* rho, 1 )
 
 # Evaluate spline curve at grid points and compute error
 # Ex is a 1-form, i.e. one spline degree lower
@@ -89,7 +87,7 @@ err_ex2 = maximum(abs.(sval .- ex_exact))
 @test err_ex2 ≈ 0.0 atol = 1e-6
 
 l2norm =  l2norm_squared(maxwell_1d, ex, deg-1)
-err_l2norm = l2norm - dt^2*pi
+err_l2norm = l2norm - dt^2 * pi
 #println( " error l2 norm $err_l2norm ")
 
 # Test Maxwell on By and Ez 
@@ -102,29 +100,27 @@ nstep = 10
 
 # Compute initial fields 
 ex = 0.0 # 0-form -> splines of degree deg
-l2projection(maxwell_1d, cos_k, deg-1, bz) # 0-form -> splines of degree deg-1
+l2projection!(bz, maxwell_1d, cos_k, deg-1) # 0-form -> splines of degree deg-1
 
 for istep = 1:nstep 
 
-   compute_b_from_e( maxwell_1d, 0.5*dt, ey, bz)
-   compute_e_from_b( maxwell_1d,     dt, bz, ey)
-   compute_b_from_e( maxwell_1d, 0.5*dt, ey, bz)
+   compute_b_from_e!( bz, maxwell_1d, 0.5*dt, ey)
+   compute_e_from_b!( ey, maxwell_1d,     dt, bz)
+   compute_b_from_e!( bz, maxwell_1d, 0.5*dt, ey)
    
    time = time + dt
-   #println( " time = $time " )
 
    for i = 1:nc_eta1
       xi = eta1_min + (i-1)*delta_eta1
-      ey_exact[i] = sin(mode*2*pi*xi/Lx) * sin(mode*2*pi*time/Lx)
-      bz_exact[i] = cos(mode*2*pi*xi/Lx) * cos(mode*2*pi*time/Lx)
+      ey_exact[i] = sin(mode * 2π * xi/Lx) * sin(mode * 2π * time/Lx)
+      bz_exact[i] = cos(mode * 2π * xi/Lx) * cos(mode * 2π * time/Lx)
    end
 
    sval = eval_uniform_periodic_spline_curve(deg, ey)
    err_ey = norm(sval .- ey_exact)
-   #println( " error Maxwell Ey  $err_ey ")
+
    sval = eval_uniform_periodic_spline_curve(deg-1, bz)
    err_bz = norm(sval .- bz_exact)
-   #println( " error Maxwell Bz  $err_bz ")
 
    @test err_ey ≈ 0.0 atol = 1e-2
    @test err_bz ≈ 0.0 atol = 1e-2

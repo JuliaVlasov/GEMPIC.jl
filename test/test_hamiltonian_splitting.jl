@@ -21,14 +21,15 @@
 
     set_common_weight( pg, 1.0)
 
-    particle_info_ref = reshape([11.780972450961723, 
-                                  5.4977871437821380,
-                                 -1.5341205443525459, 
-                                  0.15731068461017067,
-                                  0.15731068461017067,
-                                 -1.5341205443525459,
-                                  6.8636759376074723,
-                                  5.7026946767517002], n_particles, 4)
+    particle_info_ref = reshape([ 11.780972450961723, 
+                                   5.4977871437821380,
+                                  -1.5341205443525459, 
+                                   0.15731068461017067,
+                                   0.15731068461017067,
+                                  -1.5341205443525459,
+                                   6.8636759376074723,
+                                   5.7026946767517002], n_particles, 4)
+
     # Initialize particles from particle_info_ref
     xi = zeros(2)
     for i_part = 1:n_particles
@@ -70,7 +71,7 @@
 
     # Solve Poisson problem
     ex = zeros(Float64, n_dofs) 
-    compute_e_from_rho( maxwell_solver, rho, ex)
+    compute_e_from_rho!( ex, maxwell_solver, rho)
     efield[:,1] .= ex
 
     propagator = HamiltonianSplitting( maxwell_solver,
@@ -303,7 +304,7 @@ end
 
     end
 
-    efield[:,1] .= compute_E_from_rho(rho)
+    efield[:,1] .= compute_e_from_rho!(rho, self.maxwell)
     bfield      .= 1.0
     
     propagator = HamiltonSplittingBoris( maxwell_solver,

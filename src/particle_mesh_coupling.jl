@@ -81,7 +81,7 @@ Add charge of one particle
 - marker_charge : Particle weights time charge
 - rho_dofs      : Coefficient vector of the charge distribution
 """
-function add_charge_pp(p, position, marker_charge, rho_dofs)
+function add_charge_pp!(rho_dofs :: Vector{Float64}, p, position, marker_charge)
     
     xi    = (position[1] - p.domain[1])/p.delta_x
     index = floor(Int64, xi)+1
@@ -111,10 +111,10 @@ Add charge of one particle
 - marker_charge  : Particle weights time charge
 - rho_dofs       : Coefficient vector of the charge distribution
 """
-function add_charge(p             :: ParticleMeshCoupling,
-                    position      :: Vector{Float64}, 
-                    marker_charge :: Float64, 
-                    rho_dofs      :: Vector{Float64})
+function add_charge!( rho_dofs      :: Vector{Float64},
+                      p             :: ParticleMeshCoupling,
+                      position      :: Vector{Float64}, 
+                      marker_charge :: Float64) 
 
     xi    = (position[1] - p.domain[1])/p.delta_x[1]
     index = floor(Int64, xi)+1
@@ -134,9 +134,11 @@ end
 Add current for one particle and update v 
 (according to H_p1 part in Hamiltonian splitting)
 """
-function add_current_update_v_pp(p, position_old, position_new, 
-                                 marker_charge, qoverm, bfield_dofs, 
-                                 vi, j_dofs)
+function add_current_update_v_pp!( j_dofs, 
+                                   p :: ParticleMeshCoupling, 
+                                   position_old, position_new, 
+                                   marker_charge, qoverm, bfield_dofs, 
+                                   vi)
 
     # Read out particle position and velocity
     # Compute index_old, the index of the last DoF on the grid the particle
@@ -153,33 +155,33 @@ function add_current_update_v_pp(p, position_old, position_new,
  
     if index_old == index_new
          
-        update_jv_pp(p, r_old, r_new, index_old, marker_charge,
-                     qoverm,  vi[2], j_dofs, bfield_dofs)
+        vi[2] = update_jv_pp!(j_dofs, p, r_old, r_new, index_old, 
+                              marker_charge, qoverm,  vi[2], bfield_dofs)
 
     elseif index_old < index_new
 
-        update_jv_pp(p, r_old, 1.0, index_old, marker_charge,
-                     qoverm, vi[2], j_dofs, bfield_dofs)
+        vi[2] = update_jv_pp!(j_dofs, p, r_old, 1.0, index_old, 
+                              marker_charge, qoverm, vi[2], bfield_dofs)
 
-        update_jv_pp(p, 0.0, r_new, index_new, marker_charge,
-                     qoverm, vi[2], j_dofs, bfield_dofs)
+        vi[2] = update_jv_pp!(j_dofs, p, 0.0, r_new, index_new, 
+                              marker_charge, qoverm, vi[2], bfield_dofs)
 
         for ind = index_old+1:index_new-1
-            update_jv_pp(p, 0.0, 1.0, ind, marker_charge,
-                          qoverm, vi[2], j_dofs, bfield_dofs)
+            vi[2] = update_jv_pp!(j_dofs, p, 0.0, 1.0, ind, marker_charge,
+                                  qoverm, vi[2], bfield_dofs)
         end
 
     else
 
-        update_jv_pp(p, 1.0, r_new, index_new, marker_charge, qoverm, 
-                     vi[2], j_dofs, bfield_dofs)
+        vi[2] = update_jv_pp!(j_dofs, p, 1.0, r_new, index_new, marker_charge, 
+                             qoverm, vi[2], bfield_dofs)
 
-        update_jv_pp(p, r_old, 0.0, index_old, marker_charge, qoverm,
-                     vi[2], j_dofs, bfield_dofs)
+        vi[2] = update_jv_pp!(j_dofs, p, r_old, 0.0, index_old, marker_charge, 
+                             qoverm, vi[2], bfield_dofs)
 
         for ind = index_new+1:index_old-1
-             update_jv_pp(p, 1.0, 0.0, ind, marker_charge, qoverm,
-                          vi[2], j_dofs, bfield_dofs)
+             vi[2] = update_jv_pp!(j_dofs, p, 1.0, 0.0, ind, marker_charge, 
+                                   qoverm, vi[2], bfield_dofs)
         end
 
     end
@@ -190,10 +192,15 @@ end
 """
 Helper function for \a add_current_update_v.
 """
-function update_jv_pp( p :: ParticleMeshCoupling , lower, upper, index, 
-                       marker_charge, 
-                       qoverm, vi, j_dofs :: Vector{Float64}, 
-                       bfield_dofs :: Vector{Float64})
+function update_jv_pp!( j_dofs         :: Vector{Float64}, 
+                        p              :: ParticleMeshCoupling, 
+                        lower          :: Float64, 
+                        upper          :: Float64, 
+                        index          :: Int64, 
+                        marker_charge  :: Float64, 
+                        qoverm         :: Float64, 
+                        vi             :: Float64, 
+                        bfield_dofs    :: Vector{Float64})
 
    n_cells = p.n_grid[1]
 
@@ -213,31 +220,35 @@ function update_jv_pp( p :: ParticleMeshCoupling , lower, upper, index,
        ind = ind + 1
    end
 
+   vi
+
 end
 
 
 """
 Add current for one particle and update v (according to H_p1 part in Hamiltonian splitting)
-"""
-function add_current_update_v(p             :: ParticleMeshCoupling, 
-                              position_old  :: Vector{Float64}, 
-                              position_new  :: Vector{Float64}, 
-                              marker_charge :: Float64, 
-                              qoverm        :: Float64, 
-                              bfield_dofs   :: Vector{Float64}, 
-                              vi            :: Vector{Float64}, 
-                              j_dofs        :: Vector{Float64})
 
-    # Read out particle position and velocity
-    # Compute index_old, the index of the last DoF on the grid the 
-    # particle contributes to, and r_old, its position 
-    # (normalized to cell size one).
+- Read out particle position and velocity
+- Compute index_old, the index of the last DoF on the grid the 
+particle contributes to, and r_old, its position (normalized to cell size one).
+
+"""
+function add_current_update_v!( j_dofs        :: Vector{Float64},
+                                p             :: ParticleMeshCoupling, 
+                                position_old  :: Vector{Float64}, 
+                                position_new  :: Vector{Float64}, 
+                                marker_charge :: Float64, 
+                                qoverm        :: Float64, 
+                                bfield_dofs   :: Vector{Float64}, 
+                                vi            :: Vector{Float64}) 
+
 
     xi = (position_old[1] - p.domain[1]) / p.delta_x[1]
     index_old = floor(Int64,xi)
     r_old = xi - index_old
 
     # Compute the new box index index_new and normalized position r_old.
+
     xi = (position_new[1] - p.domain[1]) / p.delta_x[1]
     index_new = floor(Int64, xi)
     r_new = xi - index_new
@@ -245,47 +256,50 @@ function add_current_update_v(p             :: ParticleMeshCoupling,
     if index_old == index_new
 
         if r_old < r_new
-            update_jv(p, r_old, r_new, index_old, marker_charge, 
-                      qoverm, 1.0, vi[2], j_dofs, bfield_dofs)
+            vi[2] = update_jv!(j_dofs, p, r_old, r_new, index_old, marker_charge, 
+                       qoverm, 1.0, vi[2], bfield_dofs)
         else
-            update_jv(p, r_new, r_old, index_old, marker_charge, qoverm, 
-                      -1.0, vi[2], j_dofs, bfield_dofs)
+            vi[2] = update_jv!(j_dofs, p, r_new, r_old, index_old, marker_charge, qoverm, 
+                      -1.0, vi[2], bfield_dofs)
         end
 
     elseif index_old < index_new
 
-        update_jv(p, r_old, 1.0, index_old, marker_charge, 
-                  qoverm, 1.0, vi[2], j_dofs, bfield_dofs)
+        vi[2] = update_jv!(j_dofs, p, r_old, 1.0, index_old, marker_charge, 
+                  qoverm, 1.0, vi[2], bfield_dofs)
 
-        update_jv(p, 0.0, r_new, index_new, marker_charge, 
-                  qoverm, 1.0, vi[2], j_dofs, bfield_dofs)
+        vi[2] = update_jv!(j_dofs, p, 0.0, r_new, index_new, marker_charge, 
+                  qoverm, 1.0, vi[2], bfield_dofs)
 
         for ind = index_old+1:index_new-1
-            update_jv(p, 0.0, 1.0, ind, marker_charge, 
-                      qoverm, 1.0, vi[2], j_dofs, bfield_dofs)
+            vi[2] = update_jv!(j_dofs, p, 0.0, 1.0, ind, marker_charge, 
+                      qoverm, 1.0, vi[2], bfield_dofs)
         end
 
     else
 
-        update_jv(p, r_new, 1.0, index_new, marker_charge, qoverm, 
-                  -1.0, vi[2], j_dofs, bfield_dofs)
-        update_jv(p, 0.0, r_old, index_old, marker_charge, qoverm, 
-                  -1.0, vi[2], j_dofs, bfield_dofs)
+        vi[2] = update_jv!( j_dofs, p, r_new, 1.0, index_new, marker_charge, qoverm, 
+                  -1.0, vi[2], bfield_dofs)
+        vi[2] = update_jv!( j_dofs, p, 0.0, r_old, index_old, marker_charge, qoverm, 
+                  -1.0, vi[2], bfield_dofs)
 
         for ind = index_new+1:index_old-1
-            update_jv(p, 0.0, 1.0, ind, marker_charge, qoverm, 
-                      -1.0, vi[2], j_dofs, bfield_dofs)
+            vi[2] = update_jv!( j_dofs, p, 0.0, 1.0, ind, marker_charge, qoverm, 
+                      -1.0, vi[2], bfield_dofs)
         end
 
      end    
+
+     vi
 
 end
 
 """
 Helper function for \a add_current_update_v.
 """
-function update_jv(p, lower, upper, index, marker_charge, qoverm, 
-                   sign, vi, j_dofs, bfield_dofs)
+function update_jv!(j_dofs, p :: ParticleMeshCoupling, 
+                    lower, upper, index, marker_charge, qoverm, 
+                    sign, vi, bfield_dofs)
 
    n_cells = p.n_grid[1]
 
@@ -316,6 +330,8 @@ function update_jv(p, lower, upper, index, marker_charge, qoverm,
       vi = vi - qoverm * p.spline_val[ind] * bfield_dofs[i_mod]
       ind = ind + 1
    end
+
+   vi
 
 end
 
@@ -358,48 +374,8 @@ function evaluate(p, position, field_dofs)
        index1d = mod(index+i-2, p.n_grid[1])+1
        field_value += field_dofs[index1d] * p.spline_val[i]
     end
+
     field_value
 
 end
 
-#=
-
-  !---------------------------------------------------------------------------!
-  !> Evaluate several fields at position \a position
-  subroutine evaluate_multiple_spline_1d(p, position, components, field_dofs, field_value)
-    class (sll_t_particle_mesh_coupling_spline_1d), intent( inout ) :: p !< Kernel smoother object 
-    sll_real64,                              intent( in )    :: position(p.dim) !< Position of the particle
-    sll_int32,                               intent(in)      :: components(:) !< Components of field_dofs that shall be updated
-    sll_real64,                              intent( in )    :: field_dofs(:,:) !< Coefficient vector for the field DoFs
-    sll_real64,                              intent(out)     :: field_value(:) !< Value(s) of the electric fields at given position
-    
-    !local variables
-    sll_int32 :: i1
-    sll_int32 :: index1d, index
-    sll_real64 :: xi[1]
-
-    SLL_ASSERT( size(field_dofs,1) == p.n_dofs )
-    SLL_ASSERT( size(field_dofs,2) == size(field_value) )
-
-    xi[1] = (position[1] - p.domain(1))/p.delta_x[1]
-    index = ceiling(xi[1])
-    xi[1] = xi[1] - (index-1)
-    index = index - p.spline_degree    
-    call sll_s_uniform_bsplines_eval_basis(p.spline_degree, xi[1], p.spline_val)
-    !p.spline_val = sll_f_uniform_b_splines_at_x(p.spline_degree, xi[1])
-
-    field_value = 0.0
-    do i1 = 1, p.n_span
-       index1d = modulo(index+i1-2, p.n_grid[1])+1
-       field_value = field_value + 
-            field_dofs(index1d,components) *  
-            p.spline_val(i1)
-    end do
-
-  end subroutine evaluate_multiple_spline_1d
-
-
-  
-
-end module sll_m_particle_mesh_coupling_spline_1d
-=#

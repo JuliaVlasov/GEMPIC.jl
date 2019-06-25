@@ -2,8 +2,8 @@
 
 using  GEMPIC
 import GEMPIC: set_common_weight, set_x, set_v, set_weights
-import GEMPIC: get_x, get_v, get_charge, add_charge, add_charge_pp
-import GEMPIC: add_current_update_v, add_current_update_v_pp
+import GEMPIC: get_x, get_v, get_charge, add_charge!, add_charge_pp!
+import GEMPIC: add_current_update_v!, add_current_update_v_pp!
 import GEMPIC: b_to_pp, evaluate, evaluate_pp
 
 n_cells       = 10            # Number of cells
@@ -49,8 +49,8 @@ rho_dofs1 = zeros(Float64, n_cells)
 for i_part = 1:n_particles
     xi = get_x(particle_group, i_part)
     wi = get_charge(particle_group, i_part)
-    add_charge(kernel, xi, wi, rho_dofs)
-    add_charge_pp(kernel, xi, wi, rho_dofs1)
+    add_charge!(rho_dofs, kernel, xi, wi)
+    add_charge_pp!(rho_dofs1, kernel, xi, wi)
 end
 
   
@@ -76,8 +76,8 @@ for i_part = 1:n_particles
     vi1   = vi
     x_new = xi .+ vi[1]/10.0
 
-    add_current_update_v(    kernel, xi, x_new, wi, 1.0, b_dofs, vi,  j_dofs  )
-    add_current_update_v_pp( kernel, xi, x_new, wi, 1.0, b_dofs, vi1, j_dofs1 )
+    vi  = add_current_update_v!(    j_dofs,  kernel, xi, x_new, wi, 1.0, b_dofs, vi )
+    vi1 = add_current_update_v_pp!( j_dofs1, kernel, xi, x_new, wi, 1.0, b_dofs, vi1 )
      
 end
 

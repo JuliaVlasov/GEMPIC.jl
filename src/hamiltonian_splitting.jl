@@ -109,10 +109,12 @@ function lie_splitting_back(self         :: HamiltonianSplitting,
                             number_steps :: Int64)
 
     for i_step = 1:number_steps
+
        operatorHp2(dt)
        operatorHp1(dt)
        operatorHB(dt)
        operatorHE(dt)
+
     end
 
 end
@@ -132,9 +134,10 @@ V_{new},2 = V_{old},2 + \\int_0 h V_{old},1 B_{old} && \\\\
 
 Here we have to accumulate j and integrate over the time interval.
 At each ``k=1,...,n_{grid}``, we have for ``s \\in [0,dt]:
- j_k(s) =  \\sum_{i=1,..,N_p} q_i N((x_k+sv_{1,k}-x_i)/h) v_k``,
+j_k(s) =  \\sum_{i=1,..,N_p} q_i N((x_k+sv_{1,k}-x_i)/h) v_k``,
 where ``h`` is the grid spacing and ``N`` the normalized B-spline
- In order to accumulate the integrated ``j``, we normalize the values of ``x`` to the grid spacing, 
+ In order to accumulate the integrated ``j``, we normalize the values of 
+``x`` to the grid spacing, 
     calling them ``y``, we have
 ```math
  j_k(s) = \\sum_{i=1,..,N_p} q_i N(y_k+\\frac{s}{h} v_{1,k}-y_i) v_k.
@@ -164,32 +167,37 @@ function operatorHp1(self :: HamiltonianSplitting, dt :: Float64)
     j_dofs_local = 0.0
 
     for i_part=1:self.particle_group.n_particles  
+
        # Read out particle position and velocity
        x_old = get_x(self.particle_group,i_part)
-       vi = get_v(self.particle_group, i_part)
+       vi    = get_v(self.particle_group, i_part)
 
        # Then update particle position:  X_new = X_old + dt * V
        x_new = x_old + dt * vi
 
        # Get charge for accumulation of j
-       wi = get_charge(self.particle_group, i_part)
-       qoverm = self.particle_group.species.q_over_m
+       wi     = get_charge(self.particle_group, i_part)
+       qoverm = self.particle_group.q_over_m
 
        kernel_smoother_1.add_current_update_v( x_old, x_new, wi[1],
             qoverm, self.bfield_dofs, vi, self.j_dofs_local[:,1])
+
        # Accumulate rho for Poisson diagnostics
-       add_charge(kernel_smoother_0, x_new, wi[1], self.j_dofs_local[:,2])
+       add_charge(self.kernel_smoother_0, x_new, wi[1], 
+                  self.j_dofs_local[:,2])
       
        x_new[1] = modulo(x_new[1], self.Lx)
-       particle_group.set_x(i_part, x_new)
-       particle_group.set_v(i_part, vi)
+       set_x(self.particle_group, i_part, x_new)
+       set_v(self.particle_group, i_part, vi)
 
     end
 
     self.j_dofs = 0.0
 
     # Update the electric field.
-    compute_E_from_j(maxwell_solver, self.j_dofs[:,1], 1, self.efield_dofs[:,1])
+    ex = zeros(Float64, size(self.efield_dofs, 1))
+    compute_e_from_j(maxwell_solver, self.j_dofs[:,1], 1, ex)
+    self.efield_dofs[:,1] .= ex
 
 end
 
@@ -218,20 +226,20 @@ function operatorHp2(self, dt)
     for i_part=1:self.particle_group.n_particles
 
        # Evaluate bfield at particle position (splines of order p)
-       xi = particle_group.get_x(i_part)
-       evaluate(kernel_smoother_1, xi[1], self.bfield_dofs, bfield)
-       vi = particle_group.get_v(i_part)
+       xi = get_x(self.particle_group, i_part)
+       evaluate(self.kernel_smoother_1, xi[1], self.bfield_dofs, bfield)
+       vi = get_x(self.particle_group, i_part)
        vi[1] = vi[1] + dt*qm*vi[2]*bfield
        set_v(self.particle_group, i_part, vi)
 
-       xi = particle_group.get_x(i_part)
+       xi = get_x(self.particle_group, i_part)
 
        # Scale vi by weight to combine both factors 
        #for accumulation of integral over j
 
        wi = get_charge(self.particle_group, i_part)*vi[2]
 
-       add_charge(kernel_smoother_0, xi[1:1], wi[1], 
+       add_charge(self.kernel_smoother_0, xi[1:1], wi[1], 
                   self.j_dofs_local[:,2]) 
 
     end
@@ -242,9 +250,9 @@ function operatorHp2(self, dt)
     
     self.j_dofs[:,2] = self.j_dofs[:,2] * dt
 
-    compute_E_from_j( maxwell_solver, 
-                      self.j_dofs[:,2], 2, 
-                      self.efield_dofs[:,2])
+    ex = zeros(Float64, size(self.efield_dofs, 1))
+    compute_E_from_j( maxwell_solver, self.j_dofs[:,2], 2, ex)
+    ex = self.efield_dofs[:,2]
     
 end
   
@@ -266,20 +274,21 @@ function operatorHE(self :: HamiltonianSplitting, dt)
     # V_new = V_old + dt * E
     for i_part=1:self.particle_group.n_particles
 
-       v_new = self%particle_group%get_v(i_part)
+       v_new = get_v( self.particle_group, i_part)
        # Evaluate efields at particle position
-       xi = self.particle_group.get_x(i_part)
-       evaluate(kernel_smoother_1, xi[1], efield_dofs[:,1], efield[1])
-       evaluate(kernel_smoother_0, xi[1], efield_dofs[:,2], efield[2])
-       v_new = particle_group.get_v(i_part)
+       xi = get_x(self.particle_group, i_part)
+       evaluate(self.kernel_smoother_1, xi[1], efield_dofs[:,1], efield[1])
+       evaluate(self.kernel_smoother_0, xi[1], efield_dofs[:,2], efield[2])
+       v_new = get_v(self.particle_group, i_part)
        v_new[1:2] = v_new[1:2] + dt * qm * efield
        set_v(particle_group, i_part, v_new)
 
     end
     
     # Update bfield
-    compute_B_from_E( maxwell_solver, dt, self.efield_dofs[:,2], 
-         self.bfield_dofs)
+    ex = zeros(Float64, size(self.efield_dofs, 1))
+    compute_B_from_E( self.maxwell_solver, dt, ex, self.bfield_dofs)
+    self.efield_dofs[:,2] .= ex
         
 end
   
