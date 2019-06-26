@@ -5,7 +5,15 @@ makedocs(
     sitename = "GEMPIC",
     format = Documenter.HTML(),
     modules = [GEMPIC],
-    pages = ["Documentation" => "index.md",
+    pages = ["Documentation" => ["index.md",
+                                 "mesh.md",
+                                 "low_level_bsplines.md",
+                                 "splinepp.md",
+                                 "particle_mesh_coupling.md",
+                                 "particle_group.md",
+                                 "particle_sampling.md",
+                                 "maxwell_solver.md",
+                                 "hamiltonian_splitting.md"],
              "Contents"      => "contents.md"]
 )
 
