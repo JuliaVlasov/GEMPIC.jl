@@ -1,4 +1,4 @@
-# Maxwell solver
+# Mesh
 
 ```@autodocs
 Modules = [GEMPIC]
