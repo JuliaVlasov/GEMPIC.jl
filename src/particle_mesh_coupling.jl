@@ -134,7 +134,7 @@ end
 Add current for one particle and update v 
 (according to H_p1 part in Hamiltonian splitting)
 """
-function add_current_update_v_pp!( j_dofs, 
+function add_current_update_v_pp!( j_dofs :: AbstractArray, 
                                    p :: ParticleMeshCoupling, 
                                    position_old, position_new, 
                                    marker_charge, qoverm, bfield_dofs, 
@@ -192,7 +192,7 @@ end
 """
 Helper function for \a add_current_update_v.
 """
-function update_jv_pp!( j_dofs         :: Vector{Float64}, 
+function update_jv_pp!( j_dofs         :: AbstractArray,
                         p              :: ParticleMeshCoupling, 
                         lower          :: Float64, 
                         upper          :: Float64, 
@@ -233,7 +233,7 @@ Add current for one particle and update v (according to H_p1 part in Hamiltonian
 particle contributes to, and r_old, its position (normalized to cell size one).
 
 """
-function add_current_update_v!( j_dofs        :: Vector{Float64},
+function add_current_update_v!( j_dofs        :: AbstractArray,
                                 p             :: ParticleMeshCoupling, 
                                 position_old  :: Vector{Float64}, 
                                 position_new  :: Vector{Float64}, 
@@ -297,9 +297,16 @@ end
 """
 Helper function for \a add_current_update_v.
 """
-function update_jv!(j_dofs, p :: ParticleMeshCoupling, 
-                    lower, upper, index, marker_charge, qoverm, 
-                    sign, vi, bfield_dofs)
+function update_jv!(j_dofs        :: AbstractArray, 
+                    p             :: ParticleMeshCoupling, 
+                    lower         :: Float64, 
+                    upper         :: Float64, 
+                    index         :: Int64, 
+                    marker_charge :: Float64, 
+                    qoverm        :: Float64, 
+                    sign          :: Float64, 
+                    vi            :: Float64, 
+                    bfield_dofs   :: Vector{Float64})
 
    n_cells = p.n_grid[1]
 
@@ -337,14 +344,16 @@ end
 
 
 """
-Evaluate field at at position \a position using horner scheme
+Evaluate field at `position` using horner scheme
 - `p` : Kernel smoother object 
 - `position(p.dim)` : Position of the particle
-- `field_dofs_pp(:,:)` : Degrees of freedom in kernel representation.
+- `field_dofs_pp[:,:]` : Degrees of freedom in kernel representation.
 - `field_value` : Value(s) of the electric fields at given position
 
 """ 
-function evaluate_pp(p, position, field_dofs_pp)
+function evaluate_pp(p             :: ParticleMeshCoupling, 
+                     position      :: Float64, 
+                     field_dofs_pp :: Array{Float64,2})
 
     xi = (position[1] - p.domain[1])/p.delta_x[1]
     index = floor(Int64, xi)+1
@@ -355,13 +364,15 @@ function evaluate_pp(p, position, field_dofs_pp)
 end
 
 """
-Evaluate field at at position \a position
+Evaluate field at `position`
 - `p` : Kernel smoother object 
 - `position(p.dim)` : Position of the particle
 - `field_dofs(p.n_dofs)` : Coefficient vector for the field DoFs
 - `field_value` : Value(s) of the electric fields at given position
 """
-function evaluate(p, position, field_dofs)
+function evaluate(p          :: ParticleMeshCoupling, 
+                  position   :: Float64, 
+                  field_dofs :: Vector{Float64})
 
     xi = (position[1] - p.domain[1])/p.delta_x[1]
     index = floor(Int64, xi)+1

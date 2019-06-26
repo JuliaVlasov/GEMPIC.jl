@@ -250,7 +250,10 @@ export compute_e_from_j!
 """
     Compute E_i from j_i integrated over the time interval using weak Ampere formulation
 """
-function compute_e_from_j!(e, self, current, component)
+function compute_e_from_j!(e         :: Vector{Float64}, 
+                           self      :: Maxwell1DFEM, 
+                           current   :: Vector{Float64}, 
+                           component :: Int64)
 
      n = self.n_dofs
      eigvals = zeros(Float64, n)

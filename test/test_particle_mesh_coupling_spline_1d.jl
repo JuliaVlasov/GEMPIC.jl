@@ -116,15 +116,15 @@ j_dofs_ref .= j_dofs_ref .+ [ 6.5104166666666696e-004,
 @test maximum(abs.(j_dofs  .- j_dofs_ref)) < 1e-15
 @test maximum(abs.(j_dofs1 .- j_dofs_ref)) < 1e-15
   
-rho_dofs_pp = b_to_pp(kernel.spline_pp, n_cells, rho_dofs)
+@show rho_dofs_pp = b_to_pp(kernel.spline_pp, n_cells, rho_dofs)
 
 particle_values  = zeros(Float64, 4)
 particle_values1 = zeros(Float64, 4)
    
 for i_part = 1:n_particles
     xi = get_x(particle_group, i_part)
-    particle_values[i_part]  = evaluate(    kernel, xi, rho_dofs)    
-    particle_values1[i_part] = evaluate_pp( kernel, xi, rho_dofs_pp)
+    particle_values[i_part]  = evaluate(    kernel, xi[1], rho_dofs)    
+    particle_values1[i_part] = evaluate_pp( kernel, xi[1], rho_dofs_pp)
 end
 
 particle_values_ref = [ 1.1560058593749998,

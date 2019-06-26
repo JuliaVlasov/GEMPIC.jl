@@ -90,27 +90,55 @@ end
 """
 Set position of particle @ i
 """
-@generated function set_x( p :: ParticleGroup{D,V}, i, x ) where {D, V}
+@generated function set_x( p :: ParticleGroup{D,V}, i, x :: Vector{Float64} ) where {D, V}
 
-    :(p.particle_array[1:$D, i] .= x)
+    :(for j in 1:$D p.particle_array[j, i] = x[j] end)
+    
+end
+
+"""
+Set position of particle @ i
+"""
+@generated function set_x( p :: ParticleGroup{D,V}, i, x :: Float64 ) where {D, V}
+
+    :(p.particle_array[1, i] = x)
+
+end
+    
+
+"""
+Set velocity of particle @ i
+"""
+@generated function set_v( p :: ParticleGroup{D,V}, i, v :: Vector{Float64} ) where {D, V}
+
+    :(for j in 1:$V p.particle_array[$D+j, i] = v[j] end)
     
 end
 
 """
 Set velocity of particle @ i
 """
-@generated function set_v( p :: ParticleGroup{D,V}, i, x ) where {D, V}
+@generated function set_v( p :: ParticleGroup{D,V}, i, v :: Float64 ) where {D, V}
 
-    :(p.particle_array[$D+1:$D+$V, i] .= x)
+    :(p.particle_array[$D+1, i] = v)
     
 end
   
 """
 Set weights of particle @ i
 """
-@generated function set_weights( p :: ParticleGroup{D,V}, i, x ) where {D, V}
+@generated function set_weights( p :: ParticleGroup{D,V}, i, w :: Vector{Float64} ) where {D, V}
 
-    :(p.particle_array[$D+$V+1:$D+$V+p.n_weights, i] .= x)
+    :(for j in 1:p.n_weights p.particle_array[$D+$V+j, i] = w[j] end)
+    
+end
+
+"""
+Set weights of particle @ i
+"""
+@generated function set_weights( p :: ParticleGroup{D,V}, i, w :: Float64 ) where {D, V}
+
+    :(p.particle_array[$D+$V+1, i] = w)
     
 end
 

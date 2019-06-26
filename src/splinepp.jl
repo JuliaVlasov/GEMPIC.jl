@@ -112,7 +112,7 @@ end
 Convert 1d spline in B form to spline in pp form with 
 periodic boundary conditions
 """
-function b_to_pp( self, ncells, b_coeffs)
+function b_to_pp( self :: SplinePP, ncells :: Int64, b_coeffs :: Vector{Float64})
 
     degp1     = self.degree+1
     pp_coeffs = zeros(Float64, (degp1,ncells)) 

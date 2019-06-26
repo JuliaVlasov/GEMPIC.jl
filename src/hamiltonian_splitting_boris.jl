@@ -21,15 +21,15 @@ struct HamiltonianSplittingBoris <: AbstractSplitting
      cell_integrals_0  :: SVector
      cell_integrals_1  :: SVector
 
-     efield_dofs       :: Array{Float64, 2}
+     efield_dofs_1     :: Array{Float64, 1}
+     efield_dofs_2     :: Array{Float64, 1}
      efield_dofs_mid   :: Array{Float64, 2}
      bfield_dofs       :: Array{Float64, 2}
      bfield_dofs_mid   :; Array{Float64, 1}
-     j_dofs            :: Array{Float64, 2}
+     j_dofs_1          :: Array{Float64, 1}
+     j_dofs_2          :: Array{Float64, 1}
 
 end 
-
-contains
 
 """
 Second order Boris pusher using staggered grid
@@ -40,9 +40,10 @@ Second order Boris pusher using staggered grid
 function operator_boris(self, dt, number_steps)
 
     for i_step = 1:number_steps
+
         # (1) Compute B_{n+1/2} from B_n
         bfield_dofs_mid = bfield_dofs
-        compute_B_from_E( maxwell_solver,
+        compute_b_from_e( maxwell_solver,
                           dt, 
                           self.efield_dofs_mid[:,2], 
                           self.bfield_dofs)
@@ -288,4 +289,4 @@ function operator_boris(self, dt, number_steps)
   end subroutine staggering_pic_vm_1d2v_boris
 
 
-end module sll_m_hamiltonian_splitting_pic_vm_1d2v_boris
+end 
