@@ -1,4 +1,4 @@
-# Maxwell solver
+# Splines
 
 ```@autodocs
 Modules = [GEMPIC]
