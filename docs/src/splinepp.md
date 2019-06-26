@@ -1,4 +1,4 @@
-# Maxwell solver
+# Periodic spline
 
 ```@autodocs
 Modules = [GEMPIC]
