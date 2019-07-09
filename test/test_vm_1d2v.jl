@@ -49,48 +49,45 @@ FEM with splines, degree 3 for B and 2 for E
                      spline_degree, :galerkin)
         
         kernel0 = ParticleMeshCoupling( domain, [ng_x], n_particles, 
-                 spline_degree, :galerkin)
+                     spline_degree, :galerkin)
     
         # Initialize the arrays for the spline coefficients of the fields
-        efield_dofs = zeros(Float64, (ng_x,2))
-        bfield_dofs = zeros(Float64, (ng_x))
+        efield1_dofs = zeros(Float64, ng_x)
+        efield2_dofs = zeros(Float64, ng_x)
+        bfield_dofs  = zeros(Float64, ng_x)
     
         # Initialize the time-splitting propagator
         if splitting_case == :symplectic
-           splitting = HamiltonianSplitting( propagator, maxwell_solver,
-                                             kernel_smoother_0, 
-                                             kernel_smoother_1, 
-                                             particle_group,
-                                             efield_dofs, 
-                                             bfield_dofs,
-                                             domain[1], 
-                                             domain[3])
-           sim%efield_dofs_n => sim%efield_dofs
+
+            splitting = HamiltonianSplitting( maxwell,
+                                              kernel0, 
+                                              kernel1, 
+                                              pg,
+                                              efield1_dofs, 
+                                              efield2_dofs, 
+                                              bfield_dofs,
+                                              domain[1], 
+                                              domain[3]    )
+
         elseif splitting_case == :boris
-    #       splitting1d2v_boris :: sim%propagator )
-    #       select type( qp=>sim%propagator )
-    #       type is ( sll_t_hamiltonian_splitting_pic_vm_1d2v_boris)
-    #          call qp%init( sim%maxwell_solver, &
-    #               sim%kernel_smoother_0, sim%kernel_smoother_1, sim%particle_group, &
-    #               sim%efield_dofs, sim%bfield_dofs, &
-    #               sim%domain(1), sim%domain(3))
-    #          sim%efield_dofs_n => qp%efield_dofs_mid
-    #       end select
+
+            splitting = HamiltonianSplittingBoris( maxwell,
+                                                   kernel0, 
+                                                   kernel1, 
+                                                   pg,
+                                                   efield1_dofs, 
+                                                   efield2_dofs, 
+                                                   bfield_dofs,
+                                                   domain[1], 
+                                                   domain[3]    )
+
+
         end
     
-       #Allocate the vector holding the values of the fields at the grid points
-       fields_grid = zeros(Float64,(ng_x,3))
-    
-       x_array = zeros(Float64,ng_x)
-       field_grid = zeros(Float64,ng_x)
-    
-       x_array[1] = domain[1]
-       for j = 2:ng_x
-           x_array[j] = x_array[j-1] + domain[3]/ng_x
-       end
-        
-    
     end 
+
+    @test true
+
 end
 #=
 
@@ -546,4 +543,3 @@ end
     
 
 =#
-end 
