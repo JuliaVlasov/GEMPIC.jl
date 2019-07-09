@@ -4,7 +4,7 @@ os:
   - osx
   - linux
 
-julia: 1.1
+julia: 1.2
 
 before_install:
   - julia deps/build.jl
