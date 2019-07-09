@@ -6,6 +6,15 @@ Solves Vlasov-Maxwell with PIC and spline finite elements with Boris pusher
 
 - DoFs describing the magnetic field at time t_{n+1/2} (used for push)
 - DoFs for kernel representation of current density. 
+- `maxwell_solver`    : Maxwell solver
+- `kernel_smoother_0` : Kernel smoother
+- `kernel_smoother_1` : Kernel smoother
+- `particle_group`    : Particle group
+- `efield_dofs`       : array for the coefficients of the efields 
+- `bfield_dofs`       : array for the coefficients of the bfield
+- `x_min`             : Lower bound of x domain
+- `Lx`                : Length of the domain in x direction.
+
 """
 struct HamiltonianSplittingBoris <: AbstractSplitting
 
@@ -16,22 +25,79 @@ struct HamiltonianSplittingBoris <: AbstractSplitting
      spline_degree     :: Int64
      Lx                :: Float64
      x_min             :: Float64 # Lower bound for x domain
-     delta_x           :; Float64 # Grid spacing
+     delta_x           :: Float64 # Grid spacing
 
      cell_integrals_0  :: SVector
      cell_integrals_1  :: SVector
 
-     efield_dofs_1     :: Array{Float64, 1}
-     efield_dofs_2     :: Array{Float64, 1}
-     efield_dofs_mid   :: Array{Float64, 2}
-     bfield_dofs       :: Array{Float64, 2}
-     bfield_dofs_mid   :; Array{Float64, 1}
-     j_dofs_1          :: Array{Float64, 1}
-     j_dofs_2          :: Array{Float64, 1}
+     e_dofs_1     :: Array{Float64, 1}
+     e_dofs_2     :: Array{Float64, 1}
+     e_dofs_1_mid :: Array{Float64, 1}
+     e_dofs_2_mid :: Array{Float64, 1}
+     b_dofs       :: Array{Float64, 1}
+     b_dofs_mid   :: Array{Float64, 1}
+     j_dofs_1     :: Array{Float64, 1}
+     j_dofs_2     :: Array{Float64, 1}
 
-end 
+     function HamiltonianSplittingBoris( maxwell_solver,
+                                         kernel_smoother_0,
+                                         kernel_smoother_1,
+                                         particle_group,
+                                         efield_dofs,
+                                         bfield_dofs,
+                                         x_min,
+                                         Lx ) 
+
+         e_dofs_1_mid = zeros(Float64, kernel_smoother_1.n_dofs)
+         e_dofs_2_mid = zeros(Float64, kernel_smoother_1.n_dofs)
+         j_dofs_1     = zeros(Float64, kernel_smoother_0.n_dofs)
+         j_dofs_2     = zeros(Float64, kernel_smoother_0.n_dofs)
+         b_dofs_mid   = zeros(Float64, kernel_smoother_1.n_dofs)
+
+         spline_degree = 3
+         delta_x       = Lx/kernel_smoother_1.n_dofs
+    
+         cell_integrals_1 = SVector([0.5,  2.0,  0.5] ./ 3.0)
+         cell_integrals_0 = SVector([1.0, 11.0, 11.0, 1.0] ./ 24.0)
+
+         new( maxwell_solver, kernel_smoother_0, kernel_smoother_1,
+              particle_group, spline_degree, Lx, x_min, delta_x,
+              cell_integrals_0, cell_integrals_1,
+              e_dofs_1, e_dofs_2, e_dofs_1_mid, e_dofs_2_mid,
+              b_dofs, b_dofs_mid, j_dofs_1, j_dofs_2 )
+
+    end
+
+end
 
 """
+Propagate ``E_0`` to ``E_{1/2}`` and ``x_0`` to ``x_{1/2}`` to initialize 
+the staggering
+- self : time splitting object 
+- dt   : time step
+"""
+function staggering_pic_vm_1d2v_boris(self, dt)
+
+    push_x_accumulate_j!(self, dt*0.5)
+
+    # (4) Compute E_{n+1}
+    self.e_dofs_1_mid .= self.e_dofs_1
+    self.e_dofs_2_mid .= self.e_dofs_2
+    self%j_dofs = dt*0.5_f64*self%j_dofs
+    # Ex part:
+    call self%maxwell_solver%compute_E_from_j(self%j_dofs(:,1), 1, self%efield_dofs_mid(:,1))
+    ! TODO: Combine the two steps for efficiency
+    ! Ey part:    
+    call self%maxwell_solver%compute_E_from_B(&
+         dt*0.5_f64, self%bfield_dofs, self%efield_dofs_mid(:,2))
+    call self%maxwell_solver%compute_E_from_j(self%j_dofs(:,2), 2, self%efield_dofs_mid(:,2))
+
+end subroutine staggering_pic_vm_1d2v_boris
+
+
+"""
+    operator_boris(self, dt, number_steps)
+
 Second order Boris pusher using staggered grid
 - self : time splitting object 
 - dt   : time step
@@ -43,116 +109,101 @@ function operator_boris(self, dt, number_steps)
 
         # (1) Compute B_{n+1/2} from B_n
         bfield_dofs_mid = bfield_dofs
-        compute_b_from_e( maxwell_solver,
+        compute_b_from_e!(self.b_dofs,
+                          maxwell_solver,
                           dt, 
-                          self.efield_dofs_mid[:,2], 
-                          self.bfield_dofs)
+                          self.e_dofs_2_mid) 
 
-       self%bfield_dofs_mid = (self%bfield_dofs_mid + self%bfield_dofs)*0.5_f64
+        self.b_dofs_mid .+= self.b_dofs*0.5
        
-       ! (2) Propagate v: v_{n-1/2} -> v_{n+1/2}
-       ! (2a) Half time step with E-part
-       call push_v_epart( self, dt*0.5_f64 )
-       ! (2b) Full time step with B-part
-       call push_v_bpart( self, dt )
-       ! (2c) Half time step with E-part
-       call push_v_epart( self, dt*0.5_f64 )
+        # (2) Propagate v: v_{n-1/2} -> v_{n+1/2}
+        # (2a) Half time step with E-part
+        push_v_epart!( self, dt*0.5 )
+        # (2b) Full time step with B-part
+        push_v_bpart!( self, dt )
+        # (2c) Half time step with E-part
+        push_v_epart!( self, dt*0.5 )
+        
+        # (3) Propagate x: x_n -> x_{n+1}. Includes also accumulation of j_x, j_y
+        push_x_accumulate_j!( self, dt )
+        
+        # (4) Compute E_{n+1}       
+        self.e_dofs_1 .= self.e_dofs_1_mid
+        self.e_dofs_2 .= self.e_dofs_2_mid
+        self.j_dofs_1 .= dt * self.j_dofs_1
+        self.j_dofs_2 .= dt * self.j_dofs_2
+
+        # Ex part:
+        compute_e_from_j!(self.e_dofs_1_mid, maxwell_solver, self.j_dofs_1, 1)
+
+        # Ey part:    
+        compute_e_from_b!(self.e_dofs_2_mid, maxwell_solver, dt, self.b_dofs) 
+        compute_e_from_j!(self.e_dofs_2_mid, maxwell_solver, self.j_dofs_2_dofs, 2)
        
-       ! (3) Propagate x: x_n -> x_{n+1}. Includes also accumulation of j_x, j_y
-       call push_x_accumulate_j ( self, dt )
-       
-       ! (4) Compute E_{n+1}       
-       self%efield_dofs = self%efield_dofs_mid
-       self%j_dofs = dt*self%j_dofs
-       ! Ex part:
-       call self%maxwell_solver%compute_E_from_j(self%j_dofs(:,1), 1, self%efield_dofs_mid(:,1))
-       ! TODO: Combine the two steps for efficiency
-       ! Ey part:    
-       call self%maxwell_solver%compute_E_from_B(&
-            dt, self%bfield_dofs, self%efield_dofs_mid(:,2))
-       call self%maxwell_solver%compute_E_from_j(self%j_dofs(:,2), 2, self%efield_dofs_mid(:,2))
-       
-    end do
+    end
 
-  end subroutine operator_boris
+end
 
-  !> Pusher for E \nabla_v part
-  subroutine push_v_epart (self, dt)
-    class(sll_t_hamiltonian_splitting_pic_vm_1d2v_boris), intent(inout) :: self !< time splitting object 
-    sll_real64,                                     intent(in)    :: dt   !< time step
+"""
+Pusher for ``E \\nabla_v `` part
+"""
+function push_v_epart(self, dt)
 
-    !local variables
-    sll_int32 :: i_part
-    sll_real64 :: v_new(3), xi(3)
-    sll_real64 :: efield(2)
-    sll_real64 :: qm
+    qm = self.particle_group.q_over_m
 
+    # V_new = V_old + dt * E
+    for i_part = 1:self.particle_group.n_particles
 
-    qm = self%particle_group%species%q_over_m();
-    ! V_new = V_old + dt * E
-    do i_part=1,self%particle_group%n_particles
-       ! Evaluate efields at particle position
-       xi = self%particle_group%get_x(i_part)
-       call self%kernel_smoother_1%evaluate &
-            (xi(1), self%efield_dofs_mid(:,1), efield(1))
-       call self%kernel_smoother_0%evaluate &
-            (xi(1), self%efield_dofs_mid(:,2), efield(2))
-       v_new = self%particle_group%get_v(i_part)
-       v_new(1:2) = v_new(1:2) + dt* qm * efield
-       call self%particle_group%set_v(i_part, v_new)
-    end do
+        # Evaluate efields at particle position
+        xi = self.particle_group.get_x(i_part)
+
+        efield[1] = evaluate(self.kernel_smoother_1, xi[1], self.e_dofs_1_mid)
+        efield[2] = evaluate(self.kernel_smoother_0, xi[1], self.e_dofs_2_mid)
+
+        v_new  = get_v(self.particle_group, i_part)
+        v_new .= v_new .+ dt * qm * efield
+
+        set_v!(particle_group, i_part, v_new)
+
+    end
     
 
-  end subroutine push_v_Epart
+end
 
-  !>  Pusher for vxB part
-   subroutine push_v_bpart (self, dt)
-    class(sll_t_hamiltonian_splitting_pic_vm_1d2v_boris), intent(inout) :: self !< time splitting object 
-    sll_real64,                                     intent(in)    :: dt   !< time step
+"""
+  Pusher for vxB part
+"""
+function push_v_bpart(self, dt)
 
-    !local variables
-    sll_int32 :: i_part
-    sll_real64 :: vi(3), v_new(3), xi(3)
-    sll_real64 :: bfield, M11, M12
-    sll_real64 :: qmdt
-
-    qmdt = self%particle_group%species%q_over_m()*0.5_f64*dt;
+    qmdt = self.particle_group.q_over_m * 0.5 * dt
     
-    do i_part=1,self%particle_group%n_particles
-       vi= self%particle_group%get_v(i_part)
-       xi = self%particle_group%get_x(i_part)
-       call self%kernel_smoother_1%evaluate &
-            (xi(1), self%bfield_dofs_mid, bfield)
+    do i_part=1:self.particle_group.n_particles
 
-       bfield = qmdt*bfield
-       M11 = 1.0_f64/(1.0_f64 + bfield**2) 
-       M12 = M11*bfield*2.0_f64
-       M11 = M11*(1-bfield**2)
+        vi= self%particle_group%get_v(i_part)
+        xi = self%particle_group%get_x(i_part)
+        call self%kernel_smoother_1%evaluate &
+             (xi(1), self%bfield_dofs_mid, bfield)
 
-       v_new(1) = M11 * vi(1) + M12 * vi(2)
-       v_new(2) = - M12 * vi(1) + M11 * vi(2)
-       v_new(3) = 0.0_f64
-       
-       call self%particle_group%set_v(i_part, v_new)
+        bfield = qmdt*bfield
+        M11 = 1.0_f64/(1.0_f64 + bfield**2) 
+        M12 = M11*bfield*2.0_f64
+        M11 = M11*(1-bfield**2)
 
-    end do
+        v_new(1) = M11 * vi(1) + M12 * vi(2)
+        v_new(2) = - M12 * vi(1) + M11 * vi(2)
+        v_new(3) = 0.0_f64
+        call self%particle_group%set_v(i_part, v_new)
 
-  end subroutine push_v_bpart
+    end
 
-  !> Pusher for x and accumulate current densities
-  subroutine push_x_accumulate_j (self, dt)
-    class(sll_t_hamiltonian_splitting_pic_vm_1d2v_boris), intent(inout) :: self !< time splitting object 
-    sll_real64,                                     intent(in)    :: dt   !< time step
+end
 
-    !local variables
-    sll_int32 :: i_part
-    sll_real64 :: x_new(3), vi(3), wi(1), x_old(3)
-    sll_int32  :: n_cells
-    sll_real64 :: qoverm
-
+"""
+Pusher for x and accumulate current densities
+"""
+function push_x_accumulate_j (self, dt)
 
     n_cells = self%kernel_smoother_0%n_dofs
-
 
     self%j_dofs_local = 0.0_f64
 
@@ -191,102 +242,5 @@ function operator_boris(self, dt, number_steps)
          n_cells, MPI_SUM, self%j_dofs(:,2))
     
 
-  end subroutine push_x_accumulate_j
-
- !---------------------------------------------------------------------------!
-  !> Constructor.
-  subroutine initialize_pic_vm_1d2v_boris(&
-       self, &
-       maxwell_solver, &
-       kernel_smoother_0, &
-       kernel_smoother_1, &
-       particle_group, &
-       efield_dofs, &
-       bfield_dofs, &
-       x_min, &
-       Lx) 
-    class(sll_t_hamiltonian_splitting_pic_vm_1d2v_boris), intent(out) :: self !< time splitting object 
-    class(sll_c_maxwell_1d_base), pointer,          intent(in)  :: maxwell_solver      !< Maxwell solver
-    class(sll_c_particle_mesh_coupling), pointer,          intent(in)  :: kernel_smoother_0  !< Kernel smoother
-    class(sll_c_particle_mesh_coupling), pointer,          intent(in)  :: kernel_smoother_1  !< Kernel smoother
-    class(sll_c_particle_group_base), pointer,      intent(in)  :: particle_group !< Particle group
-    sll_real64, pointer,                            intent(in)  :: efield_dofs(:,:) !< array for the coefficients of the efields 
-    sll_real64, pointer,                            intent(in)  :: bfield_dofs(:) !< array for the coefficients of the bfield
-    sll_real64,                                     intent(in)  :: x_min !< Lower bound of x domain
-    sll_real64,                                     intent(in)  :: Lx !< Length of the domain in x direction.
-
-    !local variables
-    sll_int32 :: ierr
-
-    self%maxwell_solver => maxwell_solver
-    self%kernel_smoother_0 => kernel_smoother_0
-    self%kernel_smoother_1 => kernel_smoother_1
-    self%particle_group => particle_group
-    self%efield_dofs => efield_dofs
-    self%bfield_dofs => bfield_dofs
-
-#ifndef __PGI
-    ! Check that n_dofs is the same for both kernel smoothers.
-    SLL_ASSERT( self%kernel_smoother_0%n_dofs == self%kernel_smoother_1%n_dofs )
-#endif
-    SLL_ALLOCATE(self%j_dofs(self%kernel_smoother_0%n_dofs,2), ierr)
-    SLL_ALLOCATE(self%j_dofs_local(self%kernel_smoother_0%n_dofs,2), ierr)
-    SLL_ALLOCATE(self%bfield_dofs_mid(self%kernel_smoother_1%n_dofs), ierr)
-    SLL_ALLOCATE(self%efield_dofs_mid(self%kernel_smoother_1%n_dofs,2), ierr)
-
-    self%spline_degree = 3
-    self%x_min = x_min
-    self%Lx = Lx
-    self%delta_x = self%Lx/self%kernel_smoother_1%n_dofs
-    
-    self%cell_integrals_1 = [0.5_f64, 2.0_f64, 0.5_f64]
-    self%cell_integrals_1 = self%cell_integrals_1 / 3.0_f64
-
-    self%cell_integrals_0 = [1.0_f64,11.0_f64,11.0_f64,1.0_f64]
-    self%cell_integrals_0 = self%cell_integrals_0 / 24.0_f64
-
-
-  end subroutine initialize_pic_vm_1d2v_boris
-
-  !---------------------------------------------------------------------------!
-  !> Destructor.
-  subroutine delete_pic_vm_1d2v_boris(self)
-    class(sll_t_hamiltonian_splitting_pic_vm_1d2v_boris), intent( inout ) :: self !< time splitting object 
-
-    deallocate(self%j_dofs)
-    deallocate(self%j_dofs_local)
-    deallocate(self%bfield_dofs_mid)
-    deallocate(self%efield_dofs_mid)
-    self%maxwell_solver => null()
-    self%kernel_smoother_0 => null()
-    self%kernel_smoother_1 => null()
-    self%particle_group => null()
-    self%efield_dofs => null()
-    self%bfield_dofs => null()
-
-  end subroutine delete_pic_vm_1d2v_boris
-
-
-  !---------------------------------------------------------------------------!
-  !> Propagate E_0 to E_{1/2} and x_0 to x_{1/2} to initialize the staggering
-  subroutine staggering_pic_vm_1d2v_boris(self, dt)
-    class(sll_t_hamiltonian_splitting_pic_vm_1d2v_boris), intent( inout ) :: self !< time splitting object 
-    sll_real64,                                     intent(in)    :: dt   !< time step
-
-    call push_x_accumulate_j (self, dt*0.5_f64)
-
-    ! (4) Compute E_{n+1}       
-    self%efield_dofs_mid = self%efield_dofs
-    self%j_dofs = dt*0.5_f64*self%j_dofs
-    ! Ex part:
-    call self%maxwell_solver%compute_E_from_j(self%j_dofs(:,1), 1, self%efield_dofs_mid(:,1))
-    ! TODO: Combine the two steps for efficiency
-    ! Ey part:    
-    call self%maxwell_solver%compute_E_from_B(&
-         dt*0.5_f64, self%bfield_dofs, self%efield_dofs_mid(:,2))
-    call self%maxwell_solver%compute_E_from_j(self%j_dofs(:,2), 2, self%efield_dofs_mid(:,2))
-
-  end subroutine staggering_pic_vm_1d2v_boris
-
-
 end 
+
