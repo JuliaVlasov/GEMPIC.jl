@@ -23,5 +23,6 @@ module GEMPIC
     abstract type AbstractSplitting end
 
     include("hamiltonian_splitting.jl")
+    include("hamiltonian_splitting_boris.jl")
 
 end 
