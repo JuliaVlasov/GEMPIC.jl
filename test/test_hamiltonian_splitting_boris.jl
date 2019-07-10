@@ -1,3 +1,8 @@
+import GEMPIC: set_x, set_v, set_weights, set_common_weight
+import GEMPIC: get_charge, add_charge!
+import GEMPIC: staggering, push_x_accumulate_j!
+import GEMPIC: strang_splitting
+
 @testset "Hamiltonian splitting Boris" begin
 
     n_particles     = 2
@@ -75,7 +80,7 @@
     compute_e_from_rho!(efield_1, maxwell_solver, rho)
     bfield .= 1.0
     
-    propagator = HamiltonSplittingBoris( maxwell_solver,
+    propagator = HamiltonianSplittingBoris( maxwell_solver,
          kernel_smoother_0, kernel_smoother_1, pg,
          efield_1, efield_2, bfield, eta_min, eta_max-eta_min)
 
