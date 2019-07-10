@@ -71,7 +71,7 @@ Strang splitting
 - time step
 - number of time steps
 """
-function strang_splitting( h         :: HamiltonianSplitting,
+function strang_splitting( h            :: HamiltonianSplitting,
                            dt           :: Float64, 
                            number_steps :: Int64)
 
