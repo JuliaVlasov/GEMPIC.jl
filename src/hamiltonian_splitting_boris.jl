@@ -19,8 +19,8 @@ Solves Vlasov-Maxwell with PIC and spline finite elements with Boris pusher
 struct HamiltonianSplittingBoris <: AbstractSplitting
 
      maxwell_solver    :: AbstractMaxwellSolver
-     kernel_smoother_0 :: KernelSmoother #(order p+1)
-     kernel_smoother_1 :: KernelSmoother #(order p)
+     kernel_smoother_0 :: ParticleMeshCoupling #(order p+1)
+     kernel_smoother_1 :: ParticleMeshCoupling #(order p)
      particle_group    :: ParticleGroup
      spline_degree     :: Int64
      Lx                :: Float64
@@ -71,96 +71,105 @@ struct HamiltonianSplittingBoris <: AbstractSplitting
 end
 
 """
+    staggering_pic_vm_1d2v_boris(splitting, dt)
+
 Propagate ``E_0`` to ``E_{1/2}`` and ``x_0`` to ``x_{1/2}`` to initialize 
 the staggering
-- self : time splitting object 
+- splitting : time splitting object 
 - dt   : time step
 """
-function staggering_pic_vm_1d2v_boris(self, dt)
+function staggering_pic_vm_1d2v_boris(splitting, dt)
 
-    push_x_accumulate_j!(self, dt*0.5)
+    push_x_accumulate_j!(splitting, dt*0.5)
 
     # (4) Compute E_{n+1}
-    self.e_dofs_1_mid .= self.e_dofs_1
-    self.e_dofs_2_mid .= self.e_dofs_2
-    self%j_dofs = dt*0.5_f64*self%j_dofs
+    splitting.e_dofs_1_mid .= splitting.e_dofs_1
+    splitting.e_dofs_2_mid .= splitting.e_dofs_2
+    splitting.j_dofs       .= dt * 0.5 * splitting.j_dofs
     # Ex part:
-    call self%maxwell_solver%compute_E_from_j(self%j_dofs(:,1), 1, self%efield_dofs_mid(:,1))
-    ! TODO: Combine the two steps for efficiency
-    ! Ey part:    
-    call self%maxwell_solver%compute_E_from_B(&
-         dt*0.5_f64, self%bfield_dofs, self%efield_dofs_mid(:,2))
-    call self%maxwell_solver%compute_E_from_j(self%j_dofs(:,2), 2, self%efield_dofs_mid(:,2))
 
-end subroutine staggering_pic_vm_1d2v_boris
+    compute_e_from_j!(splitting.e_dofs_1_mid, splitting.maxwell_solver, 
+                      splitting.j_dofs_1, 1) 
+
+    #todo "Combine the two steps for efficiency"
+
+    compute_e_from_b!(splitting.e_dofs_2_mid, splitting.maxwell_solver, 
+                      dt*0.5, splitting.b_dofs)
+
+    compute_e_from_j!(splitting.e_dofs_2_mid, splitting.maxwell_solver,
+                      splitting.j_dofs_2, 2) 
+
+end
 
 
 """
-    operator_boris(self, dt, number_steps)
+    operator_boris(splitting, dt, number_steps)
 
 Second order Boris pusher using staggered grid
-- self : time splitting object 
+- splitting : time splitting object 
 - dt   : time step
 - number_steps : number of time steps
 """
-function operator_boris(self, dt, number_steps)
+function operator_boris(splitting, dt, number_steps)
 
     for i_step = 1:number_steps
 
         # (1) Compute B_{n+1/2} from B_n
         bfield_dofs_mid = bfield_dofs
-        compute_b_from_e!(self.b_dofs,
+        compute_b_from_e!(splitting.b_dofs,
                           maxwell_solver,
                           dt, 
-                          self.e_dofs_2_mid) 
+                          splitting.e_dofs_2_mid) 
 
-        self.b_dofs_mid .+= self.b_dofs*0.5
+        splitting.b_dofs_mid .+= splitting.b_dofs*0.5
        
         # (2) Propagate v: v_{n-1/2} -> v_{n+1/2}
         # (2a) Half time step with E-part
-        push_v_epart!( self, dt*0.5 )
+        push_v_epart!( splitting, dt*0.5 )
         # (2b) Full time step with B-part
-        push_v_bpart!( self, dt )
+        push_v_bpart!( splitting, dt )
         # (2c) Half time step with E-part
-        push_v_epart!( self, dt*0.5 )
+        push_v_epart!( splitting, dt*0.5 )
         
         # (3) Propagate x: x_n -> x_{n+1}. Includes also accumulation of j_x, j_y
-        push_x_accumulate_j!( self, dt )
+        push_x_accumulate_j!( splitting, dt )
         
         # (4) Compute E_{n+1}       
-        self.e_dofs_1 .= self.e_dofs_1_mid
-        self.e_dofs_2 .= self.e_dofs_2_mid
-        self.j_dofs_1 .= dt * self.j_dofs_1
-        self.j_dofs_2 .= dt * self.j_dofs_2
+        splitting.e_dofs_1 .= splitting.e_dofs_1_mid
+        splitting.e_dofs_2 .= splitting.e_dofs_2_mid
+        splitting.j_dofs_1 .= dt * splitting.j_dofs_1
+        splitting.j_dofs_2 .= dt * splitting.j_dofs_2
 
         # Ex part:
-        compute_e_from_j!(self.e_dofs_1_mid, maxwell_solver, self.j_dofs_1, 1)
+        compute_e_from_j!(splitting.e_dofs_1_mid, maxwell_solver, splitting.j_dofs_1, 1)
 
         # Ey part:    
-        compute_e_from_b!(self.e_dofs_2_mid, maxwell_solver, dt, self.b_dofs) 
-        compute_e_from_j!(self.e_dofs_2_mid, maxwell_solver, self.j_dofs_2_dofs, 2)
+        compute_e_from_b!(splitting.e_dofs_2_mid, maxwell_solver, dt, splitting.b_dofs) 
+        compute_e_from_j!(splitting.e_dofs_2_mid, maxwell_solver, splitting.j_dofs_2_dofs, 2)
        
     end
 
 end
 
 """
+    push_v_epart(splitting, dt)
+
 Pusher for ``E \\nabla_v `` part
 """
-function push_v_epart(self, dt)
+function push_v_epart(splitting, dt)
 
-    qm = self.particle_group.q_over_m
+    qm = splitting.particle_group.q_over_m
 
     # V_new = V_old + dt * E
-    for i_part = 1:self.particle_group.n_particles
+    for i_part = 1:splitting.particle_group.n_particles
 
         # Evaluate efields at particle position
-        xi = self.particle_group.get_x(i_part)
+        xi = splitting.particle_group.get_x(i_part)
 
-        efield[1] = evaluate(self.kernel_smoother_1, xi[1], self.e_dofs_1_mid)
-        efield[2] = evaluate(self.kernel_smoother_0, xi[1], self.e_dofs_2_mid)
+        efield[1] = evaluate(splitting.kernel_smoother_1, xi[1], splitting.e_dofs_1_mid)
+        efield[2] = evaluate(splitting.kernel_smoother_0, xi[1], splitting.e_dofs_2_mid)
 
-        v_new  = get_v(self.particle_group, i_part)
+        v_new  = get_v(splitting.particle_group, i_part)
         v_new .= v_new .+ dt * qm * efield
 
         set_v!(particle_group, i_part, v_new)
@@ -173,26 +182,27 @@ end
 """
   Pusher for vxB part
 """
-function push_v_bpart(self, dt)
+function push_v_bpart(splitting, dt)
 
-    qmdt = self.particle_group.q_over_m * 0.5 * dt
+    qmdt = splitting.particle_group.q_over_m * 0.5 * dt
     
-    do i_part=1:self.particle_group.n_particles
+    for i_part=1:splitting.particle_group.n_particles
 
-        vi= self%particle_group%get_v(i_part)
-        xi = self%particle_group%get_x(i_part)
-        call self%kernel_smoother_1%evaluate &
-             (xi(1), self%bfield_dofs_mid, bfield)
+        vi = get_v( splitting.particle_group, i_part)
+        xi = get_x(splitting.particle_group, i_part)
+        bfield = evaluate(splitting.kernel_smoother_1, xi[1], 
+                          splitting.b_dofs_mid)
 
-        bfield = qmdt*bfield
-        M11 = 1.0_f64/(1.0_f64 + bfield**2) 
-        M12 = M11*bfield*2.0_f64
-        M11 = M11*(1-bfield**2)
+        bfield = qmdt * bfield
+        M11    = 1.0/(1.0 + bfield^2) 
+        M12    = M11 * bfield * 2.0
+        M11    = M11 * (1-bfield^2)
 
-        v_new(1) = M11 * vi(1) + M12 * vi(2)
-        v_new(2) = - M12 * vi(1) + M11 * vi(2)
-        v_new(3) = 0.0_f64
-        call self%particle_group%set_v(i_part, v_new)
+        v_new[1] =   M11 * vi[1] + M12 * vi[2]
+        v_new[2] = - M12 * vi[1] + M11 * vi[2]
+        v_new[3] = 0.0
+
+        set_v!(splitting.particle_group, i_part, v_new)
 
     end
 
@@ -201,46 +211,43 @@ end
 """
 Pusher for x and accumulate current densities
 """
-function push_x_accumulate_j (self, dt)
+function push_x_accumulate_j(splitting, dt)
 
-    n_cells = self%kernel_smoother_0%n_dofs
+    n_cells = splitting.kernel_smoother_0.n_dofs
 
-    self%j_dofs_local = 0.0_f64
+    splitting.j_dofs .= 0.0
 
-    ! For each particle compute the index of the first DoF on the grid it contributes to and its position (normalized to cell size one). Note: j_dofs(_local) does not hold the values for j itself but for the integrated j.
-    ! Then update particle position:  X_new = X_old + dt * V
-    do i_part=1,self%particle_group%n_particles  
-       ! Read out particle position and velocity
-       x_old = self%particle_group%get_x(i_part)
-       vi = self%particle_group%get_v(i_part)
+    # For each particle compute the index of the first DoF on the grid it 
+    # contributes to and its position (normalized to cell size one). 
+    # Note: j_dofs(_local) does not hold the values for j itsplitting but 
+    # for the integrated j.
+    # Then update particle position:  X_new = X_old + dt * V
 
-       ! Then update particle position:  X_new = X_old + dt * V
+    for i_part=1:splitting.particle_group.n_particles  
+
+       # Read out particle position and velocity
+       x_old = splitting.particle_group.get_x(i_part)
+       vi = splitting.particle_group.get_v(i_part)
+
+       # Then update particle position:  X_new = X_old + dt * V
        x_new = x_old + dt * vi
 
-       ! Get charge for accumulation of j
-       wi = self%particle_group%get_charge(i_part)
-       qoverm = self%particle_group%species%q_over_m();
+       # Get charge for accumulation of j
+       wi = splitting.particle_group.get_charge(i_part)
+       qoverm = splitting.particle_group.species.q_over_m
 
-       ! TODO: Check here also second posibility with sum of two accumulations
-       ! Accumulate jx
-       call self%kernel_smoother_1%add_charge( [(x_old(1)+x_new(1))*0.5_f64], wi(1)*vi(1), &
-            self%j_dofs_local(:,1))
-       ! Accumulate jy
-       call self%kernel_smoother_0%add_charge( [(x_old(1)+x_new(1))*0.5_f64], wi(1)*vi(2), &
-            self%j_dofs_local(:,2))
+       #todo "Check here also second posibility with sum of two accumulations"
+       # Accumulate jx
+       splitting.j_dofs_1 .= splitting.kernel_smoother_1.add_charge( 
+                [(x_old[1]+x_new[1])*0.5], wi[1]*vi[1])
+       # Accumulate jy
+       splitting.j_dofs_2 .= splitting.kernel_smoother_0.add_charge( 
+                [(x_old[1]+x_new[1])*0.5], wi[1]*vi[2])
       
-       x_new(1) = modulo(x_new(1), self%Lx)
-       call self%particle_group%set_x(i_part, x_new)
+       x_new[1] = mod(x_new[1], splitting.Lx)
+       set_x!(splitting.particle_group, i_part, x_new)
 
-    end do
-
-    self%j_dofs = 0.0_f64
-    ! MPI to sum up contributions from each processor
-    call sll_o_collective_allreduce( sll_v_world_collective, self%j_dofs_local(:,1), &
-         n_cells, MPI_SUM, self%j_dofs(:,1))
-    call sll_o_collective_allreduce( sll_v_world_collective, self%j_dofs_local(:,2), &
-         n_cells, MPI_SUM, self%j_dofs(:,2))
-    
+    end
 
 end 
 
