@@ -1,3 +1,5 @@
+export HamiltonianSplittingBoris
+
 """
 Boris pusher in GEMPIC framework (spline finite elements)
 Reference: Kraus, Kormann, Sonnendrücker, Morrison: GEMPIC: Geometric ElectroMagnetic Particle-In-Cell Methods
@@ -39,14 +41,15 @@ struct HamiltonianSplittingBoris <: AbstractSplitting
      j_dofs_1     :: Array{Float64, 1}
      j_dofs_2     :: Array{Float64, 1}
 
-     function HamiltonianSplittingBoris( maxwell_solver,
-                                         kernel_smoother_0,
-                                         kernel_smoother_1,
-                                         particle_group,
-                                         efield_dofs,
-                                         bfield_dofs,
-                                         x_min,
-                                         Lx ) 
+     function HamiltonianSplittingBoris( maxwell_solver :: Maxwell1DFEM,
+                                         kernel_smoother_0 :: ParticleMeshCoupling,
+                                         kernel_smoother_1 :: ParticleMeshCoupling,
+                                         particle_group :: ParticleGroup,
+                                         e_dofs_1 :: Vector{Float64},
+                                         e_dofs_2 :: Vector{Float64},
+                                         b_dofs  :: Vector{Float64},
+                                         x_min :: Float64,
+                                         Lx    :: Float64 ) 
 
          e_dofs_1_mid = zeros(Float64, kernel_smoother_1.n_dofs)
          e_dofs_2_mid = zeros(Float64, kernel_smoother_1.n_dofs)
@@ -57,8 +60,8 @@ struct HamiltonianSplittingBoris <: AbstractSplitting
          spline_degree = 3
          delta_x       = Lx/kernel_smoother_1.n_dofs
     
-         cell_integrals_1 = SVector([0.5,  2.0,  0.5] ./ 3.0)
-         cell_integrals_0 = SVector([1.0, 11.0, 11.0, 1.0] ./ 24.0)
+         cell_integrals_1 = SVector{3}([0.5,  2.0,  0.5] ./ 3.0)
+         cell_integrals_0 = SVector{4}([1.0, 11.0, 11.0, 1.0] ./ 24.0)
 
          new( maxwell_solver, kernel_smoother_0, kernel_smoother_1,
               particle_group, spline_degree, Lx, x_min, delta_x,
@@ -71,53 +74,58 @@ struct HamiltonianSplittingBoris <: AbstractSplitting
 end
 
 """
-    staggering_pic_vm_1d2v_boris(splitting, dt)
+    staggering(splitting, dt)
 
 Propagate ``E_0`` to ``E_{1/2}`` and ``x_0`` to ``x_{1/2}`` to initialize 
 the staggering
 - splitting : time splitting object 
 - dt   : time step
 """
-function staggering_pic_vm_1d2v_boris(splitting, dt)
+function staggering(splitting, dt)
 
     push_x_accumulate_j!(splitting, dt*0.5)
 
     # (4) Compute E_{n+1}
     splitting.e_dofs_1_mid .= splitting.e_dofs_1
     splitting.e_dofs_2_mid .= splitting.e_dofs_2
-    splitting.j_dofs       .= dt * 0.5 * splitting.j_dofs
+    splitting.j_dofs_1     .= 0.5dt * splitting.j_dofs_1
+    splitting.j_dofs_2     .= 0.5dt * splitting.j_dofs_2
     # Ex part:
 
-    compute_e_from_j!(splitting.e_dofs_1_mid, splitting.maxwell_solver, 
+    compute_e_from_j!(splitting.e_dofs_1_mid, 
+                      splitting.maxwell_solver, 
                       splitting.j_dofs_1, 1) 
 
     #todo "Combine the two steps for efficiency"
 
-    compute_e_from_b!(splitting.e_dofs_2_mid, splitting.maxwell_solver, 
-                      dt*0.5, splitting.b_dofs)
+    compute_e_from_b!(splitting.e_dofs_2_mid, 
+                      splitting.maxwell_solver, 
+                      0.5dt, splitting.b_dofs)
 
-    compute_e_from_j!(splitting.e_dofs_2_mid, splitting.maxwell_solver,
+    compute_e_from_j!(splitting.e_dofs_2_mid, 
+                      splitting.maxwell_solver,
                       splitting.j_dofs_2, 2) 
 
 end
 
 
 """
-    operator_boris(splitting, dt, number_steps)
+    strang_splitting(splitting, dt, number_steps)
 
 Second order Boris pusher using staggered grid
 - splitting : time splitting object 
 - dt   : time step
 - number_steps : number of time steps
 """
-function operator_boris(splitting, dt, number_steps)
+function strang_splitting(splitting, dt, number_steps)
 
     for i_step = 1:number_steps
 
         # (1) Compute B_{n+1/2} from B_n
-        bfield_dofs_mid = bfield_dofs
+        splitting.b_dofs_mid .= splitting.b_dofs
+
         compute_b_from_e!(splitting.b_dofs,
-                          maxwell_solver,
+                          splitting.maxwell_solver,
                           dt, 
                           splitting.e_dofs_2_mid) 
 
@@ -125,11 +133,11 @@ function operator_boris(splitting, dt, number_steps)
        
         # (2) Propagate v: v_{n-1/2} -> v_{n+1/2}
         # (2a) Half time step with E-part
-        push_v_epart!( splitting, dt*0.5 )
+        push_v_epart!( splitting, 0.5dt )
         # (2b) Full time step with B-part
         push_v_bpart!( splitting, dt )
         # (2c) Half time step with E-part
-        push_v_epart!( splitting, dt*0.5 )
+        push_v_epart!( splitting, 0.5dt )
         
         # (3) Propagate x: x_n -> x_{n+1}. Includes also accumulation of j_x, j_y
         push_x_accumulate_j!( splitting, dt )
@@ -156,7 +164,7 @@ end
 
 Pusher for ``E \\nabla_v `` part
 """
-function push_v_epart(splitting, dt)
+function push_v_epart!(splitting, dt)
 
     qm = splitting.particle_group.q_over_m
 
@@ -164,15 +172,16 @@ function push_v_epart(splitting, dt)
     for i_part = 1:splitting.particle_group.n_particles
 
         # Evaluate efields at particle position
-        xi = splitting.particle_group.get_x(i_part)
+        xi = get_x(splitting.particle_group, i_part)
 
         efield[1] = evaluate(splitting.kernel_smoother_1, xi[1], splitting.e_dofs_1_mid)
+
         efield[2] = evaluate(splitting.kernel_smoother_0, xi[1], splitting.e_dofs_2_mid)
 
         v_new  = get_v(splitting.particle_group, i_part)
         v_new .= v_new .+ dt * qm * efield
 
-        set_v!(particle_group, i_part, v_new)
+        set_v!(splitting.particle_group, i_part, v_new)
 
     end
     
@@ -182,7 +191,7 @@ end
 """
   Pusher for vxB part
 """
-function push_v_bpart(splitting, dt)
+function push_v_bpart!(splitting, dt)
 
     qmdt = splitting.particle_group.q_over_m * 0.5 * dt
     
@@ -211,11 +220,12 @@ end
 """
 Pusher for x and accumulate current densities
 """
-function push_x_accumulate_j(splitting, dt)
+function push_x_accumulate_j!(splitting, dt)
 
     n_cells = splitting.kernel_smoother_0.n_dofs
 
-    splitting.j_dofs .= 0.0
+    splitting.j_dofs_1 .= 0.0
+    splitting.j_dofs_2 .= 0.0
 
     # For each particle compute the index of the first DoF on the grid it 
     # contributes to and its position (normalized to cell size one). 
@@ -226,26 +236,26 @@ function push_x_accumulate_j(splitting, dt)
     for i_part=1:splitting.particle_group.n_particles  
 
        # Read out particle position and velocity
-       x_old = splitting.particle_group.get_x(i_part)
-       vi = splitting.particle_group.get_v(i_part)
+       x_old = get_x(splitting.particle_group, i_part)
+       vi = get_v(splitting.particle_group, i_part)
 
        # Then update particle position:  X_new = X_old + dt * V
-       x_new = x_old + dt * vi
+       x_new = x_old .+ dt * vi
 
        # Get charge for accumulation of j
-       wi = splitting.particle_group.get_charge(i_part)
-       qoverm = splitting.particle_group.species.q_over_m
+       wi = get_charge(splitting.particle_group, i_part)
+       qoverm = splitting.particle_group.q_over_m
 
        #todo "Check here also second posibility with sum of two accumulations"
        # Accumulate jx
-       splitting.j_dofs_1 .= splitting.kernel_smoother_1.add_charge( 
+       add_charge!(splitting.j_dofs_1, splitting.kernel_smoother_1,
                 [(x_old[1]+x_new[1])*0.5], wi[1]*vi[1])
        # Accumulate jy
-       splitting.j_dofs_2 .= splitting.kernel_smoother_0.add_charge( 
+       add_charge!(splitting.j_dofs_2, splitting.kernel_smoother_0,
                 [(x_old[1]+x_new[1])*0.5], wi[1]*vi[2])
       
        x_new[1] = mod(x_new[1], splitting.Lx)
-       set_x!(splitting.particle_group, i_part, x_new)
+       set_x(splitting.particle_group, i_part, x_new)
 
     end
 
