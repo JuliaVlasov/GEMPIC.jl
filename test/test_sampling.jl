@@ -50,7 +50,7 @@ nx          = 64
 
 mesh = Mesh( xmax, xmin, nx)
 
-pg = ParticleGroup{1,2}(n_particles, n_particles, 1.0, 1.0, 1)
+pg = ParticleGroup{1,2}(n_particles, 1.0, 1.0, 1)
 
 params = ( dims        = (1,2),
            n_cos       = 1,
