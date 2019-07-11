@@ -5,13 +5,19 @@ export operatorHB, operatorHE, operatorHp1, operatorHp2
 
 
 """
+    HamiltonianSplitting( maxwell_solver,
+                          kernel_smoother_0, kernel_smoother_1,
+                          particle_group,
+                          e_dofs_1, e_dofs_2, b_dofs,
+                          x_min, Lx) 
+
 Hamiltonian splitting type for Vlasov-Maxwell
+
 - Integral over the spline function on each interval (order p+1)
 - Integral over the spline function on each interval (order p)
-!< DoFs describing the two components of the electric field
-DoFs describing the magnetic field
-DoFs for kernel representation of current density. 
-MPI-processor local part of one component of \a j_dofs
+- e_dofs describing the two components of the electric field
+- b_dofs describing the magnetic field
+- j_dofs for kernel representation of current density. 
 """
 struct HamiltonianSplitting
 
@@ -66,6 +72,8 @@ struct HamiltonianSplitting
 end
 
 """
+    strang_splitting( h, dt, number_steps)
+
 Strang splitting
 - time splitting object 
 - time step
@@ -88,6 +96,8 @@ function strang_splitting( h            :: HamiltonianSplitting,
 end 
 
 """
+    lie_splitting( h, dt, number_steps)
+
 Lie splitting
 """
 function lie_splitting(h         :: HamiltonianSplitting,
@@ -104,6 +114,8 @@ function lie_splitting(h         :: HamiltonianSplitting,
 end 
 
 """
+    lie_splitting_back(h, dt, number_steps)
+
 Lie splitting (oposite ordering)
 """
 function lie_splitting_back(h         :: HamiltonianSplitting,
@@ -123,6 +135,9 @@ end
   
 
 """
+
+    operatorHp1(h, dt)
+
 ```math
 \\begin{eqnarray}
 \\partial_t f + v_1 \\partial_{x_1} f = 0 & -> &  X_{new} = X_{old} + dt V_1 \\\\
@@ -206,6 +221,8 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
 end
 
 """
+    operatorHp2(h, dt)
+
 Push Hp2: Equations to solve are
 
 ```math
@@ -256,6 +273,8 @@ function operatorHp2(h, dt)
 end
   
 """
+    operatorHE(h, dt)
+
 Push H_E: Equations to be solved
 ```math
 \\begin{eqnarray}
@@ -290,6 +309,8 @@ function operatorHE(h :: HamiltonianSplitting, dt)
 end
   
 """
+    operatorHB(h, dt)
+
 Push H_B: Equations to be solved ``V_new = V_old``
 
 ```math
