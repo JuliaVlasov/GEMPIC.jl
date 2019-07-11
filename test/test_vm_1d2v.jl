@@ -8,7 +8,7 @@ FEM with splines, degree 3 for B and 2 for E
 """
 
 """
-   solve_poisson( particle_group, kernel_smoother_0, maxwell_solver, rho, efield_dofs )
+   solve_poisson!( efield, particle_group, kernel_smoother, maxwell_solver, rho )
 
 Accumulate rho and solve Poisson
  - particle_group : Particles
@@ -17,11 +17,11 @@ Accumulate rho and solve Poisson
  - rho : Charge density
  - efield_dofs : Electric field (1D)
 """
-function solve_poisson( particle_group    :: ParticleGroup, 
-                        kernel_smoother_0 :: ParticleMeshCoupling, 
-                        maxwell_solver    :: Maxwell1DFEM, 
-                        rho               :: Vector{Float64}, 
-                        efield_dofs       :: Vector{Float64} )
+function solve_poisson!( efield_dofs       :: Vector{Float64},
+                         particle_group    :: ParticleGroup, 
+                         kernel_smoother_0 :: ParticleMeshCoupling, 
+                         maxwell_solver    :: Maxwell1DFEM, 
+                         rho               :: Vector{Float64}) 
 
     
     fill!(rho, 0.0)
@@ -128,9 +128,10 @@ end
 
         # Set the initial fields
         rho = zeros(Float64, ng_x)
+        efield_poisson = zeros(Float64, ng_x)
 
         # efield 1 by Poisson
-        solve_poisson( pg, kernel0, maxwell, rho, efield1_dofs )
+        solve_poisson!( efield1_dofs, pg, kernel0, maxwell, rho )
 
         # bfield = beta*cos(kx): Use b = M{-1}(N_i,beta*cos(kx))
 
@@ -140,6 +141,13 @@ end
             l2projection!( bfield_dofs, maxwell, beta_sin_k, degree_smoother-1)
         end
        
+        # In case we use the Boris propagator, we need to initialize 
+        # the staggering used in the scheme.
+        if splitting_case == :boris
+           staggering( splitting, delta_t )
+        end
+
+        solve_poisson!( efield_poisson, pg, kernel0, maxwell, rho )
     
     end 
 
@@ -164,18 +172,6 @@ end
     type(sll_t_time_mark) :: start_loop, end_loop
  
 
-
-
-
-    ! In case we use the Boris propagator, we need to initialize the staggering used in the scheme.
-    select type( qp=>sim%propagator )
-    type is ( sll_t_hamiltonian_splitting_pic_vm_1d2v_boris)
-       call qp%staggering( sim%delta_t )
-    end select
-
-    ! End field initialization
-
-    call solve_poisson( sim%particle_group, sim%kernel_smoother_0, sim%maxwell_solver, rho_local, rho, efield_poisson )
     ! Diagnostics
     call sll_s_time_history_diagnostics_pic_vm_1d2v( &
          sim%particle_group, sim%maxwell_solver, &
