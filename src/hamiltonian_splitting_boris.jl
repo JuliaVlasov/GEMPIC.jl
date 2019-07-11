@@ -1,13 +1,19 @@
 export HamiltonianSplittingBoris
 
 """
+    HamiltonianSplittingBoris( maxwell_solver,
+                               kernel_smoother_0, kernel_smoother_1,
+                               particle_group,
+                               e_dofs_1, e_dofs_2, b_dofs,
+                               x_min, Lx ) 
+
 Boris pusher in GEMPIC framework (spline finite elements)
 Reference: Kraus, Kormann, Sonnendrücker, Morrison: GEMPIC: Geometric ElectroMagnetic Particle-In-Cell Methods
 
 Solves Vlasov-Maxwell with PIC and spline finite elements with Boris pusher
 
-- DoFs describing the magnetic field at time t_{n+1/2} (used for push)
-- DoFs for kernel representation of current density. 
+- `mid` describing the magnetic field at time t_{n+1/2} (used for push)
+- `j_dofs` for kernel representation of current density. 
 - `maxwell_solver`    : Maxwell solver
 - `kernel_smoother_0` : Kernel smoother
 - `kernel_smoother_1` : Kernel smoother
@@ -199,6 +205,8 @@ function push_v_epart!(splitting, dt)
 end
 
 """
+    push_v_bpart!(splitting, dt)
+
   Pusher for vxB part
 """
 function push_v_bpart!(splitting :: HamiltonianSplittingBoris, 
@@ -232,6 +240,8 @@ function push_v_bpart!(splitting :: HamiltonianSplittingBoris,
 end
 
 """
+    push_x_accumulate_j!(splitting, dt)
+
 Pusher for x and accumulate current densities
 """
 function push_x_accumulate_j!(splitting, dt)
