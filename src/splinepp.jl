@@ -1,6 +1,5 @@
 using StaticArrays
 
-
 const  inv_2   = 1. / 2.
 const  inv_3   = 1. / 3.
 const  inv_4   = 1. / 4.
@@ -19,9 +18,11 @@ const  inv_144 = 1. / 144.
 const  inv_720 = 1. / 720.
 
 """
+    SplinePP( degree, ncells)
+
 - degree         : degree of 1d spline
-- poly_coeffs    : poly_coeffs[i,j] coefficient of x^{deg+1-j} for ith B-spline function  size= (degree+1, degree+1)
-- poly_coeffs_fp : poly_coeffs[i,j] coefficient of x^{deg+1-j} for ith B-spline function  size= (degree+1, degree+1)
+- poly_coeffs    : poly_coeffs[i,j] coefficient of ``x^{deg+1-j}`` for ith B-spline function  size= (degree+1, degree+1)
+- poly_coeffs_fp : poly_coeffs[i,j] coefficient of ``x^{deg+1-j}`` for ith B-spline function  size= (degree+1, degree+1)
 - ncells        : number of gridcells
 - scratch_b      : scratch data for b_to_pp-converting
 - scratch_p      : scratch data for b_to_pp-converting
@@ -109,6 +110,8 @@ mutable struct SplinePP
 end 
 
 """
+    b_to_pp( SplinePP, ncells, b_coeffs)
+
 Convert 1d spline in B form to spline in pp form with 
 periodic boundary conditions
 """
@@ -137,7 +140,9 @@ function b_to_pp( self :: SplinePP, ncells :: Int64, b_coeffs :: Vector{Float64}
 end
 
 """
-    Perform a 1d hornerschema on the pp_coeffs at index
+    horner_1d(degree, pp_coeffs, x, index)
+
+Perform a 1d hornerschema on the pp_coeffs at index
 """
 function horner_1d(degree :: Int, pp_coeffs, x :: Float64, index :: Int)
     
@@ -150,6 +155,8 @@ function horner_1d(degree :: Int, pp_coeffs, x :: Float64, index :: Int)
 end
 
 """
+    horner_primitive_1d(val, degree, pp_coeffs, x)
+
 Perform a 1d hornerschema on the pp_coeffs evaluate at x
 """
 function horner_primitive_1d(val :: Vector{Float64}, degree, pp_coeffs, x)
