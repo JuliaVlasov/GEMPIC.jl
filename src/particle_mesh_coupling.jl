@@ -1,15 +1,19 @@
 export ParticleMeshCoupling
 
 """
+    ParticleMeshCoupling( domain, n_grid, 
+                          no_particles, spline_degree, 
+                          smoothing_type )
+    
 Kernel smoother with splines of arbitrary degree placed on a uniform mesh.
 Spline with index i starts at point i
 
 - Value of grid spacing along both directions.
 - Definition of the domain: domain(1:2) = x1_min, x1_max
-- Number of particles of underlying PIC method (processor local)
+- Number of particles of underlying PIC method 
 - Degree of smoothing kernel spline
 - Number of intervals where spline non zero (spline_degree + 1)
-- Scaling factor depending on whether Galerkin or collocation
+- Scaling factor depending on whether :galerkin or :collocation
 - Number of quadrature points
 - scratch data for spline evaluation
 - more scratch data for spline evaluation
@@ -75,6 +79,8 @@ end
      
 
 """
+    add_charge_pp!(rho_dofs, p, position, marker_charge)
+
 Add charge of one particle
 - p             : kernel smoother object
 - position      : Position of the particle
@@ -133,6 +139,9 @@ function add_charge!( rho_dofs      :: Vector{Float64},
 end
 
 """  
+    add_current_update_v_pp!( j_dofs, p, position_old, position_new, 
+                              marker_charge, qoverm, bfield_dofs, vi)
+
 Add current for one particle and update v 
 (according to H_p1 part in Hamiltonian splitting)
 """
@@ -192,7 +201,10 @@ function add_current_update_v_pp!( j_dofs :: AbstractArray,
 end
 
 """
-Helper function for \a add_current_update_v.
+    update_jv_pp!( j_dofs, p, lower, upper, index, marker_charge, 
+                   qoverm, vi, bfield_dofs)
+
+Helper function for add_current_update_v.
 """
 function update_jv_pp!( j_dofs         :: AbstractArray,
                         p              :: ParticleMeshCoupling, 
@@ -228,6 +240,11 @@ end
 
 
 """
+    add_current_update_v!( j_dofs, p, 
+                           position_old, position_new, 
+                           marker_charge, qoverm, 
+                           bfield_dofs, vi) 
+
 Add current for one particle and update v (according to H_p1 part in Hamiltonian splitting)
 
 - Read out particle position and velocity
@@ -297,7 +314,11 @@ function add_current_update_v!( j_dofs        :: AbstractArray,
 end
 
 """
-Helper function for \a add_current_update_v.
+    update_jv!(j_dofs, p, 
+               lower, upper, index, marker_charge, 
+               qoverm, sign, vi, bfield_dofs)
+
+Helper function for add_current_update_v.
 """
 function update_jv!(j_dofs        :: AbstractArray, 
                     p             :: ParticleMeshCoupling, 
@@ -346,6 +367,8 @@ end
 
 
 """
+    evaluate_pp(p, position, field_dofs_pp)
+
 Evaluate field at `position` using horner scheme
 - `p` : Kernel smoother object 
 - `position(p.dim)` : Position of the particle
@@ -366,6 +389,8 @@ function evaluate_pp(p             :: ParticleMeshCoupling,
 end
 
 """
+    evaluate(p, position, field_dofs)
+
 Evaluate field at `position`
 - `p` : Kernel smoother object 
 - `position(p.dim)` : Position of the particle
