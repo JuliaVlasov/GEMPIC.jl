@@ -48,7 +48,13 @@ end
 export sample
 
 """
-Sample from distribution defined by \a params
+    sample( ps, pg, df, mesh)
+
+Sample from a Particle sampler
+
+- `ps`   : Particle sampler
+- `pg`   : Particle group
+- `df`   : Distribution function
 - `xmin` : lower bound of the domain
 - `Lx`   : length of the domain.
 """
@@ -133,21 +139,11 @@ function sample_all( ps, pg, df, mesh )
 end
 
 """
+    sample_sym( ps, pg, df, mesh )
+
 Helper function for antithetic sampling in 1d2v
 """
 function sample_sym( ps, pg, df, mesh )
-
-#=
-    sll_int32 :: n_rnds
-    sll_real64                                         :: x(3),v(3)
-    sll_int32                                          :: i_part
-    sll_int32                                          :: i_v
-    sll_real64, allocatable                            :: rdn(:)
-    sll_real64                                         :: wi(1)
-    sll_real64                                         :: rnd_no
-    sll_int32                                          :: ip, i_gauss
-    sll_real64                                         :: delta(params%n_gaussians)
-=#
 
     ndx, ndv = df.dims
 
