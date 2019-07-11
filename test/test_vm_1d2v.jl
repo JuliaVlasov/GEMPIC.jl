@@ -1,10 +1,43 @@
-import VlasovBase: UniformMesh
+import VlasovBase: UniformMesh, CosGaussian
+import GEMPIC: get_charge, get_x, add_charge!
 
 """
 Simulation of 1d2v Vlasov-Maxwell with simple PIC method, 
 periodic boundary conditions, Weibel instability. 
 FEM with splines, degree 3 for B and 2 for E
 """
+
+"""
+   solve_poisson( particle_group, kernel_smoother_0, maxwell_solver, rho, efield_dofs )
+
+Accumulate rho and solve Poisson
+ - particle_group : Particles
+ - maxwell_solver : Maxwell solver (FEM 1D)
+ - kernel_smoother_0 : Particle-Mesh method
+ - rho : Charge density
+ - efield_dofs : Electric field (1D)
+"""
+function solve_poisson( particle_group    :: ParticleGroup, 
+                        kernel_smoother_0 :: ParticleMeshCoupling, 
+                        maxwell_solver    :: Maxwell1DFEM, 
+                        rho               :: Vector{Float64}, 
+                        efield_dofs       :: Vector{Float64} )
+
+    
+    fill!(rho, 0.0)
+
+    for i_part = 1:particle_group.n_particles
+       xi = get_x(particle_group, i_part)
+       wi = get_charge(particle_group, i_part)
+       add_charge!(rho, kernel_smoother_0, xi, wi)
+    end
+
+    # Solve Poisson problem
+    compute_e_from_rho!( efield_dofs, maxwell_solver, rho )
+
+end
+
+    
 
 @testset " PIC VM 1D2V " begin
 
@@ -29,11 +62,17 @@ FEM with splines, degree 3 for B and 2 for E
     splitting_case = :symplectic
     spline_degree  = 3
     
-    mesh1  = UniformMesh( x1_min, x1_max, ng_x)
+    mesh   = Mesh( x1_min, x1_max, ng_x)
     domain = [x1_min, x1_max, x1_max - x1_min ]
+
+    beta_cos_k(x) = beta * cos(2π * x / domain[3]) 
+    beta_sin_k(x) = beta * sin(2π * x / domain[3]) 
     
     n_total_particles = n_particles
     degree_smoother   = spline_degree
+
+    df = CosGaussian( (1,2), 1, 1, hcat([kx]), [alpha], 
+                      hcat(v_thermal), hcat(v_mean), 0.0 )
     
     sampler = ParticleSampler( sampling_case, symmetric, (1,2), n_particles)
     
@@ -83,6 +122,24 @@ FEM with splines, degree 3 for B and 2 for E
 
 
         end
+
+
+        sample( sampler, pg, df, mesh )
+
+        # Set the initial fields
+        rho = zeros(Float64, ng_x)
+
+        # efield 1 by Poisson
+        solve_poisson( pg, kernel0, maxwell, rho, efield1_dofs )
+
+        # bfield = beta*cos(kx): Use b = M{-1}(N_i,beta*cos(kx))
+
+        if initial_bfield == :cos
+            l2projection!( bfield_dofs, maxwell, beta_cos_k, degree_smoother-1)
+        else
+            l2projection!( bfield_dofs, maxwell, beta_sin_k, degree_smoother-1)
+        end
+       
     
     end 
 
@@ -106,35 +163,9 @@ end
 
     type(sll_t_time_mark) :: start_loop, end_loop
  
-    ! Initialize file for diagnostics
-    if (sim%rank == 0) then
-       call sll_s_ascii_file_create('thdiag5.dat', th_diag_id, ierr)
-       call sll_s_ascii_file_create('dfield.dat', dfield_id, ierr)
-       call sll_s_ascii_file_create('efield.dat', efield_id, ierr)
-       call sll_s_ascii_file_create('bfield.dat', bfield_id, ierr)
-    end if
 
-    call sim%sampler%sample( sim%particle_group, sim%init_distrib_params, sim%domain(1:1), sim%domain(3:3) )
 
-    ! Set the initial fields
-    SLL_ALLOCATE(rho_local(sim%n_gcells), ierr)
-    SLL_ALLOCATE(rho(sim%n_gcells), ierr)
-    SLL_ALLOCATE(efield_poisson(sim%n_gcells), ierr)
 
-    ! Efield 1 by Poisson
-    call solve_poisson( sim%particle_group, sim%kernel_smoother_0, sim%maxwell_solver, rho_local, rho, sim%efield_dofs(:,1) )
-
-    ! Efield 2 to zero
-    sim%efield_dofs(:,2) = 0.0_f64
-    ! Bfield = beta*cos(kx): Use b = M{-1}(N_i,beta*cos(kx))
-    if ( sim%initial_bfield == sll_p_bfield_cos ) then
-       call sim%maxwell_solver%L2projection( beta_cos_k, sim%degree_smoother-1, &
-            sim%bfield_dofs)
-    else
-       call sim%maxwell_solver%L2projection( beta_sin_k, sim%degree_smoother-1, &
-            sim%bfield_dofs)
-    end if
-       
 
     ! In case we use the Boris propagator, we need to initialize the staggering used in the scheme.
     select type( qp=>sim%propagator )
@@ -201,21 +232,6 @@ end
 
 
   contains
-    function beta_cos_k(x)
-      sll_real64             :: beta_cos_k
-      sll_real64, intent(in) :: x
-
-      beta_cos_k = sim%beta * cos(2*sll_p_pi*x/sim%domain(3)) 
-    end function beta_cos_k
-
-    function beta_sin_k(x)
-      sll_real64             :: beta_sin_k
-      sll_real64, intent(in) :: x
-
-      beta_sin_k = sim%beta * sin(2*sll_p_pi*x/sim%domain(3)) 
-    end function beta_sin_k
-    
-  end subroutine run_pic_vm_1d2v
 
 !------------------------------------------------------------------------------!
   ! local subroutine to handle ctest
@@ -243,33 +259,6 @@ end
 
   end subroutine ctest
 
-
-!------------------------------------------------------------------------------!
-
-  subroutine delete_pic_vm_1d2v (sim)
-    class(sll_t_sim_pic_vm_1d2v_cart), intent(inout) :: sim
-    SLL_ASSERT(storage_size(sim)>0)
-
-    call sim%propagator%free()
-    deallocate(sim%propagator)
-    call sim%particle_group%free()
-    deallocate (sim%particle_group)
-    call sim%mesh%delete()
-    deallocate(sim%mesh)
-    call sim%maxwell_solver%free()
-    deallocate(sim%maxwell_solver)
-    call sim%kernel_smoother_0%free()
-    deallocate(sim%kernel_smoother_0)
-    call sim%kernel_smoother_1%free()
-    deallocate(sim%kernel_smoother_1)
-
-    deallocate(sim%fields_grid)
-
-    call sim%init_distrib_params%free()
-    deallocate(sim%init_distrib_params)
-    call sim%sampler%free()
-
-  end subroutine delete_pic_vm_1d2v
 
 !------------------------------------------------------------------------------!
 !Diagnostic functions and other helper functions
@@ -511,35 +500,5 @@ end
 
   
   
-  !> Accumulate rho and solve Poisson
-  subroutine solve_poisson( particle_group, kernel_smoother_0, maxwell_solver, rho_local, rho, efield_dofs )
-    class(sll_c_particle_group_base), intent(in) :: particle_group
-    class(sll_c_maxwell_1d_base),     intent(in) :: maxwell_solver
-    class(sll_c_particle_mesh_coupling),     intent(inout) :: kernel_smoother_0
-    sll_real64,                       intent(inout) :: rho_local(:)
-    sll_real64,                       intent(inout) :: rho(:)
-    sll_real64,                       intent(inout) :: efield_dofs(:)
-    
-    
-    sll_int32 :: i_part
-    sll_real64 :: xi(3), wi(1)
-    
-    rho_local = 0.0_f64
-    do i_part = 1, particle_group%n_particles
-       xi = particle_group%get_x(i_part)
-       wi(1) = particle_group%get_charge( i_part)
-       call kernel_smoother_0%add_charge(xi(1), wi(1), rho_local)
-    end do
-    ! MPI to sum up contributions from each processor
-    rho = 0.0_f64
-    call sll_o_collective_allreduce( sll_v_world_collective, &
-         rho_local, &
-         kernel_smoother_0%n_dofs, MPI_SUM, rho)
-    ! Solve Poisson problem
-    call maxwell_solver%compute_E_from_rho( efield_dofs,&
-         rho )
-
-  end subroutine solve_poisson
-    
 
 =#
