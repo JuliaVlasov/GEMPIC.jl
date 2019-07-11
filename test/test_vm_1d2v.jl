@@ -1,6 +1,5 @@
 import VlasovBase: UniformMesh, CosGaussian
 import GEMPIC: get_charge, get_x, add_charge!, get_mass
-using Printf
 
 """
 Simulation of 1d2v Vlasov-Maxwell with simple PIC method, 
