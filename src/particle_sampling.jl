@@ -5,6 +5,9 @@ using Distributions
 export ParticleSampler
 
 """
+    ParticleSampler( sampling_type, symmetric, 
+                     dims, n_particles)
+
 Particle initializer class with various functions to initialize a particle.
 """
 struct ParticleSampler
@@ -73,6 +76,8 @@ end
 
 
 """
+    sample_all( ps, pg, df, mesh )
+
 Helper function for pure sampling
 """
 function sample_all( ps, pg, df, mesh )
