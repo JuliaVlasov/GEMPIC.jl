@@ -60,7 +60,7 @@ end
 export eval_uniform_periodic_spline_curve
 
 """
-eval_uniform_periodic_spline_curve( degree, scoef )
+    eval_uniform_periodic_spline_curve( degree, scoef )
 
 Evaluate uniform periodic spline curve defined by coefficients scoef at 
 knots (which are the grid points) 
