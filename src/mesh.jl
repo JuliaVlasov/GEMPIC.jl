@@ -1,5 +1,10 @@
 export Mesh
 
+"""
+    Mesh( xmin, xmax,nx )
+
+Simple structure to store mesh data from 1 to 3 dimensions
+"""
 struct Mesh 
 
     nx    :: Vector{Int}
@@ -55,6 +60,8 @@ end
 export get_x
 
 """  
+    get_x( mesh, i )
+
 Get position
 """
 function get_x( m :: Mesh, i )
@@ -64,6 +71,8 @@ function get_x( m :: Mesh, i )
 end 
 
 """  
+    get_cell_and_offset( mesh, x )
+
 Get cell and offset
 
 We compute the cell indices where the particle is and its relative 
