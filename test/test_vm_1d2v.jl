@@ -144,7 +144,7 @@ end
     for splitting in [:symplectic, :boris]
     
         # Initialize the particles   (mass and charge set to 1.0)
-        particle_group = ParticleGroup{1,2}( n_particles, n_particles ,1.0, 1.0, 1)
+        particle_group = ParticleGroup{1,2}( n_particles, 1.0, 1.0, 1)
         
         # Init!ialize the field solver
         maxwell_solver = Maxwell1DFEM(domain, ng_x, spline_degree)
