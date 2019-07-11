@@ -388,3 +388,36 @@ function compute_b_from_e!( field_out :: Vector{Float64},
     field_out[1] = field_out[1] + coef * ( field_in[end] - field_in[1] )
 
 end
+
+"""
+    inner_product( maxwell_solver, coefs1_dofs, coefs2_dofs, degree )
+
+-  maxwell_solver : Maxwell solver object
+-  coefs1_dofs : Coefficient for each DoF
+-  coefs2_dofs : Coefficient for each DoF
+-  degree : Specify the degree of the basis functions
+
+return squared L2 norm
+
+"""
+function inner_product( self, coefs1_dofs, coefs2_dofs, degree ) 
+
+     # Multiply coefficients by mass matrix (use diagonalization FFT and mass matrix eigenvalues)
+     if degree == self.s_deg_0
+
+         solve_circulant!(self, self.eig_mass0, coefs2_dofs)
+
+     elseif degree == self.s_deg_1
+
+         solve_circulant!(self, self.eig_mass1, coefs2_dofs)
+
+     end 
+
+     # Multiply by the coefficients from the left (inner product)
+     r = sum(coefs1_dofs * self.work)
+     # Scale by delt_x
+
+     r * self.delta_x
+     
+end
+
