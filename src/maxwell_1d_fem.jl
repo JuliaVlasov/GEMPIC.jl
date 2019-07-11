@@ -248,7 +248,9 @@ end
 
 export compute_e_from_j!
 """
-    Compute E_i from j_i integrated over the time interval using weak Ampere formulation
+    compute_e_from_j!(e, maxwell_solver, current, component)
+
+Compute E_i from j_i integrated over the time interval using weak Ampere formulation
 """
 function compute_e_from_j!(e         :: Vector{Float64}, 
                            self      :: Maxwell1DFEM, 
@@ -283,8 +285,9 @@ end
 export l2norm_squared
 
 """
+    l2norm_squared(maxwell_solver, coefs_dofs, degree)
 
-    Compute square of the L2norm 
+Compute square of the L2norm 
 
 """
 function l2norm_squared(self, coefs_dofs, degree)
@@ -348,7 +351,9 @@ function l2projection!(coefs_dofs :: Vector{Float64},
 end
   
 export compute_e_from_b!
+
 """
+    compute_e_from_b!(field_out, maxwell_solver, delta_t, field_in)
 
 compute Ey from Bz using weak Ampere formulation 
 
@@ -369,6 +374,8 @@ end
 
 export compute_b_from_e!
 """
+    compute_b_from_e!( field_out, maxwell_solver, delta_t, field_in) 
+
 Compute Bz from Ey using strong 1D Faraday equation for spline coefficients
 ```math
 B_z^{new}(x_j) = B_z^{old}(x_j) - \\frac{\\Delta t}{\\Delta x} (E_y(x_j) - E_y(x_{j-1})
