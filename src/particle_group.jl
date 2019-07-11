@@ -2,11 +2,22 @@ export ParticleGroup
 
 abstract type AbstractParticleGroup end
 
+"""
+
+    ParticleGroup{D,V}( n_particles, 
+                        charge, 
+                        mass, 
+                        n_weights)
+
+- n_particles  : number of particles 
+- charge       : charge of one particle
+- mass         : mass of one particle
+- n_weights    : number of differents weights
+"""
 mutable struct ParticleGroup{D,V} <:  AbstractParticleGroup 
 
     dims              :: Tuple{Int64, Int64}
     n_particles       :: Int64
-    n_total_particles :: Int64
     particle_array    :: Array{Float64, 2} 
     common_weight     :: Float64
     charge            :: Float64
@@ -15,7 +26,6 @@ mutable struct ParticleGroup{D,V} <:  AbstractParticleGroup
     q_over_m          :: Float64
 
     function ParticleGroup{D,V}( n_particles, 
-                                 n_total_particles, 
                                  charge, 
                                  mass, 
                                  n_weights) where {D, V}
@@ -27,7 +37,6 @@ mutable struct ParticleGroup{D,V} <:  AbstractParticleGroup
 
         new( dims,
              n_particles,
-             n_total_particles,
              particle_array,
              common_weight,
              charge,
@@ -40,7 +49,9 @@ end
 export get_x
 
 """  
-Get position
+    get_x( p, i )
+
+Get position of ith particle of p
 """
 @generated function get_x( p :: ParticleGroup{D,V}, i ) where {D, V}
 
@@ -51,7 +62,9 @@ end
 export get_v
 
 """  
-Get velocities
+    get_v( p, i )
+
+Get velocity of ith particle of p
 """
 @generated function get_v( p :: ParticleGroup{D,V}, i ) where {D, V}
 
@@ -60,7 +73,9 @@ end
 
 
 """
-Get charge of particle (q * particle_weight)
+    get_charge( p, i; i_wi=1)
+
+Get charge of ith particle of p (q * particle_weight)
 """
 @generated function get_charge( p :: ParticleGroup{D,V}, i; i_wi=1) where {D, V}
 
@@ -70,7 +85,9 @@ end
 
 
 """
-Get mass of particle (m * particle_weight)
+    get_mass( p, i; i_wi=1)
+
+Get mass of ith particle of p (m * particle_weight)
 """
 @generated function get_mass( p :: ParticleGroup{D,V}, i; i_wi=1) where {D,V}
 
@@ -79,7 +96,9 @@ Get mass of particle (m * particle_weight)
 end
 
 """
-Get particle weights
+    get_weights( p, i)
+
+Get ith particle weights of group p
 """
 @generated function get_weights( p :: ParticleGroup{D,V}, i) where {D, V}
 
@@ -88,7 +107,9 @@ Get particle weights
 end
 
 """
-Set position of particle @ i
+    set_x( p, i, x ) 
+
+Set position of ith particle of p to x 
 """
 @generated function set_x( p :: ParticleGroup{D,V}, i, x :: Vector{Float64} ) where {D, V}
 
@@ -97,7 +118,9 @@ Set position of particle @ i
 end
 
 """
-Set position of particle @ i
+    set_x( p, i, x)
+
+Set position of ith particle of p to x
 """
 @generated function set_x( p :: ParticleGroup{D,V}, i, x :: Float64 ) where {D, V}
 
@@ -107,7 +130,9 @@ end
     
 
 """
-Set velocity of particle @ i
+    set_v( p, i, v)
+
+Set velocity of ith particle of p to v
 """
 @generated function set_v( p :: ParticleGroup{D,V}, i, v :: Vector{Float64} ) where {D, V}
 
@@ -116,7 +141,9 @@ Set velocity of particle @ i
 end
 
 """
-Set velocity of particle @ i
+    set_v( p, i, v)
+
+Set velocity of ith particle of p to v
 """
 @generated function set_v( p :: ParticleGroup{D,V}, i, v :: Float64 ) where {D, V}
 
@@ -125,7 +152,9 @@ Set velocity of particle @ i
 end
   
 """
-Set weights of particle @ i
+    set_weights( p, i, w) 
+
+Set weights of ith particle of p to w
 """
 @generated function set_weights( p :: ParticleGroup{D,V}, i, w :: Vector{Float64} ) where {D, V}
 
@@ -134,6 +163,8 @@ Set weights of particle @ i
 end
 
 """
+    set_weights( p, i, w) 
+
 Set weights of particle @ i
 """
 @generated function set_weights( p :: ParticleGroup{D,V}, i, w :: Float64 ) where {D, V}
@@ -143,6 +174,8 @@ Set weights of particle @ i
 end
 
 """
+    set_common_weight( p, x ) 
+
 Set the common weight
 """
 function set_common_weight( p :: AbstractParticleGroup, x ) 
