@@ -1,5 +1,6 @@
 import VlasovBase: UniformMesh, CosGaussian
-import GEMPIC: get_charge, get_x, add_charge!
+import GEMPIC: get_charge, get_x, add_charge!, get_mass
+using Printf
 
 """
 Simulation of 1d2v Vlasov-Maxwell with simple PIC method, 
@@ -36,6 +37,71 @@ function solve_poisson!( efield_dofs       :: Vector{Float64},
     compute_e_from_rho!( efield_dofs, maxwell_solver, rho )
 
 end
+
+"""
+    time_history_diagnostics( particle_group, maxwell_solver,
+       kernel_smoother_0, kernel_smoother_1,
+       time, degree, efield_dofs, bfield_dofs,
+       efield_dofs_n, efield_poisson, scratch)
+
+Diagnostics for PIC
+- particle_group
+- maxwell_solver
+- kernel_smoother_0
+- kernel_smoother_1
+- time
+- efield_dofs(:,:)
+- efield_dofs_n(:,:)
+- efield_poisson(:)
+- scratch(:)
+- bfield_dofs(:)
+- degree
+"""
+function time_history_diagnostics(
+       particle_group, maxwell_solver,
+       kernel_smoother_0, kernel_smoother_1,
+       time, degree, efield_1_dofs, efield_2_dofs, 
+       bfield_dofs,
+       efield_1_dofs_n, efield_2_dofs_n, 
+       efield_poisson, scratch)
+
+
+    diagnostics_local = zeros(Float64, 3)
+
+    for i_part=1:particle_group.n_particles
+       vi = get_v(   particle_group, i_part)
+       wi = get_mass(particle_group, i_part)
+       # Kinetic energy
+       diagnostics_local[1] += (vi[1]^2+vi[2]^2)*wi[1]
+       # Momentum 1
+       diagnostics_local[2] += vi[1] * wi[1]
+       # Momentum 2
+       diagnostics_local[3] += vi[2] * wi[1]
+    end
+
+#    pic_diagnostics_transfer( particle_group, kernel_smoother_0, kernel_smoother_1, &
+#            efield_dofs, transfer )
+#
+#    pic_diagnostics_vvb( particle_group, kernel_smoother_1, &
+#            bfield_dofs, vvb )
+#
+#    pic_diagnostics_poynting( maxwell_solver, degree, efield_dofs(:,2), bfield_dofs, &
+#         scratch, poynting )
+#    
+#    potential_energy = zeros(Float64, 3)
+#    potential_energy[1] = maxwell_solver%inner_product&
+#            ( efield_dofs(:,1), efield_dofs_n(:,1), degree-1 )
+#    potential_energy[2] = maxwell_solver%inner_product&
+#            ( efield_dofs(:,2), efield_dofs_n(:,2), degree )
+#    potential_energy[3] = maxwell_solver%L2norm_squared&
+#            ( bfield_dofs, degree-1 )
+#
+#    println( time,  potential_energy, diagnostics[1],
+#            diagnostics[1] + sum(potential_energy), 
+#            diagnostics[2:3], -transfer+vvb+poynting,
+#            maximum(abs.(efield1_dofs .- efield_poisson)))
+#
+end 
 
     
 
@@ -79,15 +145,15 @@ end
     for splitting in [:symplectic, :boris]
     
         # Initialize the particles   (mass and charge set to 1.0)
-        pg = ParticleGroup{1,2}( n_particles, n_particles ,1.0, 1.0, 1)
+        particle_group = ParticleGroup{1,2}( n_particles, n_particles ,1.0, 1.0, 1)
         
         # Init!ialize the field solver
-        maxwell = Maxwell1DFEM(domain, ng_x, spline_degree)
+        maxwell_solver = Maxwell1DFEM(domain, ng_x, spline_degree)
         
-        kernel1 = ParticleMeshCoupling( domain, [ng_x], n_particles, 
+        kernel_smoother1 = ParticleMeshCoupling( domain, [ng_x], n_particles, 
                      spline_degree, :galerkin)
         
-        kernel0 = ParticleMeshCoupling( domain, [ng_x], n_particles, 
+        kernel_smoother0 = ParticleMeshCoupling( domain, [ng_x], n_particles, 
                      spline_degree, :galerkin)
     
         # Initialize the arrays for the spline coefficients of the fields
@@ -98,47 +164,52 @@ end
         # Initialize the time-splitting propagator
         if splitting_case == :symplectic
 
-            splitting = HamiltonianSplitting( maxwell,
-                                              kernel0, 
-                                              kernel1, 
-                                              pg,
+            splitting = HamiltonianSplitting( maxwell_solver,
+                                              kernel_smoother0, 
+                                              kernel_smoother1, 
+                                              particle_group,
                                               efield1_dofs, 
                                               efield2_dofs, 
                                               bfield_dofs,
                                               domain[1], 
                                               domain[3]    )
 
+           efield_1_dofs_n = splitting.e_dofs_1
+           efield_2_dofs_n = splitting.e_dofs_2
+
         elseif splitting_case == :boris
 
-            splitting = HamiltonianSplittingBoris( maxwell,
-                                                   kernel0, 
-                                                   kernel1, 
-                                                   pg,
+            splitting = HamiltonianSplittingBoris( maxwell_solver,
+                                                   kernel_smoother0, 
+                                                   kernel_smoother1, 
+                                                   particle_group,
                                                    efield1_dofs, 
                                                    efield2_dofs, 
                                                    bfield_dofs,
                                                    domain[1], 
                                                    domain[3]    )
 
+           efield_1_dofs_n = splitting.e_dofs_1_mid
+           efield_2_dofs_n = splitting.e_dofs_2_mid
 
         end
 
 
-        sample( sampler, pg, df, mesh )
+        sample( sampler, particle_group, df, mesh )
 
         # Set the initial fields
         rho = zeros(Float64, ng_x)
         efield_poisson = zeros(Float64, ng_x)
 
         # efield 1 by Poisson
-        solve_poisson!( efield1_dofs, pg, kernel0, maxwell, rho )
+        solve_poisson!( efield1_dofs, particle_group, kernel_smoother0, maxwell_solver, rho )
 
         # bfield = beta*cos(kx): Use b = M{-1}(N_i,beta*cos(kx))
 
         if initial_bfield == :cos
-            l2projection!( bfield_dofs, maxwell, beta_cos_k, degree_smoother-1)
+            l2projection!( bfield_dofs, maxwell_solver, beta_cos_k, degree_smoother-1)
         else
-            l2projection!( bfield_dofs, maxwell, beta_sin_k, degree_smoother-1)
+            l2projection!( bfield_dofs, maxwell_solver, beta_sin_k, degree_smoother-1)
         end
        
         # In case we use the Boris propagator, we need to initialize 
@@ -147,7 +218,13 @@ end
            staggering( splitting, delta_t )
         end
 
-        solve_poisson!( efield_poisson, pg, kernel0, maxwell, rho )
+        solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
+
+        time_history_diagnostics( particle_group, maxwell_solver,
+                                  kernel_smoother0, kernel_smoother1, 0.0,
+                                  degree_smoother, efield1_dofs, efield2_dofs, bfield_dofs,
+                                  efield_1_dofs_n, efield_2_dofs_n, efield_poisson, rho)
+
     
     end 
 
@@ -158,32 +235,6 @@ end
 
 !------------------------------------------------------------------------------!
 
-  subroutine run_pic_vm_1d2v (sim)
-    class(sll_t_sim_pic_vm_1d2v_cart), intent(inout) :: sim
-
-    ! Local variables
-    sll_int32 :: j, ierr, i_part
-    sll_real64, allocatable :: rho(:), rho_local(:), efield_poisson(:)
-    sll_int32 :: th_diag_id, dfield_id, efield_id, bfield_id
-
-    sll_real64 :: wi(1)
-    sll_real64 :: xi(3)
-
-    type(sll_t_time_mark) :: start_loop, end_loop
- 
-
-    ! Diagnostics
-    call sll_s_time_history_diagnostics_pic_vm_1d2v( &
-         sim%particle_group, sim%maxwell_solver, &
-         sim%kernel_smoother_0, sim%kernel_smoother_1, 0.0_f64, &
-         sim%degree_smoother, sim%efield_dofs, sim%bfield_dofs, &
-         sim%rank, th_diag_id, sim%efield_dofs_n, efield_poisson, rho)
-
-    if (sim%rank == 0 ) then
-       call sll_s_set_time_mark(start_loop )
-    end if
-
-    
     ! Time loop
     do j=1, sim%n_time_steps
        !print*, 'TIME STEP', j
@@ -256,85 +307,6 @@ end
   end subroutine ctest
 
 
-!------------------------------------------------------------------------------!
-!Diagnostic functions and other helper functions
-!> Diagnostics for PIC Vlasov-Maxwell 1d2v 
-!> @todo (should be part of the library)
-  subroutine sll_s_time_history_diagnostics_pic_vm_1d2v(&
-       particle_group, &
-       maxwell_solver, &
-       kernel_smoother_0, &
-       kernel_smoother_1, &
-       time, &
-       degree, &
-       efield_dofs, &
-       bfield_dofs, &
-       mpi_rank, &
-       file_id, &
-       efield_dofs_n, &
-       efield_poisson, scratch)
-    class(sll_c_particle_group_base), intent(in) :: particle_group
-    class(sll_c_maxwell_1d_base),     intent(in) :: maxwell_solver
-    class(sll_c_particle_mesh_coupling),     intent(inout) :: kernel_smoother_0, kernel_smoother_1
-    sll_real64,                       intent(in) :: time
-    sll_real64,                       intent(in) :: efield_dofs(:,:)
-    sll_real64,                       intent(in) :: efield_dofs_n(:,:)
-    sll_real64,                       intent(in) :: efield_poisson(:)
-    sll_real64,                       intent(out) :: scratch(:)
-    sll_real64,                       intent(in) :: bfield_dofs(:)
-    sll_int32,                        intent(in) :: degree
-    sll_int32,                        intent(in) :: mpi_rank
-    sll_int32,                        intent(in) :: file_id
-
-    ! local variables
-    sll_real64 :: diagnostics_local(3)
-    sll_real64 :: diagnostics(3)
-    sll_real64 :: potential_energy(3)
-    sll_int32  :: i_part
-    sll_real64 :: vi(3)
-    sll_real64 :: wi(1)
-    sll_real64 :: transfer(1), vvb(1), poynting
-
-    diagnostics_local = 0.0_f64
-    do i_part=1,particle_group%n_particles
-       vi = particle_group%get_v(i_part)
-       wi = particle_group%get_mass(i_part)
-       ! Kinetic energy
-       diagnostics_local(1) = diagnostics_local(1) + &
-            (vi(1)**2+vi(2)**2)*wi(1)
-       ! Momentum 1
-       diagnostics_local(2) = diagnostics_local(2) + &
-            vi(1)*wi(1)
-       ! Momentum 2
-       diagnostics_local(3) = diagnostics_local(3) + &
-            vi(2)*wi(1)
-    end do
-    diagnostics = 0.0_f64
-    call sll_s_collective_reduce_real64(sll_v_world_collective, diagnostics_local, 3,&
-         MPI_SUM, 0, diagnostics)
-    call sll_s_pic_diagnostics_transfer( particle_group, kernel_smoother_0, kernel_smoother_1, &
-            efield_dofs, transfer )
-    call sll_s_pic_diagnostics_vvb( particle_group, kernel_smoother_1, &
-            bfield_dofs, vvb )
-    call sll_s_pic_diagnostics_poynting( maxwell_solver, degree, efield_dofs(:,2), bfield_dofs, &
-         scratch, poynting )
-    
-    
-    
-    if (mpi_rank == 0) then
-       potential_energy(1) = maxwell_solver%inner_product&
-            ( efield_dofs(:,1), efield_dofs_n(:,1), degree-1 )
-       potential_energy(2) = maxwell_solver%inner_product&
-            ( efield_dofs(:,2), efield_dofs_n(:,2), degree )
-       potential_energy(3) = maxwell_solver%L2norm_squared&
-            ( bfield_dofs, degree-1 )
-       write(file_id,'(f12.5,2g24.16,2g24.16,2g24.16,2g24.16,2g24.16,2g24.16,2g24.16)' ) &
-            time,  potential_energy, diagnostics(1), &
-            diagnostics(1) + sum(potential_energy), diagnostics(2:3), -transfer+vvb+poynting, &
-            maxval(abs(efield_dofs(:,1)-efield_poisson))
-    end if
-
-  end subroutine sll_s_time_history_diagnostics_pic_vm_1d2v
 
 
   subroutine sll_s_diagnostics_fields( field_dofs,  field_grid, xi, n_dofs, kernel_smoother, file_id )
