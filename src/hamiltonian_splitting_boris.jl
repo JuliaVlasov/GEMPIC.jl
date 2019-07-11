@@ -117,7 +117,9 @@ Second order Boris pusher using staggered grid
 - dt   : time step
 - number_steps : number of time steps
 """
-function strang_splitting(splitting, dt, number_steps)
+function strang_splitting(splitting    :: HamiltonianSplittingBoris, 
+                          dt           :: Float64, 
+                          number_steps :: Int64)
 
     for i_step = 1:number_steps
 
@@ -129,7 +131,7 @@ function strang_splitting(splitting, dt, number_steps)
                           dt, 
                           splitting.e_dofs_2_mid) 
 
-        splitting.b_dofs_mid .+= splitting.b_dofs*0.5
+        splitting.b_dofs_mid .= (splitting.b_dofs_mid .+ splitting.b_dofs) * .5
        
         # (2) Propagate v: v_{n-1/2} -> v_{n+1/2}
         # (2a) Half time step with E-part
@@ -149,13 +151,21 @@ function strang_splitting(splitting, dt, number_steps)
         splitting.j_dofs_2 .= dt * splitting.j_dofs_2
 
         # Ex part:
-        compute_e_from_j!(splitting.e_dofs_1_mid, maxwell_solver, splitting.j_dofs_1, 1)
+        compute_e_from_j!(splitting.e_dofs_1_mid, 
+                          splitting.maxwell_solver, 
+                          splitting.j_dofs_1, 1)
 
         # Ey part:    
-        compute_e_from_b!(splitting.e_dofs_2_mid, maxwell_solver, dt, splitting.b_dofs) 
-        compute_e_from_j!(splitting.e_dofs_2_mid, maxwell_solver, splitting.j_dofs_2_dofs, 2)
+        compute_e_from_b!(splitting.e_dofs_2_mid, 
+                          splitting.maxwell_solver, dt, 
+                          splitting.b_dofs) 
+
+        compute_e_from_j!(splitting.e_dofs_2_mid, 
+                          splitting.maxwell_solver, 
+                          splitting.j_dofs_2, 2)
        
     end
+ 
 
 end
 
@@ -174,14 +184,14 @@ function push_v_epart!(splitting, dt)
         # Evaluate efields at particle position
         xi = get_x(splitting.particle_group, i_part)
 
-        efield[1] = evaluate(splitting.kernel_smoother_1, xi[1], splitting.e_dofs_1_mid)
+        efield_1 = evaluate(splitting.kernel_smoother_1, xi[1], splitting.e_dofs_1_mid)
 
-        efield[2] = evaluate(splitting.kernel_smoother_0, xi[1], splitting.e_dofs_2_mid)
+        efield_2 = evaluate(splitting.kernel_smoother_0, xi[1], splitting.e_dofs_2_mid)
 
         v_new  = get_v(splitting.particle_group, i_part)
-        v_new .= v_new .+ dt * qm * efield
+        v_new .= v_new .+ dt * qm .* [efield_1, efield_2]
 
-        set_v!(splitting.particle_group, i_part, v_new)
+        set_v(splitting.particle_group, i_part, v_new)
 
     end
     
@@ -191,18 +201,22 @@ end
 """
   Pusher for vxB part
 """
-function push_v_bpart!(splitting, dt)
+function push_v_bpart!(splitting :: HamiltonianSplittingBoris, 
+                       dt        :: Float64)
 
     qmdt = splitting.particle_group.q_over_m * 0.5 * dt
+    v_new = zeros(3)
     
     for i_part=1:splitting.particle_group.n_particles
 
-        vi = get_v( splitting.particle_group, i_part)
+        vi = get_v(splitting.particle_group, i_part)
         xi = get_x(splitting.particle_group, i_part)
+
         bfield = evaluate(splitting.kernel_smoother_1, xi[1], 
                           splitting.b_dofs_mid)
 
         bfield = qmdt * bfield
+
         M11    = 1.0/(1.0 + bfield^2) 
         M12    = M11 * bfield * 2.0
         M11    = M11 * (1-bfield^2)
@@ -211,7 +225,7 @@ function push_v_bpart!(splitting, dt)
         v_new[2] = - M12 * vi[1] + M11 * vi[2]
         v_new[3] = 0.0
 
-        set_v!(splitting.particle_group, i_part, v_new)
+        set_v(splitting.particle_group, i_part, v_new)
 
     end
 

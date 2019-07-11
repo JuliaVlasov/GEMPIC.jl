@@ -16,6 +16,8 @@ import GEMPIC: strang_splitting
 
     pg = ParticleGroup{1,2}(n_particles, n_particles ,1.0, 1.0, 1)
 
+    set_common_weight(pg, 1.0)
+
     particle_info_ref = reshape( [11.780972450961723, 
                                  -1.5341205443525459,
                                   0.15731068461017067,
@@ -26,19 +28,14 @@ import GEMPIC: strang_splitting
                                   5.7026946767517002],4,n_particles)
     
     # Initialize particles from particle_info_ref
-    xi = zeros(2)
+
     for i_part = 1:n_particles
 
        xi = particle_info_ref[1, i_part]
-
        set_x(pg, i_part, xi)
-
        xi = particle_info_ref[2:3, i_part]
-
        set_v(pg, i_part, xi)
-
        xi = particle_info_ref[4, i_part]
-
        set_weights(pg, i_part, xi[1])
 
     end
@@ -56,16 +53,13 @@ import GEMPIC: strang_splitting
     maxwell_solver = Maxwell1DFEM( [eta_min, eta_max], num_cells,
                                     degree_smoother)
     
-    efield_1    = zeros(Float64, (kernel_smoother_0.n_dofs))
-    efield_2    = zeros(Float64, (kernel_smoother_0.n_dofs))
-    bfield      = zeros(Float64, (kernel_smoother_0.n_dofs))
+    efield_1    = ones(Float64, (kernel_smoother_0.n_dofs))
+    efield_2    = ones(Float64, (kernel_smoother_0.n_dofs))
+    bfield      = ones(Float64, (kernel_smoother_0.n_dofs))
+
     efield_ref  = zeros(Float64, (kernel_smoother_0.n_dofs,2))
     bfield_ref  = zeros(Float64, (kernel_smoother_0.n_dofs))
     rho         = zeros(Float64, (kernel_smoother_0.n_dofs))
-    rho_local   = zeros(Float64, (kernel_smoother_0.n_dofs))
-
-    efield_1 .= 1.0
-    efield_2 .= 1.0
 
     for i_part = 1:n_particles
 
@@ -73,13 +67,12 @@ import GEMPIC: strang_splitting
 
        wi = get_charge(pg, i_part)
 
-       add_charge!( rho_local, kernel_smoother_0, xi, wi[1])
+       add_charge!( rho, kernel_smoother_0, xi, wi[1])
 
     end
 
     compute_e_from_rho!(efield_1, maxwell_solver, rho)
-    bfield .= 1.0
-    
+
     propagator = HamiltonianSplittingBoris( maxwell_solver,
          kernel_smoother_0, kernel_smoother_1, pg,
          efield_1, efield_2, bfield, eta_min, eta_max-eta_min)
@@ -87,7 +80,7 @@ import GEMPIC: strang_splitting
     staggering( propagator, 0.5*delta_t )
 
     strang_splitting( propagator, delta_t, 1 )
-    
+
     # Compare to reference
     # Particle information after operatorV application 
     particle_info_ref = reshape([ 11.590250917552364,
