@@ -96,7 +96,7 @@ function sample_all( ps, pg, df, mesh )
     rdn = zeros(ndx + ndv + 1)
     
     # 1/Np in common weight
-    set_common_weight(pg, (1.0/pg.n_total_particles))
+    set_common_weight(pg, (1.0/pg.n_particles))
 
     if ps.sampling_type == :sobol
        rng_sobol  = SobolSeq(ndx)
@@ -162,7 +162,7 @@ function sample_sym( ps, pg, df, mesh )
     rdn    = zeros( ndx + ndv + 1 )
     
     # 1/Np in common weight
-    set_common_weight(pg, 1.0/pg.n_total_particles)
+    set_common_weight(pg, 1.0/pg.n_particles)
 
     if ps.sampling_type == :sobol
        rng_sobol  = SobolSeq(ndx + ndv + 1)
