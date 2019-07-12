@@ -66,16 +66,6 @@ struct CosGaussian
             normal[j] = 1.0/((2π)^(0.5*dims[2])*prod(v_thermal[:,j]))
         end
 
-        @show dims        
-        @show n_cos       
-        @show n_gaussians 
-        @show kx           
-        @show alpha       
-        @show v_thermal   
-        @show v_mean      
-        @show delta       
-        @show normal      
-
         new( dims, n_cos, n_gaussians, kx, alpha, v_thermal, 
              v_mean, delta, normal )
 
