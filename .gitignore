@@ -9,3 +9,4 @@ Manifest.toml
 *.exe
 *.dat
 .ipynb_checkpoints/
+notebooks/particle_group.ipynb
