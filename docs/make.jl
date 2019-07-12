@@ -14,7 +14,8 @@ makedocs(
                                  "particle_sampling.md",
                                  "maxwell_solver.md",
                                  "hamiltonian_splitting.md",
-                                 "hamiltonian_splitting_boris.md"],
+                                 "hamiltonian_splitting_boris.md",
+                                 "diagnostics.md"],
              "Contents"      => "contents.md"]
 )
 
