@@ -78,7 +78,6 @@ function pic_vm_1d2v()
     delta_t         = 0.05
     n_time_steps    = 10
     beta            = 0.0001
-    initial_distrib = :cossum_onegaussian
     initial_bfield  = :cos
     
     kx        = hcat([1.25])
