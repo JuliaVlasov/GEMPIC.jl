@@ -8,7 +8,7 @@ export CosSumOneGaussian
 Data type for parameters of initial distribution
 
 ```math
-(1+ \\cos( \\sum_{n_{cos}} kx_i * x_i)) * \\exp \\big( -\\frac{1}{2} \\sum_{n_{gaussians} \\frac{(v-v_{mean})^2}{v_{thermal}^2} \\big)
+(1+ \\cos( \\sum_{n_{cos}} kx_i * x_i)) * \\exp \\big( -\\frac{1}{2} \\sum_{n_{gaussians}} \\frac{(v-v_{mean})^2}{v_{thermal}^2} \\big)
 ```
 
 ## Parameters
