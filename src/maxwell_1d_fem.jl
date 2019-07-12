@@ -421,10 +421,9 @@ function inner_product( self, coefs1_dofs, coefs2_dofs, degree )
      end 
 
      # Multiply by the coefficients from the left (inner product)
-     r = sum(coefs1_dofs * self.work)
-     # Scale by delt_x
+     # Scaled by delt_x
 
-     r * self.delta_x
+     sum(coefs1_dofs .* self.work) * self.delta_x
      
 end
 
