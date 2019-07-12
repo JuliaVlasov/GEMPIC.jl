@@ -32,12 +32,12 @@ fxv(x, v) = ( 1 + ϵ * cos(kx * x )) / sqrt(2π) * exp(- (v^2)/ 2)
 surface(xg, vg, fxv)
 # -
 
-?CosGaussian
+?CosSumOneGaussian
 
 v_thermal = hcat([1.0])
 v_mean    = hcat([0.0])
 δ = 1.0
-df = CosGaussian( (1,1), 1, 1, hcat([kx]), [0.1], v_thermal, v_mean, δ )
+df = CosSumOneGaussian( (1,1), 1, 1, hcat([kx]), [0.1], v_thermal, v_mean, δ )
 
 plot( xg, [eval_x_density(df, x) for x in xg])
 
