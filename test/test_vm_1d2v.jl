@@ -1,5 +1,7 @@
 import VlasovBase: UniformMesh, CosGaussian
 import GEMPIC: get_charge, get_x, add_charge!, get_mass
+import GEMPIC: inner_product, evaluate
+import GEMPIC: strang_splitting
 
 """
 Simulation of 1d2v Vlasov-Maxwell with simple PIC method, 
@@ -7,107 +9,10 @@ periodic boundary conditions, Weibel instability.
 FEM with splines, degree 3 for B and 2 for E
 """
 
-"""
-   solve_poisson!( efield, particle_group, kernel_smoother, maxwell_solver, rho )
-
-Accumulate rho and solve Poisson
- - particle_group : Particles
- - maxwell_solver : Maxwell solver (FEM 1D)
- - kernel_smoother_0 : Particle-Mesh method
- - rho : Charge density
- - efield_dofs : Electric field (1D)
-"""
-function solve_poisson!( efield_dofs       :: Vector{Float64},
-                         particle_group    :: ParticleGroup, 
-                         kernel_smoother_0 :: ParticleMeshCoupling, 
-                         maxwell_solver    :: Maxwell1DFEM, 
-                         rho               :: Vector{Float64}) 
-
-    
-    fill!(rho, 0.0)
-
-    for i_part = 1:particle_group.n_particles
-       xi = get_x(particle_group, i_part)
-       wi = get_charge(particle_group, i_part)
-       add_charge!(rho, kernel_smoother_0, xi, wi)
-    end
-
-    # Solve Poisson problem
-    compute_e_from_rho!( efield_dofs, maxwell_solver, rho )
-
-end
-
-"""
-    time_history_diagnostics( particle_group, maxwell_solver,
-       kernel_smoother_0, kernel_smoother_1,
-       time, degree, efield_dofs, bfield_dofs,
-       efield_dofs_n, efield_poisson, scratch)
-
-Diagnostics for PIC
-- particle_group
-- maxwell_solver
-- kernel_smoother_0
-- kernel_smoother_1
-- time
-- efield_dofs(:,:)
-- efield_dofs_n(:,:)
-- efield_poisson(:)
-- scratch(:)
-- bfield_dofs(:)
-- degree
-"""
-function time_history_diagnostics(
-       particle_group, maxwell_solver,
-       kernel_smoother_0, kernel_smoother_1,
-       time, degree, efield_1_dofs, efield_2_dofs, 
-       bfield_dofs,
-       efield_1_dofs_n, efield_2_dofs_n, 
-       efield_poisson, scratch)
-
-
-    diagnostics_local = zeros(Float64, 3)
-
-    for i_part=1:particle_group.n_particles
-       vi = get_v(   particle_group, i_part)
-       wi = get_mass(particle_group, i_part)
-       # Kinetic energy
-       diagnostics_local[1] += (vi[1]^2+vi[2]^2)*wi[1]
-       # Momentum 1
-       diagnostics_local[2] += vi[1] * wi[1]
-       # Momentum 2
-       diagnostics_local[3] += vi[2] * wi[1]
-    end
-
-#    pic_diagnostics_transfer( particle_group, kernel_smoother_0, kernel_smoother_1, &
-#            efield_dofs, transfer )
-#
-#    pic_diagnostics_vvb( particle_group, kernel_smoother_1, &
-#            bfield_dofs, vvb )
-#
-#    pic_diagnostics_poynting( maxwell_solver, degree, efield_dofs(:,2), bfield_dofs, &
-#         scratch, poynting )
-#    
-#    potential_energy = zeros(Float64, 3)
-#    potential_energy[1] = maxwell_solver%inner_product&
-#            ( efield_dofs(:,1), efield_dofs_n(:,1), degree-1 )
-#    potential_energy[2] = maxwell_solver%inner_product&
-#            ( efield_dofs(:,2), efield_dofs_n(:,2), degree )
-#    potential_energy[3] = maxwell_solver%L2norm_squared&
-#            ( bfield_dofs, degree-1 )
-#
-#    println( time,  potential_energy, diagnostics[1],
-#            diagnostics[1] + sum(potential_energy), 
-#            diagnostics[2:3], -transfer+vvb+poynting,
-#            maximum(abs.(efield1_dofs .- efield_poisson)))
-#
-end 
-
-    
-
 @testset " PIC VM 1D2V " begin
 
     delta_t         = 0.05
-    n_time_steps    = 300
+    n_time_steps    = 10
     beta            = 0.0001
     initial_distrib = :cossum_onegaussian
     initial_bfield  = :cos
@@ -141,7 +46,7 @@ end
     
     sampler = ParticleSampler( sampling_case, symmetric, (1,2), n_particles)
     
-    for splitting in [:symplectic, :boris]
+    for propagator in [:symplectic, :boris]
     
         # Initialize the particles   (mass and charge set to 1.0)
         particle_group = ParticleGroup{1,2}( n_particles, 1.0, 1.0, 1)
@@ -163,7 +68,7 @@ end
         # Initialize the time-splitting propagator
         if splitting_case == :symplectic
 
-            splitting = HamiltonianSplitting( maxwell_solver,
+            propagator = HamiltonianSplitting( maxwell_solver,
                                               kernel_smoother0, 
                                               kernel_smoother1, 
                                               particle_group,
@@ -173,12 +78,12 @@ end
                                               domain[1], 
                                               domain[3]    )
 
-           efield_1_dofs_n = splitting.e_dofs_1
-           efield_2_dofs_n = splitting.e_dofs_2
+           efield_1_dofs_n = propagator.e_dofs_1
+           efield_2_dofs_n = propagator.e_dofs_2
 
         elseif splitting_case == :boris
 
-            splitting = HamiltonianSplittingBoris( maxwell_solver,
+            propagator = HamiltonianSplittingBoris( maxwell_solver,
                                                    kernel_smoother0, 
                                                    kernel_smoother1, 
                                                    particle_group,
@@ -188,8 +93,8 @@ end
                                                    domain[1], 
                                                    domain[3]    )
 
-           efield_1_dofs_n = splitting.e_dofs_1_mid
-           efield_2_dofs_n = splitting.e_dofs_2_mid
+           efield_1_dofs_n = propagator.e_dofs_1_mid
+           efield_2_dofs_n = propagator.e_dofs_2_mid
 
         end
 
@@ -214,258 +119,45 @@ end
         # In case we use the Boris propagator, we need to initialize 
         # the staggering used in the scheme.
         if splitting_case == :boris
-           staggering( splitting, delta_t )
+           staggering( propagator, delta_t )
         end
 
         solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
 
         time_history_diagnostics( particle_group, maxwell_solver,
-                                  kernel_smoother0, kernel_smoother1, 0.0,
-                                  degree_smoother, efield1_dofs, efield2_dofs, bfield_dofs,
-                                  efield_1_dofs_n, efield_2_dofs_n, efield_poisson, rho)
+                                  kernel_smoother0, kernel_smoother1, 
+                                  0.0,
+                                  degree_smoother, 
+                                  efield1_dofs, efield2_dofs, bfield_dofs,
+                                  efield_1_dofs_n, efield_2_dofs_n, efield_poisson)
 
-    
-    end 
+        for j = 1:n_time_steps # loop over time
 
-    @test true
+           # Strang splitting
+           strang_splitting(propagator, delta_t, 1)
+
+           # Diagnostics
+           solve_poisson!( efield_poisson, particle_group, 
+                           kernel_smoother0, maxwell_solver, rho)
+
+           time_history_diagnostics( particle_group, maxwell_solver,
+                                     kernel_smoother0, kernel_smoother1, 
+                                     j * delta_t,
+                                     degree_smoother, 
+                                     efield1_dofs, efield2_dofs, bfield_dofs,
+                                     efield_1_dofs_n, efield_2_dofs_n, efield_poisson)
+
+        end
+
+        # Compute final rho
+        fill!(rho, 0.0)
+        for i_part = 1:particle_group.n_particles
+           xi = get_x(particle_group, i_part)
+           wi = get_charge( particle_group, i_part)
+           add_charge!(rho, kernel_smoother0, xi, wi)
+        end
+
+    end
 
 end
-#=
 
-!------------------------------------------------------------------------------!
-
-    ! Time loop
-    do j=1, sim%n_time_steps
-       !print*, 'TIME STEP', j
-       ! Strang splitting
-       call sim%propagator%strang_splitting(sim%delta_t,1)
-
-       ! Diagnostics
-       call solve_poisson( sim%particle_group, sim%kernel_smoother_0, sim%maxwell_solver, rho_local, rho, efield_poisson )
-       call sll_s_time_history_diagnostics_pic_vm_1d2v( &
-         sim%particle_group, sim%maxwell_solver, &
-         sim%kernel_smoother_0, sim%kernel_smoother_1,  sim%delta_t*real(j,f64), &
-         sim%degree_smoother, sim%efield_dofs, sim%bfield_dofs, &
-         sim%rank, th_diag_id, sim%efield_dofs_n, efield_poisson, rho)
-
-    end do
-
-    if (sim%rank == 0 ) then
-       call sll_s_set_time_mark( end_loop )
-       write(*, "(A, F10.3)") "Main loop run time [s] = ", sll_f_time_elapsed_between( start_loop, end_loop)
-    end if
-    
-    !!! Part for ctest
-    ! Compute final rho
-    rho_local = 0.0_f64
-    do i_part = 1, sim%particle_group%n_particles
-       xi = sim%particle_group%get_x(i_part)
-       wi(1) = sim%particle_group%get_charge( i_part)
-       call sim%kernel_smoother_0%add_charge(xi(1), wi(1), rho_local)
-    end do
-    ! MPI to sum up contributions from each processor
-    rho = 0.0_f64
-    call sll_o_collective_allreduce( sll_v_world_collective, &
-         rho_local, &
-         sim%n_gcells, MPI_SUM, rho)
-
-    if (sim%rank == 0) then
-
-       call ctest( rho, rho_local, sim%ctest_passed )
-
-    end if
-    !!! Part for ctest end
-
-
-  contains
-
-!------------------------------------------------------------------------------!
-  ! local subroutine to handle ctest
-  subroutine ctest(rho_simulated, rho_ref, passed)
-    sll_real64, intent(in   ) :: rho_simulated(:)
-    sll_real64, intent(inout) :: rho_ref(:)
-    logical,    intent(  out) :: passed     
-
-    ! For testing
-    character(len=256) :: reffile
-    sll_real64 :: error
-
-    call sll_s_concatenate_filename_and_path( "reffile_pic_vm_1d2v_cart.dat", __FILE__,&
-         reffile)
-    call sll_s_read_data_real_array( reffile, rho_ref)
-    
-    rho_ref = rho_ref -  rho_simulated
-    error = maxval(rho_ref)
-    print*, 'Maximum error in rho is', error, '.'
-    if (abs(error)> 1E-14) then
-       passed = .FALSE.
-    else
-       passed = .TRUE.
-    end if
-
-  end subroutine ctest
-
-
-
-
-  subroutine sll_s_diagnostics_fields( field_dofs,  field_grid, xi, n_dofs, kernel_smoother, file_id )
-    sll_real64,                       intent(in) :: field_dofs(:)
-    sll_real64,                       intent(inout) :: field_grid(:)
-    sll_real64,                       intent(in) :: xi(:)
-    sll_int32, intent(in) :: n_dofs
-    class(sll_c_particle_mesh_coupling),     intent(inout) :: kernel_smoother
-    sll_int32, intent(in) :: file_id
-    
-
-    sll_int32 :: j
-
-    do j=1,n_dofs
-       call kernel_smoother%evaluate( [xi(j)], field_dofs, field_grid(j))
-    end do
-    
-    write(file_id, *) field_grid
-
-
-  end subroutine sll_s_diagnostics_fields
- !> compute v(index)-part of kinetic energy
-  subroutine sll_s_pic_diagnostics_Hpi ( particle_group,  index, kinetic )
-    class(sll_c_particle_group_base), intent(in)  :: particle_group !< particle group
-    sll_int32,                        intent(in)  :: index !< velocity component
-    sll_real64,                       intent(out) :: kinetic(1) !< value of \a index part of kinetic energy
-    
-
-    sll_real64 :: kinetic_local(1)
-    sll_int32  :: i_part
-    sll_real64 :: vi(3)
-    sll_real64 :: wi(1)
-
-    kinetic_local(1) = 0.0_f64
-    do i_part = 1, particle_group%n_particles
-       vi = particle_group%get_v(i_part)
-       wi = particle_group%get_mass(i_part)
-       ! Kinetic energy
-       kinetic_local(1) = kinetic_local(1) + &
-            (vi(index)**2)*wi(1)
-    end do
-    kinetic = 0.0_f64
-    call sll_s_collective_reduce_real64( sll_v_world_collective, kinetic_local, 1, &
-         MPI_SUM, 0, kinetic )
-    
-    
-  end subroutine sll_s_pic_diagnostics_Hpi
-
-  !> Compute the spline coefficient of the derivative of some given spline expansion
-  subroutine sll_s_pic_diagnostics_eval_derivative_spline( position, xmin, delta_x, n_grid, field_dofs, degree, derivative )
-    sll_real64, intent( in    ) :: position(:) !< particle position
-    sll_real64, intent( in    ) :: xmin !< lower boundary of the domain
-    sll_real64, intent( in    ) :: delta_x !< time step 
-    sll_int32,  intent( in    ) :: n_grid !< number of grid points
-    sll_real64, intent( in    ) :: field_dofs(:) !< coefficients of spline representation of the field
-    sll_int32,  intent( in    ) :: degree !< degree of spline
-    sll_real64, intent(   out ) :: derivative !< value of the derivative
-    
-    sll_int32 :: i1, der_degree, ind, index
-    sll_real64 :: spline_val(degree)
-    sll_real64 :: xi(3)
-    
-    der_degree = degree-1
-    
-    xi(1) = (position(1) - xmin)/delta_x
-    index = ceiling(xi(1))
-    xi(1) = xi(1) - real(index-1, f64)
-    index = index - der_degree
-
-    call sll_s_uniform_bsplines_eval_basis( der_degree, xi(1), spline_val )
-    
-    derivative = 0.0_f64
-
-    do i1 = 1, degree
-       ind = modulo(index+i1-2, n_grid)+1
-       derivative = derivative + spline_val(i1)*&
-            (field_dofs(ind)-field_dofs(modulo(ind-2, n_grid)+1))
-    end do
-
-    derivative = derivative/delta_x
-    
-
-  end subroutine sll_s_pic_diagnostics_eval_derivative_spline
-
-
-  !> Compute \sum(particles)w_p( v_1,p e_1(x_p) + v_2,p e_2(x_p))
-  subroutine sll_s_pic_diagnostics_transfer ( particle_group, kernel_smoother_0, kernel_smoother_1, efield_dofs, transfer)
-    class(sll_c_particle_group_base), intent( in   )  :: particle_group   
-    class(sll_c_particle_mesh_coupling) :: kernel_smoother_0  !< Kernel smoother (order p+1)
-    class(sll_c_particle_mesh_coupling) :: kernel_smoother_1  !< Kernel smoother (order p)   
-    sll_real64, intent( in    ) :: efield_dofs(:,:) !< coefficients of efield
-    sll_real64, intent(   out ) :: transfer(1) !< result
-
-    sll_int32 :: i_part
-    sll_real64 :: xi(3), vi(3), wi, efield(2), transfer_local(1)
-
-    transfer_local = 0.0_f64
-    do i_part = 1, particle_group%n_particles
-       xi = particle_group%get_x( i_part )
-       wi = particle_group%get_charge( i_part )
-       vi = particle_group%get_v( i_part )
-
-       call kernel_smoother_1%evaluate &
-            (xi(1), efield_dofs(:,1), efield(1))
-       call kernel_smoother_0%evaluate &
-            (xi(1), efield_dofs(:,2), efield(2))
-
-       transfer_local(1) = transfer_local(1) + (vi(1) * efield(1) + vi(2) * efield(2))*wi
-       
-    end do
-
-    call sll_o_collective_allreduce( sll_v_world_collective, transfer_local, 1, MPI_SUM, transfer )
-    
-  end subroutine sll_s_pic_diagnostics_transfer
-
-  !> Compute \sum(particles) w_p v_1,p b(x_p) v_2,p
-  subroutine sll_s_pic_diagnostics_vvb ( particle_group, kernel_smoother_1, bfield_dofs, vvb )
-    class(sll_c_particle_group_base), intent( in   )  :: particle_group   !< particle group object
-    class(sll_c_particle_mesh_coupling), intent( inout ) :: kernel_smoother_1  !< Kernel smoother (order p)  
-    sll_real64,           intent( in    ) :: bfield_dofs(:) !< coefficients of bfield
-    sll_real64,           intent(   out ) :: vvb(1) !< result
-
-    sll_int32 :: i_part
-    sll_real64 :: xi(3), vi(3), wi, bfield, vvb_local(1)
-
-    vvb_local = 0.0_f64
-    do i_part = 1, particle_group%n_particles
-       xi = particle_group%get_x( i_part )
-       wi = particle_group%get_charge( i_part )
-       vi = particle_group%get_v( i_part )
-
-       call kernel_smoother_1%evaluate &
-            ( xi(1), bfield_dofs, bfield )
-
-       vvb_local = vvb_local + wi * vi(1) * vi(2) * bfield
-     
-    end do
-
-    call sll_o_collective_allreduce( sll_v_world_collective, vvb_local, 1, MPI_SUM, vvb )
-
-  end subroutine sll_s_pic_diagnostics_vvb
-
-  !> Compute e^T M_0^{-1}  R^T b
-  subroutine sll_s_pic_diagnostics_poynting ( maxwell_solver, degree, efield_dofs, bfield_dofs, scratch, poynting )
-    class(sll_c_maxwell_1d_base) :: maxwell_solver !< maxwell solver object
-    sll_int32, intent( in    ) :: degree !< degree of finite element
-    sll_real64, intent( in    ) :: efield_dofs(:) !< coefficients of efield
-    sll_real64, intent( in    ) :: bfield_dofs(:) !< coefficients of bfield
-    sll_real64, intent(   out ) :: scratch(:) !< scratch data 
-    sll_real64, intent(   out ) :: poynting !< value of  e^T M_0^{-1}  R^T b
-
-    scratch = 0.0_f64
-    ! Multiply B by M_0^{-1}  R^T
-    call maxwell_solver%compute_e_from_b ( 1.0_f64, bfield_dofs, scratch )
-
-    poynting =  maxwell_solver%inner_product( efield_dofs, scratch, degree )
-
-  end subroutine sll_s_pic_diagnostics_poynting
-
-  
-  
-
-=#
