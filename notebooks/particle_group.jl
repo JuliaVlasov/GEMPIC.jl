@@ -1,12 +1,14 @@
+# -*- coding: utf-8 -*-
 # ---
 # jupyter:
 #   jupytext:
 #     comment_magics: false
+#     formats: ipynb,jl:light
 #     text_representation:
 #       extension: .jl
 #       format_name: light
 #       format_version: '1.4'
-#       jupytext_version: 1.1.1
+#       jupytext_version: 1.1.7
 #   kernelspec:
 #     display_name: Julia 1.1.0
 #     language: julia
@@ -14,43 +16,140 @@
 # ---
 
 # +
-mutable struct ParticleGroup{D, V}
-    
-    n    :: Int
-    dims :: Tuple{Int, Int}
-    data :: Array{Float64, 2}
-    
-    function ParticleGroup{D, V}( n ) where {D, V}
-        
-        dims = (D, V)
-        data = zeros(Float64, (D+V,n))
-        
-        new(n, dims, data)
-        
+using GEMPIC, Test
+
+
+function test_sampling( sampling_type :: Symbol, 
+                        symmetric     :: Bool, 
+                        pg            :: ParticleGroup{D,V}, 
+                        df            :: CosGaussian ) where {D, V}
+
+   mean  = zeros(3)
+   sigma = zeros(3)
+   xi    = zeros(3)
+
+   n_particles = pg.n_particles
+   
+   sampling = ParticleSampler( sampling_type, symmetric, (D, V), n_particles )
+
+   sample( sampling, pg, df, mesh )
+   
+   for i_part = 1:n_particles
+       xi = get_x(pg, i_part)
+       vi = get_v(pg, i_part)
+       mean[1] += xi[1]
+       mean[2] += vi[1]
+       mean[3] += vi[2]
+   end
+
+   mean = mean/n_particles
+
+   for i_part = 1:n_particles
+       xi = get_x(pg, i_part)
+       vi = get_v(pg, i_part)
+       sigma[1] += (xi[1] - mean[1])^2
+       sigma[2] += (vi[1] - mean[2])^2
+       sigma[3] += (vi[2] - mean[3])^2
+   end
+   
+   sigma = sigma/(n_particles-1)
+   
+   mean, sigma
+   
+end
+
+# +
+n_particles = 100000
+xmin        = 1.0 :: Float64
+xmax        = 4π + 1.0
+Lx          = xmax - xmin  
+nx          = 64
+
+mesh = Mesh( xmax, xmin, nx)
+
+pg = ParticleGroup{1,2}(n_particles, 1.0, 1.0, 1)
+
+params = ( dims        = (1,2),
+           n_cos       = 1,
+           n_gaussians = 1,
+           kx          = hcat([0.5]),
+           alpha       = [0.01],
+           v_thermal   = hcat([0.1, 2.0]),
+           v_mean      = hcat([0.0, 0.0]),
+           δ           = 0.0
+)
+
+df1 = CosGaussian(params...)
+
+mean_ref  = [Lx*0.5+xmin, 0.0, 0.0]
+sigma_ref = [Lx^2/12.0,   df1.v_thermal[1,1]^2, df1.v_thermal[2,1]^2 ]
+
+@info "Sobol non symmetric"
+mean, sigma = test_sampling( :sobol, false, pg, df1 )
+@show abs.(mean  .- mean_ref)
+@show abs.(sigma .- sigma_ref)
+@test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e2/sqrt(n_particles)
+
+@info "Sobol symmetric"
+mean, sigma = test_sampling( :sobol, true,  pg, df1 )
+@show abs.(mean  .- mean_ref)
+@show abs.(sigma .- sigma_ref)
+@test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e-12
+
+@info "Random non symmetric"
+mean, sigma = test_sampling( :random, false, pg, df1)
+@show abs.(mean  .- mean_ref)
+@show abs.(sigma .- sigma_ref)
+@test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e2/sqrt(n_particles)
+
+@info "Random symmetric"
+mean, sigma = test_sampling( :random, true,  pg, df1)
+@show abs.(mean  .- mean_ref)
+@show abs.(sigma .- sigma_ref)
+@test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e-12
+   
+# Expected mean:
+# 2π+1, 0, 0
+# Expected variance:
+# 16/12 π^2 , 0.01, 4
+
+# +
+params = (
+    dims        = (1,2),
+    n_cos       = 1,
+    n_gaussians = 2,
+    kx          = hcat([0.5]),
+    alpha       = [0.01],
+    v_thermal   = hcat([0.1, 2.0], [2.0, 2.0]),
+    v_mean      = hcat([0.0, 0.0], [1.0, 1.0]),
+    δ           = 0.7
+)
+
+df2 = CosGaussian(params...)
+
+mean_ref = [Lx*0.5+xmin, 0.3, 0.3]
+sigma_ref[1] = Lx^2/12.0
+for j=1:2
+    sigma_ref[j+1] = - (df2.delta[1] * df2.v_mean[j,1]
+                      +(df2.delta[2] - df2.delta[1])*df2.v_mean[j,2])^2
+    for k=1:2
+        sigma_ref[j+1] += df2.delta[k] * (df2.v_thermal[j,k]^2
+                                       +  df2.v_mean[j,k]^2)
     end
-
 end
+  
+@info "Sobol non symmetric"
+mean, sigma =  test_sampling( :sobol, false, pg, df2) 
+@show abs.(mean  .- mean_ref)
+@show abs.(sigma .- sigma_ref)
+@test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e2/sqrt(n_particles)
 
-# +
-@generated function get_x( p ::ParticleGroup{D,V}, i) where {D, V}
-    
-    return :(p.data[1:$D, i])
 
-end
-
-# +
-@generated function get_v( p ::ParticleGroup{D,V}, i) where {D, V}
-    
-    return :(p.data[$D+1:$D+$V, i])
-
-end
+@info "Sobol symmetric"
+mean, sigma =  test_sampling( :sobol, true,  pg, df2) 
+@show abs.(mean  .- mean_ref)
+@show abs.(sigma .- sigma_ref)
+@test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e2/sqrt(n_particles)
 # -
-
-p1d1v = ParticleGroup{1,1}(5)
-p1d2v = ParticleGroup{1,2}(5)
-
-get_x(p1d2v, 1), get_v(p1d2v, 1)
-
-get_x(p1d1v, 1), get_v(p1d1v, 1)
 
 
