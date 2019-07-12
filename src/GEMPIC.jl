@@ -25,4 +25,8 @@ module GEMPIC
     include("hamiltonian_splitting.jl")
     include("hamiltonian_splitting_boris.jl")
 
+    # Diagnostics
+
+    include("diagnostics.jl")
+
 end 
