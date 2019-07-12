@@ -15,8 +15,9 @@
 # ---
 
 # +
-using Plots
+using Plots, GEMPIC
 
+kx, ϵ = 0.5, 0.1
 nx, nv = 64, 128
 xmin, xmax = 0, 2π/kx
 vmin, vmax = -6, 6
@@ -24,12 +25,21 @@ xg = range(xmin, stop=xmax, length=nx+1)[1:end-1] |> collect
 vg = range(vmin, stop=vmax, length=nx+1)[1:end-1] |> collect;
 
 # +
-kx, ϵ = 0.5, 0.1
+
 
 fxv(x, v) = ( 1 + ϵ * cos(kx * x )) / sqrt(2π) * exp(- (v^2)/ 2)
 
 surface(xg, vg, fxv)
 # -
+
+v_thermal = hcat([1.0])
+v_mean    = hcat([0.0])
+δ = 1.0
+df = CosGaussian( (1,1), 1, 1, hcat([kx]), [0.1], v_thermal, v_mean, δ )
+
+plot( xg, [eval_x_density(df, x) for x in xg])
+
+plot( vg, [eval_v_density(df, v) for v in vg])
 
 using Distributions
 using Random
