@@ -45,31 +45,4 @@ plot( vg, [eval_v_density(df, v) for v in vg])
 
 surface( xg, vg, df(xg, vg))
 
-using Distributions
-using Random
-
-# $$
-#  f(x,v) = \frac{1}{\sqrt{2π}} \big( 1 + ϵ \cos ( k_x x) \big) e^{-v^2/2} 
-# $$
-
-?Cosine
-
-# $$
-# f(x;\mu,\sigma)=\frac{1}{2\sigma}
-# \left[1+\cos\left(\frac{x-\mu}{\sigma}\,\pi\right)\right]\,
-# $$
-
-?Normal
-
-fx = Cosine(1,1)
-fv = Normal(0,1)
-
-plot(vg, pdf.(fv, vg))
-
-x = rand!(fx, zeros(10000))
-v = rand!(fv, zeros(10000));
-
-Plots.histogram(x, normalize=true, bins = 100, fill=:slategray, lab = "draws")
-plot!(xg, pdf.(fx, xg))
-
 
