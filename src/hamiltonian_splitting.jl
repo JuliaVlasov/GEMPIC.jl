@@ -84,13 +84,13 @@ function strang_splitting( h            :: HamiltonianSplitting,
                            number_steps :: Int64)
 
     for i_step = 1:number_steps
-       operatorHB(  0.5dt)
-       operatorHE(  0.5dt)
-       operatorHp2( 0.5dt)
-       operatorHp1( 1.0dt)
-       operatorHp2( 0.5dt)
-       operatorHE(  0.5dt)
-       operatorHB(  0.5dt)
+       operatorHB(  h, 0.5dt)
+       operatorHE(  h, 0.5dt)
+       operatorHp2( h, 0.5dt)
+       operatorHp1( h, 1.0dt)
+       operatorHp2( h, 0.5dt)
+       operatorHE(  h, 0.5dt)
+       operatorHB(  h, 0.5dt)
     end
 
 end 
@@ -100,7 +100,7 @@ end
 
 Lie splitting
 """
-function lie_splitting(h         :: HamiltonianSplitting,
+function lie_splitting(h            :: HamiltonianSplitting,
                        dt           :: Float64, 
                        number_steps :: Int64)
 
@@ -118,7 +118,7 @@ end
 
 Lie splitting (oposite ordering)
 """
-function lie_splitting_back(h         :: HamiltonianSplitting,
+function lie_splitting_back(h            :: HamiltonianSplitting,
                             dt           :: Float64, 
                             number_steps :: Int64)
 
@@ -226,16 +226,16 @@ end
 Push Hp2: Equations to solve are
 
 ```math
-\\begin{eqnarray} X_new  =  X_old && \\\\
-V_new,1 = V_old,1 + \\int_0 h V_old,2 B_old && \\\\
-\\partial_t E_1 = 0 & -> & E_{1,new} = E_{1,old}  \\\\
-\\partial_t E_2 = - \\int v_2 f(t,x_1, v) dv & -> & \\\\ 
-E_{2,new} = E_{2,old} - \\int \\int v_2 f(t,x_1 + s v_1,v) dv ds &&\\\\
-\\partial_t B = 0 => B_{new} = B_{old} && \\\\
+\\begin{eqnarray} X_{new}  =  X_{old} && \\\\
+V_{new,1} = V_{old,1} + \\int_0 h V_{old,2} B_{old} && \\\\
+\\partial_t E_1 = 0 & => & E_{1,new} = E_{1,old}  \\\\
+\\partial_t E_2 = - \\int v_2 f(t,x_1, v) dv & => &
+E_{2,new} = E_{2,old} - \\int \\int v_2 f(t,x_1 + s v_1,v) dv ds\\\\
+\\partial_t B = 0 & => & B_{new} = B_{old} && \\\\
 \\end{eqnarray}
 ```
 """
-function operatorHp2(h, dt)
+function operatorHp2(h :: HamiltonianSplitting, dt :: Float64)
     
     n_cells = h.kernel_smoother_0.n_dofs
 
@@ -285,7 +285,7 @@ Push H_E: Equations to be solved
 \\end{eqnarray}
 ```
 """
-function operatorHE(h :: HamiltonianSplitting, dt)
+function operatorHE(h :: HamiltonianSplitting, dt :: Float64)
 
     qm = h.particle_group.q_over_m
 
@@ -321,6 +321,6 @@ Push H_B: Equations to be solved ``V_new = V_old``
 \\end{eqnarray}
 ```
 """
-function operatorHB(h, dt)
+function operatorHB(h :: HamiltonianSplitting, dt :: Float64)
     compute_e_from_b!( h.e_dofs_2, h.maxwell_solver, dt, h.b_dofs)
 end
