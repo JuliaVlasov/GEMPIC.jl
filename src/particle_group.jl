@@ -35,14 +35,8 @@ mutable struct ParticleGroup{D,V} <:  AbstractParticleGroup
         common_weight  = 1.0
         q_over_m = charge / mass
 
-        new( dims,
-             n_particles,
-             particle_array,
-             common_weight,
-             charge,
-             mass,
-             n_weights,
-             q_over_m )
+        new( dims, n_particles, particle_array, common_weight, charge,
+             mass, n_weights, q_over_m )
     end
 end 
 
@@ -121,6 +115,9 @@ end
     set_x( p, i, x)
 
 Set position of ith particle of p to x
+
+!!! note
+    if `x` is a scalar value, only the first x dimension will be set.
 """
 @generated function set_x( p :: ParticleGroup{D,V}, i, x :: Float64 ) where {D, V}
 
@@ -178,7 +175,7 @@ end
 
 Set the common weight
 """
-function set_common_weight( p :: AbstractParticleGroup, x ) 
+function set_common_weight( p :: AbstractParticleGroup, x :: Float64 ) 
 
     p.common_weight = x
     
