@@ -3,34 +3,38 @@ export CosGaussian
 """
     CosGaussian( dims, n_cos, n_gaussians, kx, alpha, v_thermal, v_mean, δ )
 
-# Data type for parameters of initial distribution
+Data type for parameters of initial distribution
 
-## Descriptors for various distributions
-
-- sumcos_onegaussian : Descriptor for 
 ```math
-(1+\\sum \\cos( kx * x_i)) * \\exp (-0.5(v-v_mean)^2/v_thermal^2)
+(1+ \\cos( \\sum_{n_{cos}} kx_i * x_i)) * \\exp \\big( -\\frac{1}{2} \\sum_{n_{gaussians} \\frac{(v-v_{mean})^2}{v_{thermal}^2} \\big)
 ```
-- cossum_onegaussian : Descriptor for 
-```math
-(1+ \\cos( \\sum kx_i * x_i)) * \\exp (-0.5(v-v_mean)^2/v_thermal^2)
-```
-- sumcos_twogaussian : sumcos_onegaussian but with sum of two Gaussians
-- cossum_twogaussian : as sumcos_onegaussian but with sum of two Gaussians
 
 ## Parameters
 
-- `kx`          : values of the wave numbers (first index dimension, 
-                  second index for multiple cosines)
+- `kx`          : values of the wave numbers (first index dimension, second index for multiple cosines)
 - `alpha`       : strength of perturbations
-- `v_thermal`   : variance of the Gaussian ( first index velocity dimension, 
-                  second index multiple Gaussians)
-- `v_mean`      : mean value of the Gaussian ( first index velocity dimension,
-                  second index multiple Gaussians)
+- `v_thermal`   : variance of the Gaussian ( first index velocity dimension, second index multiple Gaussians)
+- `v_mean`      : mean value of the Gaussian ( first index velocity dimension, second index multiple Gaussians)
 - `delta`       : Portion of each Gaussian
 - `normal`      : Normalization constant of each Gaussian
 - `n_gaussians` : Number of Gaussians
 - `n_cos`       : Number of cosines
+
+# Example
+
+```math
+f(x,i\\mathbf{v},t=0)=\\frac{1}{2\\pi\\sigma_1\\sigma_2} \\exp \\Big( - \\frac{1}{2} \\big( \\frac{v_1^2}{\\sigma_1^2} + \\frac{v_2^2}{\\sigma_2^2} \\big) \\Big) ( 1 + \\alpha \\cos(kx)), \\qquad x \\in [0, 2\\pi / k),
+```
+
+```julia
+kx        = hcat([1.25])
+alpha     = [0.0]
+v_thermal = hcat([σ₁, σ₂])
+v_mean    = hcat([0.0, 0.0])
+delta     = [0.5, 0.5]
+```
+
+
 """
 struct CosGaussian
 
@@ -53,8 +57,6 @@ struct CosGaussian
                           v_mean      :: Array{Float64, 2}, 
                           δ           :: Float64 )
 
-    
-
         delta    = zeros(n_gaussians)
         delta[1] = δ
         if n_gaussians > 1
@@ -68,13 +70,12 @@ struct CosGaussian
 
         new( dims, n_cos, n_gaussians, kx, alpha, v_thermal, 
              v_mean, delta, normal )
-
-
     end
 
 end
 
 export eval_x_density
+
 function eval_x_density( self :: CosGaussian, x )
     
     fval = 1.0
@@ -86,6 +87,7 @@ function eval_x_density( self :: CosGaussian, x )
 end
   
 export eval_v_density
+
 function eval_v_density( self :: CosGaussian, v ) 
 
     fval = 0.0
