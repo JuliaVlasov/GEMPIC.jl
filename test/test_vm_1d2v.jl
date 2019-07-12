@@ -40,7 +40,7 @@ FEM with splines, degree 3 for B and 2 for E
     n_total_particles = n_particles
     degree_smoother   = spline_degree
 
-    df = CosGaussian( (1,2), 1, 1, hcat([kx]), [alpha], 
+    df = CosSumOneGaussian( (1,2), 1, 1, hcat([kx]), [alpha], 
                       hcat(v_thermal), hcat(v_mean), 0.0 )
     
     sampler = ParticleSampler( sampling_case, symmetric, (1,2), n_particles)
