@@ -62,7 +62,7 @@ Sample from a Particle sampler
 """
 function sample( ps   :: ParticleSampler, 
                  pg   :: ParticleGroup{1,2}, 
-                 df   :: CosGaussian, 
+                 df   :: CosSumOneGaussian, 
                  mesh :: Mesh )
 
     if ps.symmetric 
