@@ -1,4 +1,3 @@
-import VlasovBase: UniformMesh, CosGaussian
 import GEMPIC: get_charge, get_x, add_charge!, get_mass
 import GEMPIC: inner_product, evaluate
 import GEMPIC: strang_splitting
