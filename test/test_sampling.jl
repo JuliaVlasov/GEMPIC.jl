@@ -3,7 +3,7 @@
 function test_sampling( sampling_type :: Symbol, 
                         symmetric     :: Bool, 
                         pg            :: ParticleGroup{D,V}, 
-                        df            :: CosGaussian ) where {D, V}
+                        df            :: CosSumOneGaussian ) where {D, V}
 
    mean  = zeros(3)
    sigma = zeros(3)
@@ -59,7 +59,7 @@ params = ( dims        = (1,2),
            δ           = 0.0
 )
 
-df1 = CosGaussian(params...)
+df1 = CosSumOneGaussian(params...)
 
 mean_ref  = [Lx*0.5+xmin, 0.0, 0.0]
 sigma_ref = [Lx^2/12.0,   df1.v_thermal[1,1]^2, df1.v_thermal[2,1]^2 ]
@@ -104,7 +104,7 @@ params = (
     δ           = 0.7
 )
 
-df2 = CosGaussian(params...)
+df2 = CosSumOneGaussian(params...)
 
 mean_ref = [Lx*0.5+xmin, 0.3, 0.3]
 sigma_ref[1] = Lx^2/12.0
