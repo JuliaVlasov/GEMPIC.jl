@@ -6,9 +6,6 @@ os:
 
 julia: 1.2
 
-before_install:
-  - julia deps/build.jl
-
 notifications:
   email: true
 
