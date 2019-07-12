@@ -9,10 +9,14 @@
 #       format_version: '1.4'
 #       jupytext_version: 1.1.7
 #   kernelspec:
-#     display_name: Julia 1.1.0
+#     display_name: Julia 1.1.1
 #     language: julia
 #     name: julia-1.1
 # ---
+
+
+
+
 
 # +
 using Plots, GEMPIC
@@ -22,7 +26,23 @@ nx, nv = 64, 128
 xmin, xmax = 0, 2π/kx
 vmin, vmax = -6, 6
 xg = range(xmin, stop=xmax, length=nx+1)[1:end-1] |> collect
-vg = range(vmin, stop=vmax, length=nx+1)[1:end-1] |> collect;
+vg = range(vmin, stop=vmax, length=nv+1)[1:end-1] |> collect;
+
+# -
+
+df_1d1v = SumCosGaussian{1,1}( 1, 1, [[kx]] , [ϵ] , [[1.0]] , [[0.0]], [1.0])
+f = zeros(Float64, (nx,nv))
+for  j in eachindex(vg), i in eachindex(xg)
+    f[i,j] = df_1d1v( xg[i], vg[j])
+end
+surface(xg, vg, f')
+
+two_gaussians = SumCosGaussian{1,1}( 1, 2, [[kx]] , [0.0] , [[0.2],[0.2]] , [[-1.0],[1.0]], [0.5, 0.5])
+f = zeros(Float64, (nx,nv))
+for  j in eachindex(vg), i in eachindex(xg)
+    f[i,j] = two_gaussians( xg[i], vg[j])
+end
+surface(xg, vg, f')
 
 # +
 
@@ -32,7 +52,7 @@ fxv(x, v) = ( 1 + ϵ * cos(kx * x )) / sqrt(2π) * exp(- (v^2)/ 2)
 surface(xg, vg, fxv)
 # -
 
-?CosSumOneGaussian
+?SumCosGaussian
 
 v_thermal = hcat([1.0])
 v_mean    = hcat([0.0])
