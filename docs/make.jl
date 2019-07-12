@@ -10,6 +10,7 @@ makedocs(
                                  "low_level_bsplines.md",
                                  "splinepp.md",
                                  "particle_mesh_coupling.md",
+                                 "distributions.md",
                                  "particle_group.md",
                                  "particle_sampling.md",
                                  "maxwell_solver.md",
