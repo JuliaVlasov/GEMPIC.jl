@@ -1,4 +1,6 @@
-export CosGaussian
+abstract type CosGaussianDistributions end
+
+export CosSumOneGaussian
 
 """
     CosGaussian( dims, n_cos, n_gaussians, kx, alpha, v_thermal, v_mean, δ )
@@ -28,15 +30,15 @@ f(x,i\\mathbf{v},t=0)=\\frac{1}{2\\pi\\sigma_1\\sigma_2} \\exp \\Big( - \\frac{1
 
 ```julia
 kx        = hcat([1.25])
-alpha     = [0.0]
 v_thermal = hcat([σ₁, σ₂])
 v_mean    = hcat([0.0, 0.0])
-delta     = [0.5, 0.5]
+delta     = [1.0]
+
 ```
 
 
 """
-struct CosGaussian
+struct CosSumOneGaussian
 
     dims        :: Tuple{Int64, Int64}
     n_cos       :: Int64
@@ -48,14 +50,14 @@ struct CosGaussian
     delta       :: Vector{Float64}
     normal      :: Vector{Float64}
 
-    function CosGaussian( dims        :: Tuple{Int64, Int64},
-                          n_cos       :: Int64, 
-                          n_gaussians :: Int64,
-                          kx          :: Array{Float64, 2}, 
-                          alpha       :: Vector{Float64}, 
-                          v_thermal   :: Array{Float64, 2}, 
-                          v_mean      :: Array{Float64, 2}, 
-                          δ           :: Float64 )
+    function CosSumOneGaussian( dims        :: Tuple{Int64, Int64},
+                                n_cos       :: Int64, 
+                                n_gaussians :: Int64,
+                                kx          :: Array{Float64, 2}, 
+                                alpha       :: Vector{Float64}, 
+                                v_thermal   :: Array{Float64, 2}, 
+                                v_mean      :: Array{Float64, 2}, 
+                                δ           :: Float64 )
 
         delta    = zeros(n_gaussians)
         delta[1] = δ
@@ -76,7 +78,7 @@ end
 
 export eval_x_density
 
-function eval_x_density( self :: CosGaussian, x )
+function eval_x_density( self :: CosSumOneGaussian, x )
     
     fval = 1.0
     for j=1:self.n_cos
@@ -88,7 +90,7 @@ end
   
 export eval_v_density
 
-function eval_v_density( self :: CosGaussian, v ) 
+function eval_v_density( self :: CosSumOneGaussian, v ) 
 
     fval = 0.0
     for j=1:self.n_gaussians
@@ -100,19 +102,19 @@ function eval_v_density( self :: CosGaussian, v )
 end 
 
 export eval_xv_density
-function eval_xv_density( self :: CosGaussian, x, v ) 
+function eval_xv_density( self :: CosSumOneGaussian, x, v ) 
 
     eval_x_density(self, x) * eval_v_density(self, v)
 
 end 
 
-function (self :: CosGaussian)( x :: Float64, v :: Float64 ) 
+function (self :: CosSumOneGaussian)( x :: Float64, v :: Float64 ) 
 
     eval_x_density( self, x) * eval_v_density( self, v)
 
 end
 
-function (self :: CosGaussian)( x::Vector{Float64}, v::Vector{Float64} ) 
+function (self :: CosSumOneGaussian)( x::Vector{Float64}, v::Vector{Float64} ) 
 
     f = zeros(Float64, (length(x), length(v)))
 
