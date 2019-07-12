@@ -3,6 +3,7 @@ module GEMPIC
     include("mesh.jl")
     include("low_level_bsplines.jl")
     include("splinepp.jl")
+    include("distributions.jl")
 
     # Maxwell solvers
     abstract type AbstractMaxwellSolver end
