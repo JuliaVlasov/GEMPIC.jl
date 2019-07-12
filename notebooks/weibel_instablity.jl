@@ -101,7 +101,7 @@ function pic_vm_1d2v()
     beta_cos_k(x) = beta * cos(2π * x / domain[3]) 
     beta_sin_k(x) = beta * sin(2π * x / domain[3]) 
     
-    CosGaussian( (1,2), 1, 1, kx, alpha, v_thermal, v_mean, 0.0 )
+    CosSumOneGaussian( (1,2), 1, 1, kx, alpha, v_thermal, v_mean, 0.0 )
     
     
 end
