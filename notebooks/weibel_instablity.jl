@@ -3,6 +3,7 @@
 # jupyter:
 #   jupytext:
 #     comment_magics: false
+#     formats: ipynb,jl:light
 #     text_representation:
 #       extension: .jl
 #       format_name: light
@@ -64,7 +65,9 @@
 #
 # $ k = 1.25, α = 0 $ and $ \beta = −10^{−4}$. 
 
-using GEMPIC
+using Pkg
+
+Pkg.update();
 
 # +
 """
@@ -101,13 +104,11 @@ function pic_vm_1d2v()
     beta_cos_k(x) = beta * cos(2π * x / domain[3]) 
     beta_sin_k(x) = beta * sin(2π * x / domain[3]) 
     
-    CosSumOneGaussian( (1,2), 1, 1, kx, alpha, v_thermal, v_mean, 0.0 )
-    
-    
+    df = CosSumOneGaussian( (1,2), 1, 1, kx, alpha, v_thermal, v_mean, 1.0 )
+    sampler = ParticleSampler( sampling_case, symmetric, (1,2), n_particles)
+
 end
 # -
-
-using Plots
 
 df = pic_vm_1d2v()
 x = LinRange(0, 2π/1.25, 32) |> collect
@@ -117,7 +118,6 @@ contour(x, v, df( x, v))
 # +
     
    
-    sampler = ParticleSampler( sampling_case, symmetric, (1,2), n_particles)
     
 
     
