@@ -64,7 +64,7 @@
 #
 # $ k = 1.25, α = 0 $ and $ \beta = −10^{−4}$. 
 
-using GEMPIC, VlasovBase
+using GEMPIC
 
 # +
 """
@@ -108,10 +108,12 @@ function pic_vm_1d2v()
 end
 # -
 
+using Plots
+
 df = pic_vm_1d2v()
 x = LinRange(0, 2π/1.25, 32) |> collect
 v = LinRange(-6, 6, 64) |> collect
-df( x, v)
+contour(x, v, df( x, v))
 
 # +
     
