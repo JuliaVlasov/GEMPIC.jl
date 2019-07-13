@@ -11,15 +11,14 @@ FEM with splines, degree 3 for B and 2 for E
 @testset " PIC VM 1D2V " begin
 
     delta_t         = 0.05
-    n_time_steps    = 10
+    n_time_steps    = 1
     beta            = 0.0001
-    initial_distrib = :cossum_onegaussian
     initial_bfield  = :cos
     
-    kx        = 1.25
-    alpha     = 0.0
-    v_thermal = [0.2,  0.005773502691896]
-    v_mean    = [0.0, 0.0]
+    kx        = [[1.25]]
+    alpha     = [0.0]
+    v_thermal = [[0.2, 0.005773502691896]]
+    v_mean    = [[0.0, 0.0]]
     
     ng_x   = 32
     x1_min = 0.0
@@ -40,8 +39,7 @@ FEM with splines, degree 3 for B and 2 for E
     n_total_particles = n_particles
     degree_smoother   = spline_degree
 
-    df = CosSumOneGaussian( (1,2), 1, 1, hcat([kx]), [alpha], 
-                      hcat(v_thermal), hcat(v_mean), 0.0 )
+    df = CosSumGaussian{1,2}( kx, alpha, v_thermal, v_mean )
     
     sampler = ParticleSampler( sampling_case, symmetric, (1,2), n_particles)
     
@@ -68,14 +66,14 @@ FEM with splines, degree 3 for B and 2 for E
         if splitting_case == :symplectic
 
             propagator = HamiltonianSplitting( maxwell_solver,
-                                              kernel_smoother0, 
-                                              kernel_smoother1, 
-                                              particle_group,
-                                              efield1_dofs, 
-                                              efield2_dofs, 
-                                              bfield_dofs,
-                                              domain[1], 
-                                              domain[3]    )
+                                               kernel_smoother0, 
+                                               kernel_smoother1, 
+                                               particle_group,
+                                               efield1_dofs, 
+                                               efield2_dofs, 
+                                               bfield_dofs,
+                                               domain[1], 
+                                               domain[3]    )
 
            efield_1_dofs_n = propagator.e_dofs_1
            efield_2_dofs_n = propagator.e_dofs_2
@@ -83,14 +81,14 @@ FEM with splines, degree 3 for B and 2 for E
         elseif splitting_case == :boris
 
             propagator = HamiltonianSplittingBoris( maxwell_solver,
-                                                   kernel_smoother0, 
-                                                   kernel_smoother1, 
-                                                   particle_group,
-                                                   efield1_dofs, 
-                                                   efield2_dofs, 
-                                                   bfield_dofs,
-                                                   domain[1], 
-                                                   domain[3]    )
+                                                    kernel_smoother0, 
+                                                    kernel_smoother1, 
+                                                    particle_group,
+                                                    efield1_dofs, 
+                                                    efield2_dofs, 
+                                                    bfield_dofs,
+                                                    domain[1], 
+                                                    domain[3]    )
 
            efield_1_dofs_n = propagator.e_dofs_1_mid
            efield_2_dofs_n = propagator.e_dofs_2_mid
