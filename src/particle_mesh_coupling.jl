@@ -8,16 +8,21 @@ export ParticleMeshCoupling
 Kernel smoother with splines of arbitrary degree placed on a uniform mesh.
 Spline with index i starts at point i
 
-- Value of grid spacing along both directions.
-- Definition of the domain: domain(1:2) = x1_min, x1_max
-- Number of particles of underlying PIC method 
-- Degree of smoothing kernel spline
-- Number of intervals where spline non zero (spline_degree + 1)
-- Scaling factor depending on whether :galerkin or :collocation
-- Number of quadrature points
-- scratch data for spline evaluation
-- more scratch data for spline evaluation
-- quadrature weights and points
+- `delta_x` : Value of grid spacing along both directions.
+- `domain` : Definition of the domain: domain(1:2) = x1_min, x1_max
+- `no_particles` : Number of particles of underlying PIC method 
+- `spline_degree` : Degree of smoothing kernel spline
+- `n_span` : Number of intervals where spline non zero (spline_degree + 1)
+- `scaling` : Scaling factor depending on whether :galerkin or :collocation
+- `n_quad_points` : Number of quadrature points
+- `spline_val`: scratch data for spline evaluation
+- `spline_val_more` : more scratch data for spline evaluation
+- `quad_x, quad_w` : quadrature weights and points
+
+!!! note
+
+    Only 1D version is implemented for now
+
 """
 mutable struct ParticleMeshCoupling
 
@@ -82,12 +87,15 @@ end
     add_charge_pp!(rho_dofs, p, position, marker_charge)
 
 Add charge of one particle
-- p             : kernel smoother object
-- position      : Position of the particle
-- marker_charge : Particle weights time charge
-- rho_dofs      : Coefficient vector of the charge distribution
+- `p`             : kernel smoother object
+- `position`      : Position of the particle
+- `marker_charge` : Particle weights time charge
+- `rho_dofs`      : Coefficient vector of the charge distribution
 """
-function add_charge_pp!(rho_dofs :: Vector{Float64}, p, position, marker_charge)
+function add_charge_pp!(rho_dofs :: Vector{Float64}, 
+                        p        :: ParticleMeshCoupling, 
+                        position, 
+                        marker_charge)
     
     xi    = (position[1] - p.domain[1])/p.delta_x
     index = floor(Int64, xi)+1
@@ -97,7 +105,7 @@ function add_charge_pp!(rho_dofs :: Vector{Float64}, p, position, marker_charge)
     for i in eachindex(p.spline_val)
 
         p.spline_val[i] = horner_1d(p.spline_degree, 
-                                       p.spline_pp.poly_coeffs, xi, i)
+                                    p.spline_pp.poly_coeffs, xi, i)
 
     end
 
@@ -114,14 +122,14 @@ end
     add_charge!( rho, p, position, marker_charge) 
 
 Add charge of one particle
-- p              : kernel smoother object
-- position       : Position of the particle
-- marker_charge  : Particle weights time charge
-- rho_dofs       : Coefficient vector of the charge distribution
+- `p`             : kernel smoother object
+- `position`      : Position of the particle
+- `marker_charge` : Particle weights time charge
+- `rho_dofs`      : Coefficient vector of the charge distribution
 """
 function add_charge!( rho_dofs      :: Vector{Float64},
                       p             :: ParticleMeshCoupling,
-                      position      :: Vector{Float64}, 
+                      position      , 
                       marker_charge :: Float64) 
 
     xi    = (position[1] - p.domain[1])/p.delta_x[1]
@@ -145,11 +153,14 @@ end
 Add current for one particle and update v 
 (according to H_p1 part in Hamiltonian splitting)
 """
-function add_current_update_v_pp!( j_dofs :: AbstractArray, 
-                                   p :: ParticleMeshCoupling, 
-                                   position_old, position_new, 
-                                   marker_charge, qoverm, bfield_dofs, 
-                                   vi)
+function add_current_update_v_pp!( j_dofs        :: AbstractArray, 
+                                   p             :: ParticleMeshCoupling, 
+                                   position_old, 
+                                   position_new, 
+                                   marker_charge :: Float64, 
+                                   qoverm        :: Float64, 
+                                   bfield_dofs   :: Vector{Float64}, 
+                                   vi            :: Vector{Float64})
 
     # Read out particle position and velocity
     # Compute index_old, the index of the last DoF on the grid the particle
@@ -371,8 +382,8 @@ end
 
 Evaluate field at `position` using horner scheme
 - `p` : Kernel smoother object 
-- `position(p.dim)` : Position of the particle
-- `field_dofs_pp[:,:]` : Degrees of freedom in kernel representation.
+- `position` : Position of the particle
+- `field_dofs_pp` : Degrees of freedom in kernel representation.
 - `field_value` : Value(s) of the electric fields at given position
 
 """ 
@@ -393,8 +404,8 @@ end
 
 Evaluate field at `position`
 - `p` : Kernel smoother object 
-- `position(p.dim)` : Position of the particle
-- `field_dofs(p.n_dofs)` : Coefficient vector for the field DoFs
+- `position` : Position of the particle
+- `field_dofs` : Coefficient vector for the field DoFs
 - `field_value` : Value(s) of the electric fields at given position
 """
 function evaluate(p          :: ParticleMeshCoupling, 
