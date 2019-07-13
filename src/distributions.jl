@@ -1,5 +1,44 @@
 abstract type AbstractCosGaussian end
 
+struct CosGaussianParams
+
+    dims        :: Tuple{Int64, Int64}
+    n_cos       :: Int64
+    n_gaussians :: Int64
+    kx          :: Array{Vector{Float64}, 1}
+    alpha       :: Vector{Float64}
+    v_thermal   :: Array{Vector{Float64}, 1}
+    v_mean      :: Array{Vector{Float64}, 1}
+    normal      :: Vector{Float64}
+    delta       :: Vector{Float64}
+
+    function CosGaussianParams( dims      :: Tuple{Int64, Int64},
+                                kx        :: Array{Vector{Float64}, 1}, 
+                                alpha     :: Vector{Float64}, 
+                                v_thermal :: Array{Vector{Float64}, 1}, 
+                                v_mean    :: Array{Vector{Float64}, 1},
+                                delta     :: Vector{Float64} = [1.0]) 
+
+        n_cos = length(kx) 
+        @assert n_cos == length(alpha)
+        for i in 1:n_cos
+            @assert length(kx[i]) == dims[1]
+        end
+        n_gaussians = length(v_thermal)
+        @assert n_gaussians == length(v_mean)
+        @assert all( v_thermal .!= 0.0)
+        normal = zeros(n_gaussians)
+        for j in 1:n_gaussians
+            @assert length(v_thermal[j]) == dims[2]
+            normal[j] = 1.0/((2π)^(0.5*dims[2])*prod(v_thermal[j]))
+        end
+        @assert sum(delta) == 1.0
+
+        new( dims, n_cos, n_gaussians, kx, alpha, v_thermal, v_mean, normal, delta )
+    end
+
+end
+
 export CosSumGaussian
 
 """
@@ -39,75 +78,34 @@ v_mean    = [[0.0], [0.0]]
 """
 struct CosSumGaussian{D, V} <: AbstractCosGaussian
 
-    n_cos       :: Int64
-    n_gaussians :: Int64
-    kx          :: Array{Vector{Float64}, 1}
-    alpha       :: Vector{Float64}
-    v_thermal   :: Array{Vector{Float64}, 1}
-    v_mean      :: Array{Vector{Float64}, 1}
-    normal      :: Vector{Float64}
+    dims        :: Tuple{Int64, Int64}
+    params      :: CosGaussianParams
 
-    function CosSumGaussian{D, V}( kx          :: Array{Vector{Float64}, 1}, 
-                                   alpha       :: Vector{Float64}, 
-                                   v_thermal   :: Array{Vector{Float64}, 1}, 
-                                   v_mean      :: Array{Vector{Float64}, 1} ) where {D,V}
+    function CosSumGaussian{D, V}( kx        :: Array{Vector{Float64}, 1}, 
+                                   alpha     :: Vector{Float64}, 
+                                   v_thermal :: Array{Vector{Float64}, 1}, 
+                                   v_mean    :: Array{Vector{Float64}, 1},
+                                   delta     :: Vector{Float64} = [1.0] ) where {D,V}
 
-        n_cos = length(kx) 
-        @assert n_cos = length(alpha)
-        for i in 1:n_cos
-            @assert length(kx[i]) == D
-        end
-        n_gaussians = length(v_thermal)
-        @assert n_gaussians = length(v_mean)
-        @assert all( v_thermal .!= 0.0)
-        normal = zeros(n_gaussians)
-        for j in 1:n_gaussians
-            @assert length(v_thermal[j]) == V
-            normal[j] = 1.0/((2π)^(0.5*V)*prod(v_thermal[j]))
-        end
+        dims   = (D, V)
+        params = CosGaussianParams( dims, kx, alpha, v_thermal, v_mean, delta )
 
-        new( n_cos, n_gaussians, kx, alpha, v_thermal, v_mean, normal )
+        new( dims, params )
     end
 
 end
 
-function eval_x_density( self :: CosSumGaussian, x :: Union{Float64,Vector{Float64}} )
+function eval_x_density( f :: CosSumGaussian, x :: Union{Float64,Vector{Float64}} )
     
     fval = 1.0
-    for j=1:self.n_cos
-       fval += self.alpha[j] * cos( sum(self.kx[j] .* x) )
+    for j=1:f.params.n_cos
+       fval += f.params.alpha[j] * cos( sum(f.params.kx[j] .* x) )
     end
     fval
 
 end
   
-function eval_v_density( self :: AbstractCosGaussian, v :: Union{Float64,Vector{Float64}} ) 
 
-    fval = 0.0
-    for j=1:self.n_gaussians
-       fval += self.normal[j] * exp( - 0.5 * 
-               sum( ((v .- self.v_mean[:,j]) ./ self.v_thermal[j]).^2))
-    end
-    fval
-
-end 
-
-function (self :: CosSumGaussian)( x :: Float64, v :: Float64 ) 
-
-    eval_x_density( self, x) * eval_v_density( self, v)
-
-end
-
-function (self :: CosSumGaussian)( x::Vector{Float64}, v::Vector{Float64} ) 
-
-    f = zeros(Float64, (length(x), length(v)))
-
-    for j in eachindex(v), i in eachindex(x)
-       f[i,j] = eval_x_density( self, x[i]) * eval_v_density( self, v[j])
-    end
-
-    f
-end
 
 export SumCosGaussian
 
@@ -123,7 +121,6 @@ Data type for parameters of initial distribution
 - `alpha`       : strength of perturbations
 - `v_thermal`   : variance of the Gaussian ( first index velocity dimension, second index multiple Gaussians)
 - `v_mean`      : mean value of the Gaussian ( first index velocity dimension, second index multiple Gaussians)
-- `delta`       : Portion of each Gaussian
 - `normal`      : Normalization constant of each Gaussian
 - `n_gaussians` : Number of Gaussians
 - `n_cos`       : Number of cosines
@@ -144,59 +141,54 @@ df = SumCosGaussian{1,2}( kx, alpha, v_thermal, v_mean )
 ```
 """
 struct SumCosGaussian{D,V}
+value :: Int64
+    double :: Int64
+    dims   :: Tuple{Int64,Int64}
+    params :: CosGaussianParams
 
-    n_cos       :: Int64
-    n_gaussians :: Int64
-    kx          :: AbstractArray
-    alpha       :: Vector{Float64}
-    v_thermal   :: AbstractArray
-    v_mean      :: AbstractArray
-    normal      :: Vector{Float64}
-
-    function SumCosGaussian{D,V}( kx          :: Array{Array{Float64,1},1}, 
-                                  alpha       :: Vector{Float64}, 
-                                  v_thermal   :: Array{Array{Float64,1},1}, 
-                                  v_mean      :: Array{Array{Float64,1},1},
+    function SumCosGaussian{D,V}( kx        :: Array{Array{Float64,1},1}, 
+                                  alpha     :: Vector{Float64}, 
+                                  v_thermal :: Array{Array{Float64,1},1}, 
+                                  v_mean    :: Array{Array{Float64,1},1},
+                                  delta     :: Array{Float64,1} = [1.0]
                                   ) where {D,V}
 
-        n_cos = length(kx) 
-        @assert n_cos = length(alpha)
-        for i in 1:n_cos
-            @assert length(kx[i]) == D
-        end
-        n_gaussians = length(v_thermal)
-        @assert n_gaussians = length(v_mean)
-        @assert all( v_thermal .!= 0.0)
-        normal = zeros(n_gaussians)
-        for j in 1:n_gaussians
-            normal[j] = 1.0/((2π)^(0.5*V)*prod(v_thermal[j]))
-        end
-
-        new( n_cos, n_gaussians, kx, alpha, v_thermal, 
-             v_mean, delta, normal )
+        dims   = (D, V)
+        params = CosGaussianParams( dims, kx, alpha, v_thermal, v_mean, delta)
+        new( dims, params )
     end
 
 end
 
-function( df :: SumCosGaussian )( x, v )
-    fcos = 1.0
-    for j=1:df.n_cos
-       fcos += df.alpha[j] * cos( sum(df.kx[j] .* x) )
-    end
-    fgaussian = 0.0
-    for j=1:df.n_gaussians
-       fgaussian += df.normal[j] * df.delta[j] * exp( -0.5 * sum( ((v .- df.v_mean[j]) ./ df.v_thermal[j]).^2 ) )
-    end
-    fcos * fgaussian
-end
-
-
-function eval_x_density( self :: SumCosGaussian, x :: Union{Float64,Vector{Float64}} )
+function eval_x_density( f :: SumCosGaussian, x :: Union{Float64,Vector{Float64}} )
     
     fval = 1.0
-    for j=1:self.n_cos
-       fval += self.alpha[j] * cos( sum(self.kx[:,j] .* x) )
+    for j=1:f.params.n_cos
+       fval += f.params.alpha[j] * cos( sum(f.params.kx[:,j] .* x) )
     end
     fval
+
+end
+
+function eval_v_density( f :: AbstractCosGaussian, v :: Union{Float64,Vector{Float64}} ) 
+
+    fval = 0.0
+    for j=1:f.params.n_gaussians
+       fval += f.params.normal[j] * f.params.delta[j] .* exp( - 0.5 * 
+               sum( ((v .- f.params.v_mean[:,j]) ./ f.params.v_thermal[j]).^2))
+    end
+    fval
+
+end 
+
+function( f :: CosSumGaussian )( x, v )
+
+    eval_x_density( f, x) * eval_v_density( f, v)
+
+end
+
+function( f :: SumCosGaussian )( x, v )
+
+    eval_x_density( f, x) * eval_v_density( f, v)
 
 end
