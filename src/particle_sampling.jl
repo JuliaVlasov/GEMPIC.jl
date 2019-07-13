@@ -91,9 +91,9 @@ function sample_all( ps, pg, df :: AbstractCosGaussian, mesh )
        n_rnds = 1
     end
 
-    delta = zeros(df.params.n_gaussians)
+    δ = zeros(df.params.n_gaussians)
     for i_v=1:df.params.n_gaussians
-       delta[i_v] = sum(df.params.delta[1:i_v])
+       δ[i_v] = sum(df.params.δ[1:i_v])
     end
     
     n_rnds += ndx + ndv
@@ -126,10 +126,10 @@ function sample_all( ps, pg, df :: AbstractCosGaussian, mesh )
        # For multiple Gaussian, draw which one to take
        rnd_no = rdn[ndx+ndv+1]
        i_gauss = 1
-       while( rnd_no > delta[i_gauss] )
+       while( rnd_no > δ[i_gauss] )
           i_gauss += 1
        end
-       v .= v .* df.params.v_thermal[i_gauss] .+ df.params.v_mean[i_gauss]
+       v .= v .* df.params.σ[i_gauss] .+ df.params.μ[i_gauss]
        
        # Copy the generated numbers to the particle
        set_x(pg, i_part, x)
@@ -157,9 +157,9 @@ function sample_sym( ps, pg, df, mesh )
     n_rnds = 0
     (df.params.n_gaussians > 1) && (n_rnds = 1)
 
-    delta = zeros(Float64, df.params.n_gaussians)
+    δ = zeros(Float64, df.params.n_gaussians)
     for i_v = 1:df.params.n_gaussians
-       delta[i_v] = sum(df.params.delta[1:i_v])
+       δ[i_v] = sum(df.params.δ[1:i_v])
     end
     
     n_rnds = n_rnds + ndx + ndv
@@ -205,11 +205,11 @@ function sample_sym( ps, pg, df, mesh )
             # For multiple Gaussian, draw which one to take
             rnd_no = rdn[ndx+ndv+1]
             i_gauss = 1
-            while i_gauss < df.params.n_gaussians && rnd_no > delta[i_gauss]
+            while i_gauss < df.params.n_gaussians && rnd_no > δ[i_gauss]
                i_gauss += 1
             end
 
-            v .= v .* df.params.v_thermal[i_gauss] .+ df.params.v_mean[i_gauss]
+            v .= v .* df.params.σ[i_gauss] .+ df.params.μ[i_gauss]
 
         elseif ip == 5
 
@@ -217,11 +217,11 @@ function sample_sym( ps, pg, df, mesh )
 
         elseif ip % 2 == 0
 
-            v[1] = - v[1] + 2.0 * df.params.v_mean[i_gauss][1]
+            v[1] = - v[1] + 2.0 * df.params.μ[i_gauss][1]
 
         else          
 
-            v[2] = - v[2] + 2.0 * df.params.v_mean[i_gauss][2]
+            v[2] = - v[2] + 2.0 * df.params.μ[i_gauss][2]
 
         end
              
