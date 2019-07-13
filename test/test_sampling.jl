@@ -49,16 +49,16 @@ mesh = Mesh( xmax, xmin, nx)
 
 pg = ParticleGroup{1,2}(n_particles, 1.0, 1.0, 1)
 
-params = ( kx          = [[0.5]],
-           alpha       = [0.01],
-           v_thermal   = [[0.1, 2.0]],
-           v_mean      = [[0.0, 0.0]]
+params = ( k = [[0.5]],
+           α = [0.01],
+           σ = [[0.1, 2.0]],
+           μ = [[0.0, 0.0]]
 )
 
 df1 = CosSumGaussian{1,2}(params...)
 
 mean_ref  = [Lx*0.5+xmin, 0.0, 0.0]
-sigma_ref = [Lx^2/12.0,   params.v_thermal[1][1]^2, params.v_thermal[1][2]^2 ]
+sigma_ref = [Lx^2/12.0,   params.σ[1][1]^2, params.σ[1][2]^2 ]
 
 @info "Sobol non symmetric"
 mean, sigma = test_sampling( :sobol, false, pg, df1 )
@@ -90,11 +90,11 @@ mean, sigma = test_sampling( :random, true,  pg, df1)
 # 16/12 π^2 , 0.01, 4
 
 params = (
-    kx          = [[0.5]],
-    alpha       = [0.01],
-    v_thermal   = [[0.1, 2.0], [2.0, 2.0]],
-    v_mean      = [[0.0, 0.0], [1.0, 1.0]],
-    delta       = [0.7, 0.3]
+    k = [[0.5]],
+    α = [0.01],
+    σ = [[0.1, 2.0], [2.0, 2.0]],
+    μ = [[0.0, 0.0], [1.0, 1.0]],
+    δ = [0.7, 0.3]
 )
 
 df2 = CosSumGaussian{1,2}(params...)
@@ -102,11 +102,11 @@ df2 = CosSumGaussian{1,2}(params...)
 mean_ref = [Lx*0.5+xmin, 0.3, 0.3]
 sigma_ref[1] = Lx^2/12.0
 for j=1:2
-    sigma_ref[j+1] = - (df2.params.delta[1] * df2.params.v_mean[j][1]
-                     + (df2.params.delta[2] 
-                     -  df2.params.delta[1]) * df2.params.v_mean[j][2])^2
+    sigma_ref[j+1] = - (df2.params.δ[1] * df2.params.μ[j][1]
+                     + (df2.params.δ[2] 
+                     -  df2.params.δ[1]) * df2.params.μ[j][2])^2
     for k=1:2
-        sigma_ref[j+1] += df2.params.delta[k] * (df2.params.v_thermal[j][k]^2 + df2.params.v_mean[j][k]^2)
+        sigma_ref[j+1] += df2.params.δ[k] * (df2.params.σ[j][k]^2 + df2.params.μ[j][k]^2)
     end
 end
   
