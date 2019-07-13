@@ -15,10 +15,10 @@ FEM with splines, degree 3 for B and 2 for E
     beta            = 0.0001
     initial_bfield  = :cos
     
-    kx        = [[1.25]]
-    alpha     = [0.0]
-    v_thermal = [[0.2, 0.005773502691896]]
-    v_mean    = [[0.0, 0.0]]
+    k = [[1.25]]
+    α = [0.0]
+    σ = [[0.2, 0.005773502691896]]
+    μ = [[0.0, 0.0]]
     
     ng_x   = 32
     x1_min = 0.0
@@ -39,7 +39,7 @@ FEM with splines, degree 3 for B and 2 for E
     n_total_particles = n_particles
     degree_smoother   = spline_degree
 
-    df = CosSumGaussian{1,2}( kx, alpha, v_thermal, v_mean )
+    df = CosSumGaussian{1,2}( k, α, σ, μ )
     
     sampler = ParticleSampler( sampling_case, symmetric, (1,2), n_particles)
     
