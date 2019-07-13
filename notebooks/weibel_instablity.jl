@@ -83,7 +83,7 @@ FEM with splines, degree 3 for B and 2 for E
 """
 
 Δt    = 0.05
-steps = 10
+steps = 300
 β     = 0.0001
 
 k  = 1.25
@@ -104,14 +104,13 @@ spline_degree  = 3
 mesh   = Mesh( xmin, xmax, nx)
 domain = [xmin, xmax, xmax - xmin ]
 
-beta_cos_k(x) = β * cos(2π * x / domain[3]) 
 beta_sin_k(x) = beta * sin(2π * x / domain[3]) 
 
 df = CosSumGaussian{1,2}([[k]], [α], [σ], [μ] )
 # -
 
-v1min, v1max, nv1 = -0.1, 0.1, 64
-v2min, v2max, nv2 = -1.0, 1.0, 64
+v1min, v1max, nv1 = -1., 1., 64
+v2min, v2max, nv2 = -0.015, 0.015, 64
 v1 = LinRange(v1min, v1max, nv1) |> collect
 v2 = LinRange(v2min, v2max, nv2) |> collect
 f = zeros(Float64,(nv1,nv2))
@@ -119,10 +118,9 @@ for i in eachindex(v1), j in eachindex(v2)
     f[i,j] = eval_v_density(df, [v1[i],v2[j]])
 end
 
-contour(v1, v2, f)
+contourf(v1, v2, f)
 
 include("../src/particle_group.jl")
-
 
 ?ParticleGroup
 
@@ -153,144 +151,94 @@ for i in 1:n_particles
             get_weights(particle_group,i)))
 end
 
-?scatter
+p = vcat(xp[1:100:end]'...);
 
-p = vcat(xp[1:100:100000]'...)
-
-scatter(p[:,1], p[:,3], markersize=1)
+scatter(p[:,2], p[:,3], markersize=1)
 
 include("../src/particle_mesh_coupling.jl")
 
 ?ParticleMeshCoupling
 
+kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-1, :galerkin)    
+kernel_smoother0 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree, :galerkin)
+rho = zeros(Float64, nx)
+for i_part = 1:particle_group.n_particles
+   xi = get_x(particle_group, i_part)
+   wi = get_charge( particle_group, i_part)
+   add_charge!(rho, kernel_smoother0, xi, wi)
+end
+xg = LinRange(xmin, xmax, nx)
+plot( xg, rho )
+
+include("../src/maxwell_1d_fem.jl")
+include("../src/diagnostics.jl")
+
+efield_poisson = zeros(Float64, nx)
+# Init!ialize the field solver
+maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
+# efield by Poisson
+solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
+plot( xg, efield_poisson )       
+
 include("../src/hamiltonian_splitting.jl")
 
-df = pic_vm_1d2v()
-x = LinRange(0, 2π/1.25, 32) |> collect
-v = LinRange(-6, 6, 64) |> collect
-contour(x, v, df( x, v))
-
 # +
+# Initialize the arrays for the spline coefficients of the fields
+efield1_dofs = zeros(Float64, nx)
+efield2_dofs = zeros(Float64, nx)
+bfield_dofs  = zeros(Float64, nx)
     
-   
+propagator = HamiltonianSplitting( maxwell_solver,
+                                   kernel_smoother0, 
+                                   kernel_smoother1, 
+                                   particle_group,
+                                   efield1_dofs, 
+                                   efield2_dofs, 
+                                   bfield_dofs,
+                                   domain[1], 
+                                   domain[3])
+
+
+# -
+# bfield = beta*cos(kx): Use b = M{-1}(N_i,beta*cos(kx))
+beta_cos_k(x) = β * cos(2π * x / domain[3]) 
+l2projection!( bfield_dofs, maxwell_solver, beta_cos_k, spline_degree-1)
+plot( xg, bfield_dofs ) 
+# + {}
+energy = Float64[]
+potential_energy = zeros(Float64, 3)
+time = Float64[]
+@showprogress 1 for j = 1:steps # loop over time
+
+    # Strang splitting
+    strang_splitting(propagator, Δt, 1)
+
+    # Diagnostics
+    solve_poisson!( efield_poisson, particle_group, 
+                    kernel_smoother0, maxwell_solver, rho)
     
+    #kinetic_energy = 0.0
+    #for i_part=1:particle_group.n_particles
+    #   vi = get_v(   particle_group, i_part)
+    #   wi = get_mass(particle_group, i_part)
+    #   kinetic_energy += (vi[1]^2+vi[2]^2)*wi[1]
+    #end
+#
+    #potential_energy[1] = inner_product(maxwell_solver, efield1_dofs, 
+    #                                    propagator.e_dofs_1, spline_degree-1 )
+    #potential_energy[2] = inner_product(maxwell_solver, efield2_dofs, 
+     #                                   propagator.e_dofs_2, spline_degree )
+    #potential_energy[3] = l2norm_squared( maxwell_solver, bfield_dofs, spline_degree-1 )
 
-    
+    push!(time, j*Δt)
+    push!(energy, norm(efield2_dofs))
+    #push!(energy, kinetic_energy + sum(potential_energy))
 
-   
-    
-    
-        
-       
-        # Init!ialize the field solver
-        maxwell_solver = Maxwell1DFEM(domain, ng_x, spline_degree)
-        
-        kernel_smoother1 = ParticleMeshCoupling( domain, [ng_x], n_particles, 
-                     spline_degree, :galerkin)
-        
-        kernel_smoother0 = ParticleMeshCoupling( domain, [ng_x], n_particles, 
-                     spline_degree, :galerkin)
-    
-        # Initialize the arrays for the spline coefficients of the fields
-        efield1_dofs = zeros(Float64, ng_x)
-        efield2_dofs = zeros(Float64, ng_x)
-        bfield_dofs  = zeros(Float64, ng_x)
-    
-        # Initialize the time-splitting propagator
-        if splitting_case == :symplectic
-
-            propagator = HamiltonianSplitting( maxwell_solver,
-                                              kernel_smoother0, 
-                                              kernel_smoother1, 
-                                              particle_group,
-                                              efield1_dofs, 
-                                              efield2_dofs, 
-                                              bfield_dofs,
-                                              domain[1], 
-                                              domain[3]    )
-
-           efield_1_dofs_n = propagator.e_dofs_1
-           efield_2_dofs_n = propagator.e_dofs_2
-
-        elseif splitting_case == :boris
-
-            propagator = HamiltonianSplittingBoris( maxwell_solver,
-                                                   kernel_smoother0, 
-                                                   kernel_smoother1, 
-                                                   particle_group,
-                                                   efield1_dofs, 
-                                                   efield2_dofs, 
-                                                   bfield_dofs,
-                                                   domain[1], 
-                                                   domain[3]    )
-
-           efield_1_dofs_n = propagator.e_dofs_1_mid
-           efield_2_dofs_n = propagator.e_dofs_2_mid
-
-        end
-
-
-        
-
-        # Set the initial fields
-        rho = zeros(Float64, ng_x)
-        efield_poisson = zeros(Float64, ng_x)
-
-        # efield 1 by Poisson
-        solve_poisson!( efield1_dofs, particle_group, kernel_smoother0, maxwell_solver, rho )
-
-        # bfield = beta*cos(kx): Use b = M{-1}(N_i,beta*cos(kx))
-
-        if initial_bfield == :cos
-            l2projection!( bfield_dofs, maxwell_solver, beta_cos_k, degree_smoother-1)
-        else
-            l2projection!( bfield_dofs, maxwell_solver, beta_sin_k, degree_smoother-1)
-        end
-       
-        # In case we use the Boris propagator, we need to initialize 
-        # the staggering used in the scheme.
-        if splitting_case == :boris
-           staggering( propagator, delta_t )
-        end
-
-        solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
-
-        time_history_diagnostics( particle_group, maxwell_solver,
-                                  kernel_smoother0, kernel_smoother1, 
-                                  0.0,
-                                  degree_smoother, 
-                                  efield1_dofs, efield2_dofs, bfield_dofs,
-                                  efield_1_dofs_n, efield_2_dofs_n, efield_poisson)
-
-        for j = 1:n_time_steps # loop over time
-
-           # Strang splitting
-           strang_splitting(propagator, delta_t, 1)
-
-           # Diagnostics
-           solve_poisson!( efield_poisson, particle_group, 
-                           kernel_smoother0, maxwell_solver, rho)
-
-           time_history_diagnostics( particle_group, maxwell_solver,
-                                     kernel_smoother0, kernel_smoother1, 
-                                     j * delta_t,
-                                     degree_smoother, 
-                                     efield1_dofs, efield2_dofs, bfield_dofs,
-                                     efield_1_dofs_n, efield_2_dofs_n, efield_poisson)
-
-        end
-
-        # Compute final rho
-        fill!(rho, 0.0)
-        for i_part = 1:particle_group.n_particles
-           xi = get_x(particle_group, i_part)
-           wi = get_charge( particle_group, i_part)
-           add_charge!(rho, kernel_smoother0, xi, wi)
-        end
-
-    end
 
 end
+
 # -
+plot(time, energy)
+
 
 
