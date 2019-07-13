@@ -1,15 +1,17 @@
-using Sobol, Random
-using Distributions
+using Sobol, Random, Distributions
 
 export ParticleSampler
 
 """
-    ParticleSampler( sampling_type, symmetric, 
-                     dims, n_particles)
+    ParticleSampler{D,V}( sampling_type, symmetric, dims, n_particles)
 
 Particle initializer class with various functions to initialize a particle.
+
+- `sampling_type` : `:random` or `:sobol`
+- `symmetric` : `true` or `false`
+- `n_particles` : number of particles
 """
-struct ParticleSampler
+struct ParticleSampler{D,V}
 
     sampling_type :: Symbol
     dims          :: Tuple{Int64, Int64}
@@ -17,15 +19,17 @@ struct ParticleSampler
     symmetric     :: Bool
     seed          :: Int64
 
-    function ParticleSampler( sampling_type :: Symbol, 
-                              symmetric     :: Bool, 
-                              dims          :: Tuple{Int64,Int64}, 
-                              n_particles   :: Int64)
+    function ParticleSampler{D,V}( sampling_type :: Symbol, 
+                                   symmetric     :: Bool, 
+                                   n_particles   :: Int64,
+                                   seed          :: Int64 = 1234) where {D,V}
 
         if !(sampling_type in [:random, :sobol])
             throw(ArgumentError("Sampling type $sampling_type 
                       not implemented"))
         end
+
+        dims = (D, V)
 
         # Make sure that the particle number is conforming 
         # with symmetric sampling (if necessary)
@@ -39,7 +43,6 @@ struct ParticleSampler
             ncopies = 1
         end
 
-        seed = 1234
 
         new( sampling_type, dims, n_particles, symmetric, seed)
 
@@ -47,23 +50,23 @@ struct ParticleSampler
 
 end
     
-export sample
+export sample!
 
 """
-    sample( ps, pg, df, mesh)
+    sample!( pg, ps, df, mesh)
 
 Sample from a Particle sampler
 
-- `ps`   : Particle sampler
 - `pg`   : Particle group
+- `ps`   : Particle sampler
 - `df`   : Distribution function
 - `xmin` : lower bound of the domain
 - `Lx`   : length of the domain.
 """
-function sample( ps   :: ParticleSampler, 
-                 pg   :: ParticleGroup{1,2}, 
-                 df   :: AbstractCosGaussian, 
-                 mesh :: Mesh )
+function sample!( pg   :: ParticleGroup{1,2}, 
+                  ps   :: ParticleSampler, 
+                  df   :: AbstractCosGaussian, 
+                  mesh :: Mesh )
 
     if ps.symmetric 
         sample_sym( ps, pg, df, mesh )
@@ -113,7 +116,7 @@ function sample_all( ps, pg, df :: AbstractCosGaussian, mesh )
     for i_part = 1:pg.n_particles
 
        if ps.sampling_type == :sobol
-           x .= mesh.xmin .+ next!(rng_sobol) .* mesh.Lx
+           x .= mesh.xmin .+ Sobol.next!(rng_sobol) .* mesh.Lx
        else
            x .= mesh.xmin .+ rand(rng_random, ndx) .* mesh.Lx
        end
@@ -187,7 +190,7 @@ function sample_sym( ps, pg, df, mesh )
 
             # Generate Random or Sobol numbers on [0,1]
             if ps.sampling_type == :sobol
-               rdn .= next!(rng_sobol)
+               rdn .= Sobol.next!(rng_sobol)
             else
                rdn .= rand!(rng_random, rdn)
             end 
