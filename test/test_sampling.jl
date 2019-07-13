@@ -3,7 +3,7 @@
 function test_sampling( sampling_type :: Symbol, 
                         symmetric     :: Bool, 
                         pg            :: ParticleGroup{D,V}, 
-                        df            :: CosSumOneGaussian ) where {D, V}
+                        df            :: GEMPIC.AbstractCosGaussian ) where {D, V}
 
    mean  = zeros(3)
    sigma = zeros(3)
@@ -49,20 +49,16 @@ mesh = Mesh( xmax, xmin, nx)
 
 pg = ParticleGroup{1,2}(n_particles, 1.0, 1.0, 1)
 
-params = ( dims        = (1,2),
-           n_cos       = 1,
-           n_gaussians = 1,
-           kx          = hcat([0.5]),
+params = ( kx          = [[0.5]],
            alpha       = [0.01],
-           v_thermal   = hcat([0.1, 2.0]),
-           v_mean      = hcat([0.0, 0.0]),
-           δ           = 0.0
+           v_thermal   = [[0.1, 2.0]],
+           v_mean      = [[0.0, 0.0]]
 )
 
-df1 = CosSumOneGaussian(params...)
+df1 = CosSumGaussian{1,2}(params...)
 
 mean_ref  = [Lx*0.5+xmin, 0.0, 0.0]
-sigma_ref = [Lx^2/12.0,   df1.v_thermal[1,1]^2, df1.v_thermal[2,1]^2 ]
+sigma_ref = [Lx^2/12.0,   params.v_thermal[1][1]^2, params.v_thermal[1][2]^2 ]
 
 @info "Sobol non symmetric"
 mean, sigma = test_sampling( :sobol, false, pg, df1 )
@@ -94,26 +90,24 @@ mean, sigma = test_sampling( :random, true,  pg, df1)
 # 16/12 π^2 , 0.01, 4
 
 params = (
-    dims        = (1,2),
-    n_cos       = 1,
-    n_gaussians = 2,
-    kx          = hcat([0.5]),
+    kx          = [[0.5]],
     alpha       = [0.01],
-    v_thermal   = hcat([0.1, 2.0], [2.0, 2.0]),
-    v_mean      = hcat([0.0, 0.0], [1.0, 1.0]),
-    δ           = 0.7
+    v_thermal   = [[0.1, 2.0], [2.0, 2.0]],
+    v_mean      = [[0.0, 0.0], [1.0, 1.0]],
+    delta       = [0.7, 0.3]
 )
 
-df2 = CosSumOneGaussian(params...)
+df2 = CosSumGaussian{1,2}(params...)
 
 mean_ref = [Lx*0.5+xmin, 0.3, 0.3]
 sigma_ref[1] = Lx^2/12.0
 for j=1:2
-    sigma_ref[j+1] = - (df2.delta[1] * df2.v_mean[j,1]
-                      +(df2.delta[2] - df2.delta[1])*df2.v_mean[j,2])^2
+    sigma_ref[j+1] = - (df2.params.delta[1] * df2.params.v_mean[j][1]
+                     + (df2.params.delta[2] 
+                     -  df2.params.delta[1]) * df2.params.v_mean[j][2])^2
     for k=1:2
-        sigma_ref[j+1] += df2.delta[k] * (df2.v_thermal[j,k]^2
-                                       +  df2.v_mean[j,k]^2)
+        sigma_ref[j+1] += df2.params.delta[k] 
+                        * (df2.params.v_thermal[j][k]^2 + df2.params.v_mean[j][k]^2)
     end
 end
   
