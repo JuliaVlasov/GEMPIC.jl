@@ -11,3 +11,4 @@ Manifest.toml
 .ipynb_checkpoints/
 notebooks/particle_group.ipynb
 notebooks/weibel_instablity.ipynb
+notebooks/distributions.ipynb
