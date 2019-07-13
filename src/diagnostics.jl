@@ -1,6 +1,3 @@
-import GEMPIC: get_charge, get_x, add_charge!, get_mass
-import GEMPIC: inner_product, evaluate
-
 export solve_poisson!
 
 """
