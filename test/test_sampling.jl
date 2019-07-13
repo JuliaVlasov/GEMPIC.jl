@@ -11,9 +11,9 @@ function test_sampling( sampling_type :: Symbol,
 
    n_particles = pg.n_particles
    
-   sampling = ParticleSampler( sampling_type, symmetric, (D, V), n_particles )
+   sampling = ParticleSampler{D,V}( sampling_type, symmetric, n_particles )
 
-   sample( sampling, pg, df, mesh )
+   sample!( pg, sampling, df, mesh )
    
    for i_part = 1:n_particles
        xi = get_x(pg, i_part)
