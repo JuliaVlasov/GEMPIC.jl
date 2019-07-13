@@ -9,10 +9,10 @@ abstract type AbstractParticleGroup end
                         mass, 
                         n_weights)
 
-- n_particles  : number of particles 
-- charge       : charge of one particle
-- mass         : mass of one particle
-- n_weights    : number of differents weights
+- `n_particles` : number of particles 
+- `charge`      : charge of one particle
+- `mass`        : mass of one particle
+- `n_weights`   : number of differents weights
 """
 mutable struct ParticleGroup{D,V} <:  AbstractParticleGroup 
 
