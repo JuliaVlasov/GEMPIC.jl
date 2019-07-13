@@ -57,8 +57,12 @@ export CosSumGaussian
 Data type for parameters of initial distribution
 
 ```math
-(1+ \\cos( \\sum_{n_{cos}} k_i x_i)) 
-* \\exp \\big( -\\frac{1}{2} \\sum_{n_{gaussians}} \\frac{(v-v_{j,mean})^2}{v_{j,thermal}^2} \\big)
+(1+ \\cos( \\sum^{n_{cos}}_{i=1} k_i x)) 
+\\cdot 
+\\sum_{j=1}^{n_{gaussians}} 
+\\delta_j 
+\\exp \\big( -\\frac{1}{2} 
+\\frac{(v-\\mu_j)^2}{\\sigma_j^2} \\big)
 ```
 
 ## Parameters
@@ -72,14 +76,11 @@ Data type for parameters of initial distribution
 # Example
 
 ```math
-f(x,i\\mathbf{v},t=0)=\\frac{1}{2\\pi\\sigma_1\\sigma_2} \\exp \\Big( - \\frac{1}{2} \\big( \\frac{v_1^2}{\\sigma_1^2} + \\frac{v_2^2}{\\sigma_2^2} \\big) \\Big) ( 1 + \\alpha \\cos(kx)), \\qquad x \\in [0, 2\\pi / k),
+f(x,v_1,v_2)=\\frac{1}{2\\pi\\sigma_1\\sigma_2} \\exp \\Big( - \\frac{1}{2} \\big( \\frac{v_1^2}{\\sigma_1^2} + \\frac{v_2^2}{\\sigma_2^2} \\big) \\Big) ( 1 + \\alpha \\cos(kx)),
 ```
 
 ```julia
-α = [0.01]
-k = [[1.25]]
-σ = [[σ₁, σ₂]]
-μ = [[0.0, 0.0]]
+df = CosSumGaussian{1,2}([[k]],[α], [[σ₁,σ₂]], [[μ₁,μ₂]])
 ```
 
 """
@@ -102,26 +103,18 @@ struct CosSumGaussian{D, V} <: AbstractCosGaussian
 
 end
 
-function eval_x_density( f :: CosSumGaussian, x :: Union{Float64,Vector{Float64}} )
-    
-    fval = 1.0
-    for j=1:f.params.n_cos
-       fval += f.params.α[j] * cos( sum(f.params.k[j] .* x) )
-    end
-    fval
-
-end
-  
-
-
 export SumCosGaussian
 
 """
     SumCosGaussian( dims, n_cos, n_gaussians, k, α, σ, μ, δ )
 Data type for parameters of initial distribution
 ```math
-(1+ \\sum_{n_{cos}} \\cos(  k_i * x_i)) \\exp 
-\\big( -\\frac{1}{2} \\sum_{n_{gaussians}} \\frac{(v-v_{mean})^2}{v_{thermal}^2} \\big)
+(1+ \\sum_{i=1}^{n_{cos}} \\alpha_i \\cos(  k_i \\mathbf{x}))
+\\cdot
+\\sum_{j=1}^{n_{gaussians}} 
+\\delta_j \\exp 
+\\big( -\\frac{1}{2} 
+\\frac{(\\mathbf{v}-\\mu_j)^2}{\\sigma_j^2} \\big)
 ```
 ## Parameters
 - `k` : values of the wave numbers (Array of vectors for multiple cosines)
@@ -136,29 +129,25 @@ Data type for parameters of initial distribution
 # Example
 
 ```math
-f(x,i\\mathbf{v},t=0)=\\frac{1}{2\\pi\\sigma_1\\sigma_2} \\exp \\Big( - \\frac{1}{2} \\big( \\frac{v_1^2}{\\sigma_1^2} + \\frac{v_2^2}{\\sigma_2^2} \\big) \\Big) ( 1 + \\alpha_1 \\cos(k_1 x) + \\alpha_2 \\cos(k_2 x) ), \\qquad x \\in [0, 2\\pi / k),
+f(x,v_1,v_2) = \\frac{1}{2\\pi\\sigma_1\\sigma_2} 
+\\exp \\Big( - \\frac{1}{2} \\big( \\frac{v_1^2}{\\sigma_1^2}
+ + \\frac{v_2^2}{\\sigma_2^2} \\big) \\Big) 
+( 1 + \\alpha_1 \\cos(k_1 x) + \\alpha_2 \\cos(k_2 x) ),
 ```
 ```julia
-k        = [[k₁],[k₂]]
-σ = [[σ₁],[σ₂]]
-μ    = [[0.0],[0.0]]
-α     = [α₁, α₂]
-
-df = SumCosGaussian{1,2}( k, α, σ, μ )
+df = SumCosGaussian{1,2}([[k₁],[k₂]], [α₁, α₂], [[σ₁,σ₂]], [[0.0,0.0]])
 
 ```
 """
-struct SumCosGaussian{D,V}
-value :: Int64
-    double :: Int64
+struct SumCosGaussian{D,V} <: AbstractCosGaussian
     dims   :: Tuple{Int64,Int64}
     params :: CosGaussianParams
 
-    function SumCosGaussian{D,V}( k        :: Array{Array{Float64,1},1}, 
-                                  α     :: Vector{Float64}, 
+    function SumCosGaussian{D,V}( k :: Array{Array{Float64,1},1}, 
+                                  α :: Vector{Float64}, 
                                   σ :: Array{Array{Float64,1},1}, 
-                                  μ    :: Array{Array{Float64,1},1},
-                                  δ     :: Array{Float64,1} = [1.0]
+                                  μ :: Array{Array{Float64,1},1},
+                                  δ :: Array{Float64,1} = [1.0]
                                   ) where {D,V}
 
         dims   = (D, V)
@@ -168,22 +157,44 @@ value :: Int64
 
 end
 
-function eval_x_density( f :: SumCosGaussian, x :: Union{Float64,Vector{Float64}} )
+function eval_x_density( f :: CosSumGaussian, x :: Union{Float64,Vector{Float64}} )
     
     fval = 1.0
     for j=1:f.params.n_cos
-       fval += f.params.α[j] * cos( sum(f.params.k[:,j] .* x) )
+       fval += f.params.α[j] * cos( sum(f.params.k[j] .* x) )
     end
     fval
 
 end
 
-function eval_v_density( f :: AbstractCosGaussian, v :: Union{Float64,Vector{Float64}} ) 
+"""
+    eval_x_density( f, x )
+
+evaluate the cosine part of the distribution function
+"""
+function eval_x_density( f :: SumCosGaussian, 
+                         x :: Union{Float64,Vector{Float64}} )
+    
+    fval = 1.0
+    for j=1:f.params.n_cos
+       fval += f.params.α[j] * cos( sum(f.params.k[j] .* x) )
+    end
+    fval
+
+end
+
+"""
+    eval_v_density( f, v )
+
+evaluate the normal part of the distribution function
+"""
+function eval_v_density( f :: AbstractCosGaussian, 
+                         v :: Union{Float64,Vector{Float64}} ) 
 
     fval = 0.0
     for j=1:f.params.n_gaussians
        fval += f.params.normal[j] * f.params.δ[j] .* exp( - 0.5 * 
-               sum( ((v .- f.params.μ[:,j]) ./ f.params.σ[j]).^2))
+               sum( ((v .- f.params.μ[j]) ./ f.params.σ[j]).^2))
     end
     fval
 
