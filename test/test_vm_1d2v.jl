@@ -41,7 +41,7 @@ FEM with splines, degree 3 for B and 2 for E
 
     df = CosSumGaussian{1,2}( k, α, σ, μ )
     
-    sampler = ParticleSampler( sampling_case, symmetric, (1,2), n_particles)
+    sampler = ParticleSampler{1,2}( sampling_case, symmetric, n_particles)
     
     for propagator in [:symplectic, :boris]
     
@@ -96,7 +96,7 @@ FEM with splines, degree 3 for B and 2 for E
         end
 
 
-        sample( sampler, particle_group, df, mesh )
+        sample!( particle_group, sampler, df, mesh )
 
         # Set the initial fields
         rho = zeros(Float64, ng_x)
