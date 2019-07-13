@@ -2,6 +2,8 @@ using LinearAlgebra
 using FFTW
 using FastGaussQuadrature
 
+abstract type AbstractMaxwellSolver end
+
 export Maxwell1DFEM
 
 """
