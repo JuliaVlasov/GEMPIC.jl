@@ -62,7 +62,7 @@ Sample from a Particle sampler
 """
 function sample( ps   :: ParticleSampler, 
                  pg   :: ParticleGroup{1,2}, 
-                 df   :: CosSumOneGaussian, 
+                 df   :: AbstractCosGaussian, 
                  mesh :: Mesh )
 
     if ps.symmetric 
@@ -79,7 +79,7 @@ end
 
 Helper function for pure sampling
 """
-function sample_all( ps, pg, df, mesh )
+function sample_all( ps, pg, df :: AbstractCosGaussian, mesh )
 
     ndx, ndv = df.dims
 
@@ -87,13 +87,13 @@ function sample_all( ps, pg, df, mesh )
     v = zeros( ndv )
 
     n_rnds = 0
-    if df.n_gaussians > 1
+    if df.params.n_gaussians > 1
        n_rnds = 1
     end
 
-    delta = zeros(df.n_gaussians)
-    for i_v=1:df.n_gaussians
-       delta[i_v] = sum(df.delta[1:i_v])
+    delta = zeros(df.params.n_gaussians)
+    for i_v=1:df.params.n_gaussians
+       delta[i_v] = sum(df.params.delta[1:i_v])
     end
     
     n_rnds += ndx + ndv
@@ -129,7 +129,7 @@ function sample_all( ps, pg, df, mesh )
        while( rnd_no > delta[i_gauss] )
           i_gauss += 1
        end
-       v .= v .* df.v_thermal[:,i_gauss] .+ df.v_mean[:,i_gauss]
+       v .= v .* df.params.v_thermal[i_gauss] .+ df.params.v_mean[i_gauss]
        
        # Copy the generated numbers to the particle
        set_x(pg, i_part, x)
@@ -155,11 +155,11 @@ function sample_sym( ps, pg, df, mesh )
     v = zeros(Float64, ndv)
     
     n_rnds = 0
-    (df.n_gaussians > 1) && (n_rnds = 1)
+    (df.params.n_gaussians > 1) && (n_rnds = 1)
 
-    delta = zeros(Float64, df.n_gaussians)
-    for i_v = 1:df.n_gaussians
-       delta[i_v] = sum(df.delta[1:i_v])
+    delta = zeros(Float64, df.params.n_gaussians)
+    for i_v = 1:df.params.n_gaussians
+       delta[i_v] = sum(df.params.delta[1:i_v])
     end
     
     n_rnds = n_rnds + ndx + ndv
@@ -205,11 +205,11 @@ function sample_sym( ps, pg, df, mesh )
             # For multiple Gaussian, draw which one to take
             rnd_no = rdn[ndx+ndv+1]
             i_gauss = 1
-            while i_gauss < df.n_gaussians && rnd_no > delta[i_gauss]
+            while i_gauss < df.params.n_gaussians && rnd_no > delta[i_gauss]
                i_gauss += 1
             end
 
-            v .= v .* df.v_thermal[:,i_gauss] .+ df.v_mean[:,i_gauss]
+            v .= v .* df.params.v_thermal[i_gauss] .+ df.params.v_mean[i_gauss]
 
         elseif ip == 5
 
@@ -217,11 +217,11 @@ function sample_sym( ps, pg, df, mesh )
 
         elseif ip % 2 == 0
 
-            v[1] = - v[1] + 2.0 * df.v_mean[1,i_gauss]
+            v[1] = - v[1] + 2.0 * df.params.v_mean[i_gauss][1]
 
         else          
 
-            v[2] = - v[2] + 2.0 * df.v_mean[2,i_gauss]
+            v[2] = - v[2] + 2.0 * df.params.v_mean[i_gauss][2]
 
         end
              
