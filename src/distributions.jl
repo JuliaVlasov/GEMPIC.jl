@@ -106,7 +106,7 @@ function eval_x_density( f :: CosSumGaussian, x :: Union{Float64,Vector{Float64}
     
     fval = 1.0
     for j=1:f.params.n_cos
-       fval += f.params.α[j] * cos( sum(f.params.kx[j] .* x) )
+       fval += f.params.α[j] * cos( sum(f.params.k[j] .* x) )
     end
     fval
 
@@ -117,10 +117,10 @@ end
 export SumCosGaussian
 
 """
-    SumCosGaussian( dims, n_cos, n_gaussians, kx, α, σ, μ, δ )
+    SumCosGaussian( dims, n_cos, n_gaussians, k, α, σ, μ, δ )
 Data type for parameters of initial distribution
 ```math
-(1+ \\sum_{n_{cos}} \\cos(  kx_i * x_i)) \\exp 
+(1+ \\sum_{n_{cos}} \\cos(  k_i * x_i)) \\exp 
 \\big( -\\frac{1}{2} \\sum_{n_{gaussians}} \\frac{(v-v_{mean})^2}{v_{thermal}^2} \\big)
 ```
 ## Parameters
