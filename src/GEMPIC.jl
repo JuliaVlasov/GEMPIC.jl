@@ -5,8 +5,6 @@ module GEMPIC
     include("splinepp.jl")
     include("distributions.jl")
 
-    # Maxwell solvers
-    abstract type AbstractMaxwellSolver end
 
     include("maxwell_1d_fem.jl")
 
