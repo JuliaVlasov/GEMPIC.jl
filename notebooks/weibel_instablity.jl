@@ -10,10 +10,19 @@
 #       format_version: '1.4'
 #       jupytext_version: 1.1.7
 #   kernelspec:
-#     display_name: Julia 1.1.0
+#     display_name: Julia 1.1.1
 #     language: julia
 #     name: julia-1.1
 # ---
+
+using ProgressMeter, Plots
+
+include("../src/mesh.jl")
+include("../src/distributions.jl")
+include("../src/low_level_bsplines.jl")
+include("../src/splinepp.jl")
+include("../src/maxwell_1d_fem.jl")
+
 
 # # Vlasov–Maxwell in 1D2V
 #
@@ -65,10 +74,6 @@
 #
 # $ k = 1.25, α = 0 $ and $ \beta = −10^{−4}$. 
 
-using Pkg
-
-Pkg.update();
-
 # +
 """
     pic_vm_1d2v( )
@@ -76,39 +81,89 @@ Simulation of 1d2v Vlasov-Maxwell with simple PIC method,
 periodic boundary conditions, Weibel instability. 
 FEM with splines, degree 3 for B and 2 for E
 """
-function pic_vm_1d2v()
 
-    delta_t         = 0.05
-    n_time_steps    = 10
-    beta            = 0.0001
-    initial_bfield  = :cos
-    
-    kx        = hcat([1.25])
-    alpha     = [0.0]
-    v_thermal = hcat([0.2,  0.005773502691896])
-    v_mean    = hcat([0.0, 0.0])
-    
-    ng_x   = 32
-    x1_min = 0.0
-    x1_max = 2π / kx[1]
-    
-    n_particles    = 100000
-    sampling_case  = :sobol
-    symmetric      = true
-    splitting_case = :symplectic
-    spline_degree  = 3
-    
-    mesh   = Mesh( x1_min, x1_max, ng_x)
-    domain = [x1_min, x1_max, x1_max - x1_min ]
-    
-    beta_cos_k(x) = beta * cos(2π * x / domain[3]) 
-    beta_sin_k(x) = beta * sin(2π * x / domain[3]) 
-    
-    df = CosSumOneGaussian( (1,2), 1, 1, kx, alpha, v_thermal, v_mean, 1.0 )
-    sampler = ParticleSampler( sampling_case, symmetric, (1,2), n_particles)
+Δt    = 0.05
+steps = 10
+β     = 0.0001
 
-end
+k  = 1.25
+α  = 0.0
+σ  = [0.2,  0.005773502691896]
+μ  = [0.0, 0.0]
+
+nx   = 32
+xmin = 0.0
+xmax = 2π / k
+
+n_particles    = 100000
+sampling_case  = :sobol
+symmetric      = true
+splitting_case = :symplectic
+spline_degree  = 3
+
+mesh   = Mesh( xmin, xmax, nx)
+domain = [xmin, xmax, xmax - xmin ]
+
+beta_cos_k(x) = β * cos(2π * x / domain[3]) 
+beta_sin_k(x) = beta * sin(2π * x / domain[3]) 
+
+df = CosSumGaussian{1,2}([[k]], [α], [σ], [μ] )
 # -
+
+v1min, v1max, nv1 = -0.1, 0.1, 64
+v2min, v2max, nv2 = -1.0, 1.0, 64
+v1 = LinRange(v1min, v1max, nv1) |> collect
+v2 = LinRange(v2min, v2max, nv2) |> collect
+f = zeros(Float64,(nv1,nv2))
+for i in eachindex(v1), j in eachindex(v2)
+    f[i,j] = eval_v_density(df, [v1[i],v2[j]])
+end
+
+contour(v1, v2, f)
+
+include("../src/particle_group.jl")
+
+
+?ParticleGroup
+
+ # Initialize the particles   (mass and charge set to 1.0)
+mass, charge = 1.0, 1.0
+particle_group = ParticleGroup{1,2}( n_particles, mass, charge, 1)   
+
+include("../src/particle_sampling.jl")
+
+?ParticleSampler
+
+sampler = ParticleSampler{1,2}( sampling_case, symmetric, n_particles)
+
+?sample
+
+sample!(  particle_group, sampler, df, mesh)
+
+?get_x
+
+get_x(particle_group, 1)
+
+get_v(particle_group, 2)
+
+xp = Vector{Float64}[]
+for i in 1:n_particles
+    push!(xp, vcat(get_x(particle_group,i), 
+            get_v(particle_group,i),
+            get_weights(particle_group,i)))
+end
+
+?scatter
+
+p = vcat(xp[1:100:100000]'...)
+
+scatter(p[:,1], p[:,3], markersize=1)
+
+include("../src/particle_mesh_coupling.jl")
+
+?ParticleMeshCoupling
+
+include("../src/hamiltonian_splitting.jl")
 
 df = pic_vm_1d2v()
 x = LinRange(0, 2π/1.25, 32) |> collect
@@ -125,12 +180,8 @@ contour(x, v, df( x, v))
    
     
     
-    
-    for propagator in [:symplectic, :boris]
-    
-        # Initialize the particles   (mass and charge set to 1.0)
-        particle_group = ParticleGroup{1,2}( n_particles, 1.0, 1.0, 1)
         
+       
         # Init!ialize the field solver
         maxwell_solver = Maxwell1DFEM(domain, ng_x, spline_degree)
         
@@ -179,7 +230,7 @@ contour(x, v, df( x, v))
         end
 
 
-        sample( sampler, particle_group, df, mesh )
+        
 
         # Set the initial fields
         rho = zeros(Float64, ng_x)
