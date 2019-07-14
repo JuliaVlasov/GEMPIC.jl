@@ -116,7 +116,7 @@ j_dofs_ref .= j_dofs_ref .+ [ 6.5104166666666696e-004,
 @test maximum(abs.(j_dofs  .- j_dofs_ref)) < 1e-15
 @test maximum(abs.(j_dofs1 .- j_dofs_ref)) < 1e-15
   
-@show rho_dofs_pp = b_to_pp(kernel.spline_pp, n_cells, rho_dofs)
+rho_dofs_pp = b_to_pp(kernel.spline_pp, n_cells, rho_dofs)
 
 particle_values  = zeros(Float64, 4)
 particle_values1 = zeros(Float64, 4)
