@@ -6,11 +6,11 @@ export solve_poisson!
    solve_poisson!( efield, particle_group, kernel_smoother, maxwell_solver, rho )
 
 Accumulate rho and solve Poisson
- - particle_group : Particles
- - maxwell_solver : Maxwell solver (FEM 1D)
- - kernel_smoother_0 : Particle-Mesh method
- - rho : preallocated array for Charge density
- - efield_dofs : Electric field (1D)
+ - `particle_group` : Particles
+ - `maxwell_solver` : Maxwell solver (FEM 1D)
+ - `kernel_smoother_0` : Particle-Mesh method
+ - `rho` : preallocated array for Charge density
+ - `efield_dofs` : spline coefficients of electric field (1D)
 """
 function solve_poisson!( efield_dofs       :: Vector{Float64},
                          particle_group    :: ParticleGroup, 
@@ -38,10 +38,10 @@ end
 
   Compute ``\\sum_{particles} w_p ( v_1,p e_1(x_p) + v_2,p e_2(x_p)) ``
 
-- particle_group   
-- kernel_smoother_0  : Kernel smoother (order p+1)
-- kernel_smoother_1  : Kernel smoother (order p)   
-- efield_dofs : coefficients of efield
+- `particle_group`   
+- `kernel_smoother_0`  : Kernel smoother (order p+1)
+- `kernel_smoother_1`  : Kernel smoother (order p)   
+- `efield_dofs` : coefficients of efield
 
 """
 function pic_diagnostics_transfer( particle_group, 
@@ -71,9 +71,9 @@ end
 
 Compute ``\\sum_{particles} ( w_p v_1, p b(x_p) v_2, p )``
 
-- particle_group    : particle group object
-- kernel_smoother_1 : Kernel smoother (order p)  
-- bfield_dofs : coefficients of bfield
+- `particle_group`    : particle group object
+- `kernel_smoother_1` : Kernel smoother (order p)  
+- `bfield_dofs` : coefficients of bfield
 
 """
 function pic_diagnostics_vvb( particle_group, kernel_smoother_1, bfield_dofs )
@@ -101,10 +101,10 @@ end
 
 Compute ``e^T M_0^{-1}  R^T b``
 
-- maxwell_solver : maxwell solver object
-- degree : degree of finite element
-- efield_dofs : coefficients of efield
-- bfield_dofs : coefficients of bfield
+- `maxwell_solver` : maxwell solver object
+- `degree` : degree of finite element
+- `efield_dofs` : coefficients of efield
+- `bfield_dofs` : coefficients of bfield
 
 """
 function pic_diagnostics_poynting( maxwell_solver, degree, efield_dofs, 
@@ -127,10 +127,11 @@ export TimeHistoryDiagnostics
 
 Context to save and plot diagnostics
 
-- particle_group : Particles data
-- maxwell_solver : Maxwell solver
-- kernel_smoother_0 : Mesh coupling operator
-- kernel_smoother_1 : Mesh coupling operator
+- `particle_group` : Particles data
+- `maxwell_solver` : Maxwell solver
+- `kernel_smoother_0` : Mesh coupling operator
+- `kernel_smoother_1` : Mesh coupling operator
+- `data` : DataFrame containing time history values
 """
 mutable struct TimeHistoryDiagnostics
 
