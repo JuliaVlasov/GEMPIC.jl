@@ -1,3 +1,5 @@
+using DataFrames
+
 export solve_poisson!
 
 """
@@ -7,7 +9,7 @@ Accumulate rho and solve Poisson
  - particle_group : Particles
  - maxwell_solver : Maxwell solver (FEM 1D)
  - kernel_smoother_0 : Particle-Mesh method
- - rho : Charge density
+ - rho : preallocated array for Charge density
  - efield_dofs : Electric field (1D)
 """
 function solve_poisson!( efield_dofs       :: Vector{Float64},
@@ -25,7 +27,6 @@ function solve_poisson!( efield_dofs       :: Vector{Float64},
        add_charge!(rho, kernel_smoother_0, xi, wi)
     end
 
-    # Solve Poisson problem
     compute_e_from_rho!( efield_dofs, maxwell_solver, rho )
 
 end
@@ -118,42 +119,76 @@ function pic_diagnostics_poynting( maxwell_solver, degree, efield_dofs,
 end
 
   
-  
-export time_history_diagnostics
-
+export TimeHistoryDiagnostics
 
 """
-    time_history_diagnostics( particle_group, maxwell_solver,
-       kernel_smoother_0, kernel_smoother_1,
-       time, degree, efield_dofs, bfield_dofs,
-       efield_dofs_n, efield_poisson)
+    TimeHistoryDiagnostics( particle_group, maxwell_solver, 
+                            kernel_smoother_0, kernel_smoother_1 )
 
-Diagnostics for PIC
+Context to save and plot diagnostics
+
 - particle_group : Particles data
 - maxwell_solver : Maxwell solver
 - kernel_smoother_0 : Mesh coupling operator
 - kernel_smoother_1 : Mesh coupling operator
+"""
+mutable struct TimeHistoryDiagnostics
+
+    particle_group    :: ParticleGroup
+    maxwell_solver    :: Maxwell1DFEM
+    kernel_smoother_0 :: ParticleMeshCoupling
+    kernel_smoother_1 :: ParticleMeshCoupling
+    data              :: DataFrame
+
+    function TimeHistoryDiagnostics( particle_group    :: ParticleGroup,
+                                     maxwell_solver    :: Maxwell1DFEM,
+                                     kernel_smoother_0 :: ParticleMeshCoupling,
+                                     kernel_smoother_1 :: ParticleMeshCoupling)
+
+
+        data = DataFrame(Time = Float64[],
+                         KineticEnergy = Float64[],
+                         Momentum1 = Float64[],
+                         Momentum2 = Float64[],
+                         PotentialEnergyE1 = Float64[],
+                         PotentialEnergyE2 = Float64[],
+                         PotentialEnergyB3 = Float64[],
+                         Transfer = Float64[],
+                         VVB = Float64[],
+                         Poynting = Float64[],
+                         ErrorPoisson = Float64[])
+
+
+        new( particle_group, maxwell_solver, kernel_smoother_0,
+             kernel_smoother_1, data )
+    end
+end
+
+export write_step!
+
+"""
+    write_step!( thdiag, time, degree, efield_dofs, bfield_dofs,
+                 efield_dofs_n, efield_poisson)
+
+write diagnostics for PIC
 - time : Time
 - efield_dofs : Electric field
 - efield_dofs_n : Electric field at half step
-- efield_poisson : Electric field from Poisson equation
-- rho : charge density
+- efield_poisson : Electric field compute from Poisson equation
 - bfield_dofs : Magnetic field
 - degree : Spline degree
 """
-function time_history_diagnostics(
-       particle_group, maxwell_solver,
-       kernel_smoother_0, kernel_smoother_1,
-       time, degree, efield_1_dofs, efield_2_dofs, 
-       bfield_dofs, efield_1_dofs_n, efield_2_dofs_n, 
-       efield_poisson)
-
+function write_step!( thdiag :: TimeHistoryDiagnostics,
+                      time, degree, efield_1_dofs, efield_2_dofs, 
+                      bfield_dofs, efield_1_dofs_n, efield_2_dofs_n, 
+                      efield_poisson)
 
     diagnostics = zeros(Float64, 3)
+    potential_energy = zeros(Float64, 3)
 
-    for i_part=1:particle_group.n_particles
-       vi = get_v(   particle_group, i_part)
-       wi = get_mass(particle_group, i_part)
+    for i_part=1:thdiag.particle_group.n_particles
+       vi = get_v(   thdiag.particle_group, i_part)
+       wi = get_mass(thdiag.particle_group, i_part)
        # Kinetic energy
        diagnostics[1] += (vi[1]^2+vi[2]^2)*wi[1]
        # Momentum 1
@@ -162,24 +197,26 @@ function time_history_diagnostics(
        diagnostics[3] += vi[2] * wi[1]
     end
 
-    transfer = pic_diagnostics_transfer( particle_group, kernel_smoother_0, 
-                              kernel_smoother_1, efield_1_dofs, efield_2_dofs )
+    transfer = pic_diagnostics_transfer( thdiag.particle_group, 
+        thdiag.kernel_smoother_0, thdiag.kernel_smoother_1, 
+        efield_1_dofs, efield_2_dofs )
 
-    vvb = pic_diagnostics_vvb( particle_group, kernel_smoother_1, bfield_dofs)
+    vvb = pic_diagnostics_vvb( thdiag.particle_group, 
+        thdiag.kernel_smoother_1, bfield_dofs)
 
-    poynting = pic_diagnostics_poynting( maxwell_solver, degree, 
+    poynting = pic_diagnostics_poynting( thdiag.maxwell_solver, degree, 
                                          efield_2_dofs, bfield_dofs )
   
-    potential_energy = zeros(Float64, 3)
+    potential_energy[1] = inner_product(thdiag.maxwell_solver, 
+        efield_1_dofs, efield_1_dofs_n, degree-1 )
 
-    potential_energy[1] = inner_product(maxwell_solver, efield_1_dofs, 
-                                        efield_1_dofs_n, degree-1 )
+    potential_energy[2] = inner_product( thdiag.maxwell_solver, 
+        efield_2_dofs, efield_2_dofs_n, degree )
 
-    potential_energy[2] = inner_product(maxwell_solver, efield_2_dofs, 
-                                        efield_2_dofs_n, degree )
+    potential_energy[3] = l2norm_squared( thdiag.maxwell_solver, 
+        bfield_dofs, degree-1 )
 
-    potential_energy[3] = l2norm_squared( maxwell_solver, bfield_dofs, degree-1 )
-
+#=
     println( """ 
 time = $time,  
 potential_energy = $potential_energy, 
@@ -189,7 +226,14 @@ diagnostics[2:3] = $(diagnostics[2:3]),
 -transfer+vvb+poynting =  $(-transfer+vvb+poynting),
 maximum(abs.(efield_1_dofs .- efield_poisson))) = $(maximum(abs.(efield_1_dofs .- efield_poisson)))
 """)
-
+=#
+    push!(thdiag.data, ( time,  
+                         diagnostics...,
+                         potential_energy..., 
+                         transfer,
+                         vvb,
+                         poynting,
+                         maximum(abs.(efield_1_dofs .- efield_poisson))))
 end 
 
     
