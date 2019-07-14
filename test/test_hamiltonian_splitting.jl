@@ -2,6 +2,7 @@
 
     import GEMPIC: set_common_weight, set_x, set_v
     import GEMPIC: set_weights, get_charge, add_charge!
+    import GEMPIC: operatorHp1, operatorHp2, operatorHE, operatorHB
 
     # Tolerance for comparison of real numbers: set it here!
     eqv_tol = 1.0e-14
@@ -76,7 +77,7 @@
 
     propagator = HamiltonianSplitting( maxwell_solver,
          kernel_smoother_0, kernel_smoother_1, pg,
-         efield_1, efield_2, bfield, eta_min, eta_max-eta_min)
+         [efield_1, efield_2], bfield, domain )
 
     operatorHp1(propagator, delta_t)
 
