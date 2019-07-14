@@ -219,3 +219,5 @@ using Gadfly
 
 
 Gadfly.plot(thdiag.data, x=:Time, y=:PotentialEnergyE2, Geom.point, Geom.line)
+
+
