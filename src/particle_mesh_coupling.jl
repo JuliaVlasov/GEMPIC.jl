@@ -256,7 +256,8 @@ end
                            marker_charge, qoverm, 
                            bfield_dofs, vi) 
 
-Add current for one particle and update v (according to H_p1 part in Hamiltonian splitting)
+Add current for one particle and update v (according to ``H_{p1}``
+part in Hamiltonian splitting)
 
 - Read out particle position and velocity
 - Compute index_old, the index of the last DoF on the grid the 
