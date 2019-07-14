@@ -1,7 +1,6 @@
 import GEMPIC: set_x, set_v, set_weights, set_common_weight
 import GEMPIC: get_charge, add_charge!
-import GEMPIC: staggering, push_x_accumulate_j!
-import GEMPIC: strang_splitting
+import GEMPIC: push_x_accumulate_j!
 
 @testset "Hamiltonian splitting Boris" begin
 
@@ -53,13 +52,12 @@ import GEMPIC: strang_splitting
     maxwell_solver = Maxwell1DFEM( [eta_min, eta_max], num_cells,
                                     degree_smoother)
     
-    efield_1    = ones(Float64, (kernel_smoother_0.n_dofs))
-    efield_2    = ones(Float64, (kernel_smoother_0.n_dofs))
-    bfield      = ones(Float64, (kernel_smoother_0.n_dofs))
+    efield  = [ ones(Float64, (kernel_smoother_0.n_dofs)),
+                ones(Float64, (kernel_smoother_0.n_dofs))]
 
-    efield_ref  = zeros(Float64, (kernel_smoother_0.n_dofs,2))
-    bfield_ref  = zeros(Float64, (kernel_smoother_0.n_dofs))
-    rho         = zeros(Float64, (kernel_smoother_0.n_dofs))
+    bfield  = ones(Float64, (kernel_smoother_0.n_dofs))
+
+    rho     = zeros(Float64, (kernel_smoother_0.n_dofs))
 
     for i_part = 1:n_particles
 
@@ -71,15 +69,15 @@ import GEMPIC: strang_splitting
 
     end
 
-    compute_e_from_rho!(efield_1, maxwell_solver, rho)
+    compute_e_from_rho!(efield[1], maxwell_solver, rho)
 
     propagator = HamiltonianSplittingBoris( maxwell_solver,
          kernel_smoother_0, kernel_smoother_1, pg,
-         efield_1, efield_2, bfield, eta_min, eta_max-eta_min)
+         efield, bfield, domain)
 
-    staggering( propagator, 0.5*delta_t )
+    staggering!( propagator, 0.5*delta_t )
 
-    strang_splitting( propagator, delta_t, 1 )
+    strang_splitting!( propagator, delta_t, 1 )
 
     # Compare to reference
     # Particle information after operatorV application 
@@ -161,7 +159,7 @@ import GEMPIC: strang_splitting
                             1.0265970800925086,   
                             0.99441071503466349 ], num_cells, 2)
 
-    @test maximum(abs.(efield_1 .- efield_ref[:,1])) ≈ 0.0 atol=1e-15
-    @test maximum(abs.(efield_2 .- efield_ref[:,2])) ≈ 0.0 atol=1e-15
+    @test maximum(abs.(efield[1] .- efield_ref[:,1])) ≈ 0.0 atol=1e-15
+    @test maximum(abs.(efield[2] .- efield_ref[:,2])) ≈ 0.0 atol=1e-15
   
 end
