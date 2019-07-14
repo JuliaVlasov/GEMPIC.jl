@@ -15,15 +15,6 @@
 #     name: julia-1.1
 # ---
 
-using ProgressMeter, Plots
-
-include("../src/mesh.jl")
-include("../src/distributions.jl")
-include("../src/low_level_bsplines.jl")
-include("../src/splinepp.jl")
-include("../src/maxwell_1d_fem.jl")
-
-
 # # Vlasov–Maxwell in 1D2V
 #
 # Starting from the Vlasov equation for a particle with charge `q`, and mass `m` given in
@@ -57,6 +48,19 @@ include("../src/maxwell_1d_fem.jl")
 # $$
 # Note that $\nabla \cdot B = 0$ is manifest.
 
+using ProgressMeter, Plots
+
+include("../src/mesh.jl")
+include("../src/distributions.jl")
+include("../src/low_level_bsplines.jl")
+include("../src/splinepp.jl")
+include("../src/maxwell_1d_fem.jl")
+include("../src/particle_group.jl")
+include("../src/particle_mesh_coupling.jl")
+include("../src/hamiltonian_splitting.jl")
+include("../src/particle_sampling.jl")
+include("../src/diagnostics.jl")
+
 # # Weibel instability
 #
 # We study a reduced 1d2v model with a perturbation along $x_1$, a magnetic field along $x_3$ and electric fields along the $x_1$ and $x_2$ directions. Moreover, we assume that the distribution function is independent of $v_3$. The initial distribution and fields are of the form
@@ -82,8 +86,7 @@ periodic boundary conditions, Weibel instability.
 FEM with splines, degree 3 for B and 2 for E
 """
 
-Δt    = 0.05
-steps = 300
+
 β     = 0.0001
 
 k  = 1.25
@@ -120,29 +123,21 @@ end
 
 contourf(v1, v2, f)
 
-include("../src/particle_group.jl")
-
 ?ParticleGroup
 
- # Initialize the particles   (mass and charge set to 1.0)
+ # Initialize the particles   (mass and charge set to 1.0 with one weight)
 mass, charge = 1.0, 1.0
 particle_group = ParticleGroup{1,2}( n_particles, mass, charge, 1)   
-
-include("../src/particle_sampling.jl")
 
 ?ParticleSampler
 
 sampler = ParticleSampler{1,2}( sampling_case, symmetric, n_particles)
 
-?sample
+?sample!
 
 sample!(  particle_group, sampler, df, mesh)
 
 ?get_x
-
-get_x(particle_group, 1)
-
-get_v(particle_group, 2)
 
 xp = Vector{Float64}[]
 for i in 1:n_particles
@@ -154,8 +149,6 @@ end
 p = vcat(xp[1:100:end]'...);
 
 scatter(p[:,2], p[:,3], markersize=1)
-
-include("../src/particle_mesh_coupling.jl")
 
 ?ParticleMeshCoupling
 
@@ -170,17 +163,12 @@ end
 xg = LinRange(xmin, xmax, nx)
 plot( xg, rho )
 
-include("../src/maxwell_1d_fem.jl")
-include("../src/diagnostics.jl")
-
 efield_poisson = zeros(Float64, nx)
 # Init!ialize the field solver
 maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
 # efield by Poisson
 solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
 plot( xg, efield_poisson )       
-
-include("../src/hamiltonian_splitting.jl")
 
 # +
 # Initialize the arrays for the spline coefficients of the fields
@@ -196,18 +184,23 @@ propagator = HamiltonianSplitting( maxwell_solver,
                                    efield2_dofs, 
                                    bfield_dofs,
                                    domain[1], 
-                                   domain[3])
+                                   domain[3]);
 
-
+efield_1_dofs_n = propagator.e_dofs_1
+efield_2_dofs_n = propagator.e_dofs_2
 # -
 # bfield = beta*cos(kx): Use b = M{-1}(N_i,beta*cos(kx))
 beta_cos_k(x) = β * cos(2π * x / domain[3]) 
 l2projection!( bfield_dofs, maxwell_solver, beta_cos_k, spline_degree-1)
 plot( xg, bfield_dofs ) 
-# + {}
-energy = Float64[]
-potential_energy = zeros(Float64, 3)
-time = Float64[]
+?TimeHistoryDiagnostics
+
+thdiag = TimeHistoryDiagnostics( particle_group, maxwell_solver, 
+                        kernel_smoother0, kernel_smoother1 );
+
+# +
+steps, Δt = 500, 0.05
+
 @showprogress 1 for j = 1:steps # loop over time
 
     # Strang splitting
@@ -217,28 +210,22 @@ time = Float64[]
     solve_poisson!( efield_poisson, particle_group, 
                     kernel_smoother0, maxwell_solver, rho)
     
-    #kinetic_energy = 0.0
-    #for i_part=1:particle_group.n_particles
-    #   vi = get_v(   particle_group, i_part)
-    #   wi = get_mass(particle_group, i_part)
-    #   kinetic_energy += (vi[1]^2+vi[2]^2)*wi[1]
-    #end
-#
-    #potential_energy[1] = inner_product(maxwell_solver, efield1_dofs, 
-    #                                    propagator.e_dofs_1, spline_degree-1 )
-    #potential_energy[2] = inner_product(maxwell_solver, efield2_dofs, 
-     #                                   propagator.e_dofs_2, spline_degree )
-    #potential_energy[3] = l2norm_squared( maxwell_solver, bfield_dofs, spline_degree-1 )
-
-    push!(time, j*Δt)
-    push!(energy, norm(efield2_dofs))
-    #push!(energy, kinetic_energy + sum(potential_energy))
-
+    write_step!(thdiag, j * Δt, spline_degree, 
+                    efield1_dofs, efield2_dofs, bfield_dofs,
+                    efield_1_dofs_n, efield_2_dofs_n, efield_poisson)
 
 end
 
 # -
-plot(time, energy)
+first(thdiag.data, 10)
+
+using Gadfly
+
+
+Gadfly.plot(thdiag.data, x=:Time, y=:PotentialEnergyE2, Geom.point, Geom.line)
+
+
+
 
 
 
