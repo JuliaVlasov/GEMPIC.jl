@@ -172,22 +172,18 @@ plot( xg, efield_poisson )
 
 # +
 # Initialize the arrays for the spline coefficients of the fields
-efield1_dofs = zeros(Float64, nx)
-efield2_dofs = zeros(Float64, nx)
-bfield_dofs  = zeros(Float64, nx)
+efield_dofs = [zeros(Float64, nx), zeros(Float64, nx)]
+bfield_dofs = zeros(Float64, nx)
     
 propagator = HamiltonianSplitting( maxwell_solver,
                                    kernel_smoother0, 
                                    kernel_smoother1, 
                                    particle_group,
-                                   efield1_dofs, 
-                                   efield2_dofs, 
+                                   efield_dofs,
                                    bfield_dofs,
-                                   domain[1], 
-                                   domain[3]);
+                                   domain);
 
-efield_1_dofs_n = propagator.e_dofs_1
-efield_2_dofs_n = propagator.e_dofs_2
+efield_dofs_n = propagator.e_dofs
 # -
 # bfield = beta*cos(kx): Use b = M{-1}(N_i,beta*cos(kx))
 beta_cos_k(x) = β * cos(2π * x / domain[3]) 
@@ -204,15 +200,15 @@ steps, Δt = 500, 0.05
 @showprogress 1 for j = 1:steps # loop over time
 
     # Strang splitting
-    strang_splitting(propagator, Δt, 1)
+    strang_splitting!(propagator, Δt, 1)
 
     # Diagnostics
     solve_poisson!( efield_poisson, particle_group, 
                     kernel_smoother0, maxwell_solver, rho)
     
     write_step!(thdiag, j * Δt, spline_degree, 
-                    efield1_dofs, efield2_dofs, bfield_dofs,
-                    efield_1_dofs_n, efield_2_dofs_n, efield_poisson)
+                    efield_dofs,  bfield_dofs,
+                    efield_dofs_n, efield_poisson)
 
 end
 
@@ -223,9 +219,3 @@ using Gadfly
 
 
 Gadfly.plot(thdiag.data, x=:Time, y=:PotentialEnergyE2, Geom.point, Geom.line)
-
-
-
-
-
-
