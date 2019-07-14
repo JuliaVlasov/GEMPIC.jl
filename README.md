@@ -1,3 +1,4 @@
+<!-- #region -->
 # GEMPIC.jl
 
 Geometric ElectroMagnetic Particle-In-Cell Methods
@@ -14,6 +15,22 @@ Geometric ElectroMagnetic Particle-In-Cell Methods
 
 A Julia implementation of the [GEMPIC](https://arxiv.org/abs/1609.03053)
 
+## Installation
+
+In a Julia session switch to `pkg>` mode to add `GEMPIC`:
+
+```julia
+julia>] # switch to pkg> mode
+pkg> add https://github.com/juliavlasov/GEMPIC.jl
+```
+
+When finished, make sure that you're back to the Julian prompt (`julia>`)
+and bring `GEMPIC` into scope:
+
+```julia
+julia> using GEMPIC
+```
+
 This is a translation from a Fortran code written by :
 
 - Katharina Kormann  
@@ -23,3 +40,8 @@ This is a translation from a Fortran code written by :
 from [Max-Planck-Institut fur Plasmaphysik - Garching (Germany)](https://www.ipp.mpg.de/4098496/kgkm)
 
 **NOTE: This package is still very much under development.**
+<!-- #endregion -->
+
+```python
+
+```
