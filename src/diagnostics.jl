@@ -46,7 +46,7 @@ end
 """
 function pic_diagnostics_transfer( particle_group, 
                                    kernel_smoother_0, kernel_smoother_1, 
-                                   efield_1_dofs, efield_2_dofs )
+                                   efield_dofs )
 
     transfer = 0.0
     for i_part = 1:particle_group.n_particles
@@ -55,8 +55,8 @@ function pic_diagnostics_transfer( particle_group,
        wi = get_charge(particle_group, i_part )
        vi = get_v( particle_group, i_part )
 
-       efield_1 = evaluate( kernel_smoother_1, xi[1], efield_1_dofs )
-       efield_2 = evaluate( kernel_smoother_0, xi[1], efield_2_dofs )
+       efield_1 = evaluate( kernel_smoother_1, xi[1], efield_dofs[1] )
+       efield_2 = evaluate( kernel_smoother_0, xi[1], efield_dofs[2] )
 
        transfer += (vi[1] * efield_1 + vi[2] * efield_2) * wi
        
@@ -180,8 +180,8 @@ write diagnostics for PIC
 - degree : Spline degree
 """
 function write_step!( thdiag :: TimeHistoryDiagnostics,
-                      time, degree, efield_1_dofs, efield_2_dofs, 
-                      bfield_dofs, efield_1_dofs_n, efield_2_dofs_n, 
+                      time, degree, efield_dofs,
+                      bfield_dofs, efield_dofs_n, 
                       efield_poisson)
 
     diagnostics = zeros(Float64, 3)
@@ -200,19 +200,19 @@ function write_step!( thdiag :: TimeHistoryDiagnostics,
 
     transfer = pic_diagnostics_transfer( thdiag.particle_group, 
         thdiag.kernel_smoother_0, thdiag.kernel_smoother_1, 
-        efield_1_dofs, efield_2_dofs )
+        efield_dofs )
 
     vvb = pic_diagnostics_vvb( thdiag.particle_group, 
         thdiag.kernel_smoother_1, bfield_dofs)
 
     poynting = pic_diagnostics_poynting( thdiag.maxwell_solver, degree, 
-                                         efield_2_dofs, bfield_dofs )
+                                         efield_dofs[2], bfield_dofs )
   
     potential_energy[1] = inner_product(thdiag.maxwell_solver, 
-        efield_1_dofs, efield_1_dofs_n, degree-1 )
+        efield_dofs[1], efield_dofs_n[1], degree-1 )
 
     potential_energy[2] = inner_product( thdiag.maxwell_solver, 
-        efield_2_dofs, efield_2_dofs_n, degree )
+        efield_dofs[2], efield_dofs_n[2], degree )
 
     potential_energy[3] = l2norm_squared( thdiag.maxwell_solver, 
         bfield_dofs, degree-1 )
@@ -234,7 +234,7 @@ maximum(abs.(efield_1_dofs .- efield_poisson))) = $(maximum(abs.(efield_1_dofs .
                          transfer,
                          vvb,
                          poynting,
-                         maximum(abs.(efield_1_dofs .- efield_poisson))))
+                         maximum(abs.(efield_dofs[1] .- efield_poisson))))
 end 
 
     
