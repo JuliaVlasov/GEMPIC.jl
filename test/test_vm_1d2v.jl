@@ -1,6 +1,5 @@
 import GEMPIC: get_charge, get_x, add_charge!, get_mass
 import GEMPIC: inner_product, evaluate
-import GEMPIC: strang_splitting
 
 """
 Simulation of 1d2v Vlasov-Maxwell with simple PIC method, 
@@ -57,31 +56,27 @@ FEM with splines, degree 3 for B and 2 for E
                  spline_degree, :galerkin)
     
     # Initialize the arrays for the spline coefficients of the fields
-    efield1_dofs = zeros(Float64, nx)
-    efield2_dofs = zeros(Float64, nx)
-    bfield_dofs  = zeros(Float64, nx)
+    efield_dofs = [zeros(Float64, nx), zeros(Float64, nx)]
+    bfield_dofs = zeros(Float64, nx)
 
     # Set the initial fields
     rho = zeros(Float64, nx)
     efield_poisson = zeros(Float64, nx)
     
     propagator = HamiltonianSplitting( maxwell_solver,
-                                        kernel_smoother0, 
-                                        kernel_smoother1, 
-                                        particle_group,
-                                        efield1_dofs, 
-                                        efield2_dofs, 
-                                        bfield_dofs,
-                                        domain[1], 
-                                        domain[3]    )
+                                       kernel_smoother0, 
+                                       kernel_smoother1, 
+                                       particle_group,
+                                       efield_dofs, 
+                                       bfield_dofs,
+                                       domain )
 
-    efield_1_dofs_n = propagator.e_dofs_1
-    efield_2_dofs_n = propagator.e_dofs_2
+    efield_dofs_n = propagator.e_dofs
 
     sample!( particle_group, sampler, df, mesh )
 
     # efield 1 by Poisson, rho is computed inside the function
-    solve_poisson!( efield1_dofs, particle_group, kernel_smoother0, 
+    solve_poisson!( efield_dofs[1], particle_group, kernel_smoother0, 
                     maxwell_solver, rho )
 
     # bfield = beta*cos(kx): Use b = M{-1}(N_i,beta*cos(kx))
@@ -96,23 +91,21 @@ FEM with splines, degree 3 for B and 2 for E
                                      kernel_smoother0, kernel_smoother1 )
 
     write_step!( thdiag, 0.0, degree_smoother, 
-                 efield1_dofs, efield2_dofs, bfield_dofs,
-                 efield_1_dofs_n, efield_2_dofs_n, efield_poisson)
+                 efield_dofs, bfield_dofs, efield_dofs_n, efield_poisson)
 
     for j = 1:n_time_steps # loop over time
 
        # Strang splitting
-       strang_splitting(propagator, delta_t, 1)
+       strang_splitting!(propagator, delta_t, 1)
 
        # Diagnostics
        solve_poisson!( efield_poisson, particle_group, 
                        kernel_smoother0, maxwell_solver, rho)
 
        write_step!( thdiag, j * delta_t, degree_smoother, 
-                    efield1_dofs, efield2_dofs, bfield_dofs,
-                    efield_1_dofs_n, efield_2_dofs_n, efield_poisson)
+                    efield_dofs, bfield_dofs, efield_dofs, efield_poisson)
 
-       @test maximum(abs.(efield1_dofs .- efield_poisson)) < 1e-3
+       @test maximum(abs.(efield_dofs[1] .- efield_poisson)) < 1e-3
 
     end
 
