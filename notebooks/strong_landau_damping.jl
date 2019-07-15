@@ -41,8 +41,9 @@ include("../src/diagnostics.jl")
 #
 # The physical parameters 
 
+# +
 σ, μ = 1.0, 0.0
-k, α = 0.5, 0.5
+k, α = 0.5, 1.0
 xmin, xmax = 0, 2π/k
 domain = [xmin, xmax, xmax - xmin]
 ∆t = 0.05
@@ -51,37 +52,54 @@ n_particles = 100000
 mesh = Mesh( xmin, xmax, nx)
 spline_degree = 3
 
-# +
 df = CosSumGaussian{1,2}([[k]], [α], [[σ,σ]], [[μ,μ]] )
+
 
 mass, charge = 1.0, 1.0
 particle_group = ParticleGroup{1,2}( n_particles, mass, charge, 1)   
 sampler = ParticleSampler{1,2}( :sobol, true, n_particles)
 
-sample!(  particle_group, sampler, df, mesh)
+sample!(particle_group, sampler, df, mesh)
+
+xp = Vector{Float64}[] # particles data
+for i in 1:n_particles
+    push!(xp, vcat(get_x(particle_group,i), 
+            get_v(particle_group,i),
+            get_weights(particle_group,i)))
+end
+
+# +
+p = vcat(xp[1:end]'...);
+
+scatter(p[:,2], p[:,3], markersize=1)
+
+p = histogram([ p[:,1],p[:,2]], normalize=true, bins = 100,  layout=(2,1), lab = "draws")
+    
+# -
 
 kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-1, :galerkin)    
 kernel_smoother0 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree, :galerkin)
 rho = zeros(Float64, nx)
-for i_part = 1:n_particles
-   xi = get_x(particle_group, i_part)
-   wi = get_charge( particle_group, i_part)
-   add_charge!(rho, kernel_smoother0, xi, wi)
-end
+ex = zeros(Float64, nx)
+maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
+solve_poisson!( ex, particle_group, 
+                kernel_smoother0, maxwell_solver, rho)
 xg = LinRange(xmin, xmax, nx)
-plot( xg, rho )
+sval = eval_uniform_periodic_spline_curve(spline_degree-1, rho)
+plot( xg, sval )
 
-# + {"endofcell": "--"}
 efield_poisson = zeros(Float64, nx)
 # Init!ialize the field solver
 maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
 # efield by Poisson
 solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
-plot( xg, efield_poisson )       
+sval = eval_uniform_periodic_spline_curve(spline_degree-1, efield_poisson)
+plot( xg, sval )       
 
+# +
 # # +
 # Initialize the arrays for the spline coefficients of the fields
-efield_dofs = [zeros(Float64, nx), zeros(Float64, nx)]
+efield_dofs = [efield_poisson, zeros(Float64, nx)]
 bfield_dofs = zeros(Float64, nx)
     
 propagator = HamiltonianSplitting( maxwell_solver,
@@ -93,17 +111,10 @@ propagator = HamiltonianSplitting( maxwell_solver,
                                    domain);
 
 efield_dofs_n = propagator.e_dofs
-# -
-# bfield = beta*cos(kx): Use b = M{-1}(N_i,beta*cos(kx))
-beta_cos_k(x) = β * cos(2π * x / domain[3]) 
-l2projection!( bfield_dofs, maxwell_solver, beta_cos_k, spline_degree-1)
-plot( xg, bfield_dofs ) 
-?TimeHistoryDiagnostics
 
 thdiag = TimeHistoryDiagnostics( particle_group, maxwell_solver, 
                         kernel_smoother0, kernel_smoother1 );
 
-# # +
 steps, Δt = 500, 0.05
 
 @showprogress 1 for j = 1:steps # loop over time
@@ -121,13 +132,13 @@ steps, Δt = 500, 0.05
 
 end
 
-# -
+# +
 first(thdiag.data, 10)
 
 using Gadfly
 
 
 Gadfly.plot(thdiag.data, x=:Time, y=:PotentialEnergyE2, Geom.point, Geom.line)
-# --
+# -
 
 
