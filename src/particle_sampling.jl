@@ -199,7 +199,7 @@ function sample_sym( ps, pg, df, mesh )
             x[1:ndx] .= mesh.xmin .+ mesh.Lx .* rdn[1:ndx]
             
             # Set weight according to value of perturbation
-            wi = eval_x_density(df, x[1:ndx] * prod(mesh.Lx))
+            wi = eval_x_density(df, x[1:ndx]) * prod(mesh.Lx)
             
             # Maxwellian distribution of the temperature
 
