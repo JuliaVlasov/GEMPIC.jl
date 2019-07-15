@@ -16,6 +16,7 @@ module GEMPIC
 
     # Particle sampling
     include("particle_sampling.jl")
+    include("landau_damping.jl")
 
     # Splittings
 
