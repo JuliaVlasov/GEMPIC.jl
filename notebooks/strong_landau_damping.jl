@@ -131,14 +131,8 @@ steps, Δt = 500, 0.05
                     efield_dofs_n, efield_poisson)
 
 end
-
-# +
-first(thdiag.data, 10)
-
-using Gadfly
-
-
-Gadfly.plot(thdiag.data, x=:Time, y=:PotentialEnergyE2, Geom.point, Geom.line)
 # -
+
+plot(thdiag.data[:Time], log.(thdiag.data[:PotentialEnergyE1]))
 
 
