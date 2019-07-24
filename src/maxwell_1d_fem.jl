@@ -11,19 +11,19 @@ export Maxwell1DFEM
 
 1D Maxwell spline finite element solver on a periodic grid
 
-- Lx                   : length of Periodic domain
-- delta_x              : cell size
-- n_dofs               : number of cells (and grid points)
-- s_deg_0              : spline degree 0-forms
-- s_deg_1              : spline degree 1-forms
-- mass_0               : coefficients of 0-form mass matrix
-- mass_1               : coefficients of 1-form mass matrix
-- eig_mass0            : eigenvalues of circulant 0-form mass matrix
-- eig_mass1            : eigenvalues of circulant 1-form mass matrix
-- eig_weak_ampere      : eigenvalues of circulant update matrix for Ampere
-- eig_weak_poisson     : eigenvalues of circulant update matrix for Poisson
-- plan_fw              : fft plan (forward)
-- plan_bw              : fft plan (backward)
+- `Lx`                   : length of Periodic domain
+- `delta_x`              : cell size
+- `n_dofs`               : number of cells (and grid points)
+- `s_deg_0`              : spline degree 0-forms
+- `s_deg_1              : spline degree 1-forms
+- `mass_0`               : coefficients of 0-form mass matrix
+- `mass_1`               : coefficients of 1-form mass matrix
+- `eig_mass0`            : eigenvalues of circulant 0-form mass matrix
+- `eig_mass1`            : eigenvalues of circulant 1-form mass matrix
+- `eig_weak_ampere`      : eigenvalues of circulant update matrix for Ampere
+- `eig_weak_poisson`     : eigenvalues of circulant update matrix for Poisson
+- `plan_fw`              : fft plan (forward)
+- `plan_bw`              : fft plan (backward)
 
 """
 mutable struct Maxwell1DFEM <: AbstractMaxwellSolver
@@ -252,7 +252,7 @@ export compute_e_from_j!
 """
     compute_e_from_j!(e, maxwell_solver, current, component)
 
-Compute E_i from j_i integrated over the time interval using weak Ampere formulation
+Compute ``E_i`` from ``j_i`` integrated over the time interval using weak Ampere formulation
 """
 function compute_e_from_j!(e         :: Vector{Float64}, 
                            self      :: Maxwell1DFEM, 
@@ -401,10 +401,10 @@ end
 """
     inner_product( maxwell_solver, coefs1_dofs, coefs2_dofs, degree )
 
--  maxwell_solver : Maxwell solver object
--  coefs1_dofs : Coefficient for each DoF
--  coefs2_dofs : Coefficient for each DoF
--  degree : Specify the degree of the basis functions
+-  `maxwell_solver` : Maxwell solver object
+-  `coefs1_dofs` : Coefficient for each DoF
+-  `coefs2_dofs` : Coefficient for each DoF
+-  `degree : Specify the degree of the basis functions
 
 return squared L2 norm
 
