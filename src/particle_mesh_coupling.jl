@@ -10,6 +10,7 @@ Spline with index i starts at point i
 
 - `delta_x` : Value of grid spacing along both directions.
 - `domain` : Definition of the domain: domain(1:2) = x1_min, x1_max
+- `n_grid` : Array containing number ofpoints along each direction
 - `no_particles` : Number of particles of underlying PIC method 
 - `spline_degree` : Degree of smoothing kernel spline
 - `n_span` : Number of intervals where spline non zero (spline_degree + 1)
@@ -42,7 +43,7 @@ mutable struct ParticleMeshCoupling
     quad_w          :: Vector{Float64}
     spline_pp       :: SplinePP
 
-    function ParticleMeshCoupling( domain         :: Vector{Float64}, 
+    function ParticleMeshCoupling( domain         :: AbstractArray, 
                                    n_grid         :: Vector{Int64}, 
                                    no_particles   :: Int, 
                                    spline_degree  :: Int, 
