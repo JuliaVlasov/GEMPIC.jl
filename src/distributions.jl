@@ -67,16 +67,18 @@ Data type for parameters of initial distribution
 
 ## Parameters
 
-- `k`           : values of the wave numbers (one array for each cosines)
-- `α`           : strength of perturbations
-- `σ`           : variance of the Gaussian (one velocity vector for each gaussian).
-- `μ`           : mean value of the Gaussian (one velocity vector for each gaussian).
-- `δ`           : portion of each Gaussian 
+- `k` : values of the wave numbers (one array for each cosines)
+- `α` : strength of perturbations
+- `σ` : variance of the Gaussian (one velocity vector for each gaussian).
+- `μ` : mean value of the Gaussian (one velocity vector for each gaussian).
+- `δ` : portion of each Gaussian 
 
 # Example
 
 ```math
-f(x,v_1,v_2)=\\frac{1}{2\\pi\\sigma_1\\sigma_2} \\exp \\Big( - \\frac{1}{2} \\big( \\frac{v_1^2}{\\sigma_1^2} + \\frac{v_2^2}{\\sigma_2^2} \\big) \\Big) ( 1 + \\alpha \\cos(kx)),
+f(x,v_1,v_2)=\\frac{1}{2\\pi\\sigma_1\\sigma_2} \\exp \\Big( - \\frac{1}{2}
+\\big( \\frac{v_1^2}{\\sigma_1^2} + \\frac{v_2^2}{\\sigma_2^2} \\big) 
+\\Big) ( 1 + \\alpha \\cos(kx)),
 ```
 
 ```julia
