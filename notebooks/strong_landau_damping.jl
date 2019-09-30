@@ -7,11 +7,11 @@
 #       extension: .jl
 #       format_name: light
 #       format_version: '1.4'
-#       jupytext_version: 1.1.7
+#       jupytext_version: 1.2.2
 #   kernelspec:
-#     display_name: Julia 1.1.1
+#     display_name: Julia 1.2.0
 #     language: julia
-#     name: julia-1.1
+#     name: julia-1.2
 # ---
 
 # +
@@ -67,15 +67,18 @@ for i in 1:n_particles
             get_v(particle_group,i),
             get_weights(particle_group,i)))
 end
+# -
 
-# +
 p = vcat(xp[1:end]'...);
 
-scatter(p[:,2], p[:,3], markersize=1)
+scatter( p[1:100:end,1], p[1:100:end,3])
 
-p = histogram([ p[:,1],p[:,2]], normalize=true, bins = 100,  layout=(2,1), lab = "draws")
-    
+histogram(p[:,2], normalize=true, bins = 100)
+
+# +
+#p = histogram([ p[:,1],p[:,2]], normalize=true, bins = 100,  layout=(2,1))
 # -
+
 
 kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-1, :galerkin)    
 kernel_smoother0 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree, :galerkin)
