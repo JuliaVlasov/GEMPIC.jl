@@ -8,15 +8,28 @@
 #       extension: .jl
 #       format_name: light
 #       format_version: '1.4'
-#       jupytext_version: 1.1.7
+#       jupytext_version: 1.2.4
 #   kernelspec:
-#     display_name: Julia 1.1.0
+#     display_name: Julia 1.2.0
 #     language: julia
-#     name: julia-1.1
+#     name: julia-1.2
 # ---
 
+include("../src/mesh.jl")
+include("../src/low_level_bsplines.jl")
+include("../src/splinepp.jl")
+include("../src/distributions.jl")
+include("../src/maxwell_1d_fem.jl")
+include("../src/particle_group.jl")
+include("../src/particle_mesh_coupling.jl")
+include("../src/particle_sampling.jl")
+include("../src/landau_damping.jl")
+include("../src/hamiltonian_splitting.jl")
+include("../src/hamiltonian_splitting_boris.jl")
+include("../src/diagnostics.jl")
+
 # +
-using GEMPIC, Test
+using Test
 
 
 function test_sampling( sampling_type :: Symbol, 
@@ -79,7 +92,7 @@ params = ( dims        = (1,2),
            δ           = 0.0
 )
 
-df1 = CosSumOneGaussian(params...)
+df1 = CosSumGaussian(params...)
 
 mean_ref  = [Lx*0.5+xmin, 0.0, 0.0]
 sigma_ref = [Lx^2/12.0,   df1.v_thermal[1,1]^2, df1.v_thermal[2,1]^2 ]
@@ -125,7 +138,7 @@ params = (
     δ           = 0.7
 )
 
-df2 = CosSumOneGaussian(params...)
+df2 = CosSumGaussian(params...)
 
 mean_ref = [Lx*0.5+xmin, 0.3, 0.3]
 sigma_ref[1] = Lx^2/12.0
