@@ -1,6 +1,7 @@
-using Test
+using Test 
 using GEMPIC
 
+include("test_particle_mesh_coupling_spline_2d.jl")
 include("test_vm_1d2v.jl")
 include("test_mesh.jl")
 include("test_spline_pp.jl")
