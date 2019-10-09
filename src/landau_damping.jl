@@ -1,5 +1,6 @@
 using Sobol
 
+export LandauDamping, sample!
 
 struct LandauDamping 
 
