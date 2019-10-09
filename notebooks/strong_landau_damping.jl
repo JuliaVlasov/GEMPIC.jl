@@ -7,11 +7,11 @@
 #       extension: .jl
 #       format_name: light
 #       format_version: '1.4'
-#       jupytext_version: 1.1.7
+#       jupytext_version: 1.2.4
 #   kernelspec:
-#     display_name: Julia 1.1.1
+#     display_name: Julia 1.2.0
 #     language: julia
-#     name: julia-1.1
+#     name: julia-1.2
 # ---
 
 # +
@@ -43,8 +43,8 @@ include("../src/diagnostics.jl")
 
 # +
 σ, μ = 1.0, 0.0
-k, α = 0.5, 1.0
-xmin, xmax = 0, 2π/k
+kx, α = 0.5, 0.5
+xmin, xmax = 0, 2π/kx
 domain = [xmin, xmax, xmax - xmin]
 ∆t = 0.05
 nx = 32 
@@ -52,7 +52,7 @@ n_particles = 100000
 mesh = Mesh( xmin, xmax, nx)
 spline_degree = 3
 
-df = CosSumGaussian{1,2}([[k]], [α], [[σ,σ]], [[μ,μ]] )
+df = CosSumGaussian{1,2}([[kx]], [α], [[σ,σ]], [[μ,μ]] )
 
 
 mass, charge = 1.0, 1.0
@@ -67,15 +67,18 @@ for i in 1:n_particles
             get_v(particle_group,i),
             get_weights(particle_group,i)))
 end
-
-# +
-p = vcat(xp[1:end]'...);
-
-scatter(p[:,2], p[:,3], markersize=1)
-
-p = histogram([ p[:,1],p[:,2]], normalize=true, bins = 100,  layout=(2,1), lab = "draws")
-    
 # -
+
+xp = vcat([get_x(particle_group, i) for i in 1:n_particles]...)
+vp = vcat([get_v(particle_group, i) for i in 1:n_particles]'...)
+wp = vcat([get_weights(particle_group, i) for i in 1:n_particles]'...)
+p = plot(layout=(3,1))
+histogram!(p[1,1], xp, weights=wp, normalize=true, bins = 100, lab = "")
+plot!(p[1,1], x-> (1+α*cos(kx*x))/(2π/kx), 0., 2π/kx, lab="")
+histogram!(p[2,1], vp[:,1], weights=wp, normalize=true, bins = 100, lab = "")
+plot!(p[2,1], v-> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
+histogram!(p[3,1], vp[:,2], weights=wp, normalize=true, bins = 100, lab = "")
+plot!(p[3,1], v-> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
 
 kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-1, :galerkin)    
 kernel_smoother0 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree, :galerkin)
