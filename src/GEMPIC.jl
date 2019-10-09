@@ -1,11 +1,12 @@
 module GEMPIC
 
+    # Utilities
     include("mesh.jl")
     include("low_level_bsplines.jl")
     include("splinepp.jl")
     include("distributions.jl")
 
-
+    # Maxwell solvers
     include("maxwell_1d_fem.jl")
 
     # Particle Group
@@ -19,14 +20,10 @@ module GEMPIC
     include("landau_damping.jl")
 
     # Splittings
-
-    abstract type AbstractSplitting end
-
     include("hamiltonian_splitting.jl")
     include("hamiltonian_splitting_boris.jl")
 
     # Diagnostics
-
     include("diagnostics.jl")
 
 end 
