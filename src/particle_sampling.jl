@@ -122,7 +122,7 @@ function sample_all( ps, pg, df :: AbstractCosGaussian, mesh )
        end
 
        # Set weight according to value of perturbation
-       wi = eval_x_density(df, x) .* prod(mesh.Lx)
+       w  = eval_x_density(df, x) .* prod(mesh.Lx)
 
        v .= rand!(d, v)
 
@@ -138,7 +138,7 @@ function sample_all( ps, pg, df :: AbstractCosGaussian, mesh )
        set_x(pg, i_part, x)
        set_v(pg, i_part, v)
        # Set weights.
-       set_weights(pg, i_part, wi)
+       set_weights(pg, i_part, w)
 
     end
        

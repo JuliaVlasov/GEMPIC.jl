@@ -7,14 +7,14 @@
 #       extension: .jl
 #       format_name: light
 #       format_version: '1.4'
-#       jupytext_version: 1.2.4
+#       jupytext_version: 1.2.2
 #   kernelspec:
-#     display_name: Julia 1.1.1
+#     display_name: Julia 1.2.0
 #     language: julia
-#     name: julia-1.1
+#     name: julia-1.2
 # ---
 
-using Plots, BenchmarkTools, Sobol, KahanSummation
+using Plots, BenchmarkTools, Sobol
 
 s = SobolSeq(2)
 
@@ -121,7 +121,7 @@ end
 xp, vp = landau(100000);
 # -
 
-p = histogram([xp,vp], normalize=true, bins = 100,  layout=(2,1), lab = "draws")
+p = histogram([xp,vp], normalize=true, bins = 100,  layout=(2,1), lab = [:x,:v])
 plot!(p[1,1], x-> (1+0.1*cos(0.5*x))/4π, 0., 4π)
 plot!(p[2,1], x-> (exp(-x^2/2))/sqrt(2π), -6, 6)
 
