@@ -1,87 +1,59 @@
-import Sobol
+using Sobol
 
 
-"""
-```math
-    f(x) = \\frac{1]{2\\pi} (1 + \\alpha cos(k x)) 
-    \\exp \\big( - \\frac{ (v - \\mu)^2 }{ \\sigma^2} \\big)
-```
-"""
-struct LandauDamping
+struct LandauDamping 
 
-    α :: Float64
-    k :: Float64
-    σ :: Float64
+    alpha :: Float64
+    kx    :: Float64
 
 end
 
 """
-Input r is a random number ``\\in [0,1]``
+    sample!( LandauDamping(α, kx), pg)
+
+Sampling from a probability distribution to initialize
+a Landau damping
 
 ```math
-    f(x) = 1 + \\alpha cos(k x)
+f_0(x,v,t) = \\frac{n_0}{2π v_{th}^2} ( 1 + \\alpha cos(k_x x))
+ exp( - \\frac{v_x^2+v_y^2}{2 v_{th}^2})
 ```
-on some domain ``[0, 2\\pi/k]``
-
-Solve the equation ``P(x)-r=0`` with Newton’s method
-
+The newton function solves the equation ``P(x)-r=0`` with Newton’s method
 ```math
     x^{n+1} = x^n – (P(x)-(2\\pi r / k)/f(x) 
 ```
-
 with 
 ```math
-P(x) = \\int_0^x (1 + \\alpha cos(k y)) dy
+P(x) = \\int_0^x (1 + \\alpha cos(k_x y)) dy = x + \\frac{\\alpha}{k_x} sin(k_x x)
 ```
-```math
-P(x) = x + \\frac{\\alpha}{k} sin (k x)
-```
+
 """
-function newton( ld :: LandauDamping, r)
-    x0, x1 = 0.0, 1.0
-    alpha, k = ld.α, ld.k
-    r *= 2π / k
-    while (abs(x1-x0) > 1e-12)
-        p = x0 + alpha * sin( k * x0) / k 
-        f = 1 + alpha * cos( k * x0)
-        x0, x1 = x1, x0 - (p - r) / f
+function sample!( d :: LandauDamping, pg :: ParticleGroup{1,2} )
+
+    alpha, kx = d.alpha, d.kx
+    
+    function newton(r)
+        x0, x1 = 0.0, 1.0
+        r *= 2π / kx
+        while (abs(x1-x0) > 1e-12)
+            p = x0 + alpha * sin( kx * x0) / kx 
+            f = 1 + alpha * cos( kx * x0)
+            x0, x1 = x1, x0 - (p - r) / f
+        end
+        x1
     end
-    x1
-end
-
-"""
-    sample!( landau, xp, yp, domain )
-
-Particle sampling for Landau damping initial distribution
-function. 
-- `xp` :: preallocated array containing particles positions
-- `vp` :: preallocated array containing particles velocities
-"""
-function sample!( ld :: LandauDamping, 
-                  xp :: Vector{Float64}, 
-                  vp :: Vector{Float64},
-                  domain :: Vector{Float64} )
     
-   nbpart = length(xp)
-   @assert length(xp) == length(vp)
-    
-   s = SobolSeq(2)
+    s = SobolSeq(2)
+    nbpart = pg.n_particles
 
-   for k=0:nbpart-1
+    for i=1:nbpart
+        v = sqrt(-2 * log( (i-0.5)/nbpart))
+        r1, r2 = Sobol.next!(s)
+        θ = r1 * 2π
+        set_x(pg,  i, newton(r2))
+        set_v(pg,  i, [v * cos(θ), v * sin(θ)])
+        set_weights( pg, i, 2*pi/kx/nbpart)
+    end
 
-	  v = ld.σ * sqrt(-2 * log( (ld.k+0.5)/nbpart))
-      r1, r2 = Sobol.next!(s)
-      θ = r1 * 2π
-      xp[k+1] =  newton(r2)
-      vp[k+1] =  v * sin(θ)
-
-   end
 
 end
-
-#xp, vp = landau(100000);
-# -
-#
-#p = histogram([xp,vp], normalize=true, bins = 100,  layout=(2,1), lab = "draws")
-#plot!(p[1,1], x-> (1+0.1*cos(0.5*x))/4π, 0., 4π)
-#plot!(p[2,1], x-> (exp(-x^2/2))/sqrt(2π), -6, 6)
