@@ -1,5 +1,7 @@
 using StaticArrays
 
+abstract type AbstractSplitting end
+
 export HamiltonianSplitting
 
 
