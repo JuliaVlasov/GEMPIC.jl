@@ -92,7 +92,7 @@ params = ( dims        = (1,2),
            δ           = 0.0
 )
 
-df1 = CosSumGaussian(params...)
+df1 = CosSumGaussian{1,2}(params...)
 
 mean_ref  = [Lx*0.5+xmin, 0.0, 0.0]
 sigma_ref = [Lx^2/12.0,   df1.v_thermal[1,1]^2, df1.v_thermal[2,1]^2 ]
