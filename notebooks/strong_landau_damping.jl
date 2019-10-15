@@ -25,6 +25,7 @@ include("../src/maxwell_1d_fem.jl")
 include("../src/particle_group.jl")
 include("../src/particle_mesh_coupling.jl")
 include("../src/hamiltonian_splitting.jl")
+include("../src/hamiltonian_splitting_boris.jl")
 include("../src/particle_sampling.jl")
 include("../src/diagnostics.jl")
 
@@ -47,8 +48,8 @@ kx, α = 0.5, 0.5
 xmin, xmax = 0, 2π/kx
 domain = [xmin, xmax, xmax - xmin]
 ∆t = 0.05
-nx = 32 
-n_particles = 100000
+nx = 64 
+n_particles = 200000
 mesh = Mesh( xmin, xmax, nx)
 spline_degree = 3
 
@@ -113,6 +114,10 @@ propagator = HamiltonianSplitting( maxwell_solver,
                                    bfield_dofs,
                                    domain);
 
+#propagator = HamiltonianSplittingBoris( maxwell_solver,
+#         kernel_smoother0, kernel_smoother1, particle_group,
+#         efield_dofs, bfield_dofs, domain)
+
 efield_dofs_n = propagator.e_dofs
 
 thdiag = TimeHistoryDiagnostics( particle_group, maxwell_solver, 
@@ -136,6 +141,6 @@ steps, Δt = 500, 0.05
 end
 # -
 
-plot(thdiag.data[:Time], log.(thdiag.data[:PotentialEnergyE1]))
+plot(thdiag.data[!,:Time], log.(thdiag.data[!,:PotentialEnergyE1]))
 
 
