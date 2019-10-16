@@ -14,6 +14,8 @@
 #     name: julia-1.2
 # ---
 
+## Sampling from a probability distribution
+
 using Plots, BenchmarkTools, Sobol
 
 s = SobolSeq(2)
@@ -175,5 +177,3 @@ end
 
 histogram(xp, normalize=true, bins = 100)
 plot!(x-> (1+alpha*cos(kx*x))/4π, 0., 4π)
-
-
