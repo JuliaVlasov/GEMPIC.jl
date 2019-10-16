@@ -15,6 +15,8 @@
 #     name: julia-1.2
 # ---
 
+# ## Initialize a particle group
+
 using Test, Plots
 
 include("../src/mesh.jl")
@@ -120,10 +122,6 @@ xp = vcat([get_x(pg, i) for i in 1:n_particles]...)
 wp = vcat([get_weights(pg, i) for i in 1:n_particles]...);
 
 histogram(xp, weights=wp, normalize=true, bins=100)
-
-
-
-
 
 # Expected mean:
 # 2π+1, 0, 0
