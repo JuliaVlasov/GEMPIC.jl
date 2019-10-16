@@ -8,11 +8,8 @@ export HamiltonianSplittingBoris
                                x_min, Lx ) 
 
 Boris pusher in GEMPIC framework (spline finite elements)
-Reference: Kraus, Kormann, Sonnendrücker, Morrison: GEMPIC: Geometric ElectroMagnetic Particle-In-Cell Methods
 
-Solves Vlasov-Maxwell with PIC and spline finite elements with Boris pusher
-
-- `mid` describing the magnetic field at time t_{n+1/2} (used for push)
+- `mid` describing the magnetic field at time ``t_{n+1/2}`` (used for push)
 - `j_dofs` for kernel representation of current density. 
 - `maxwell_solver`    : Maxwell solver
 - `kernel_smoother_0` : Kernel smoother
@@ -84,8 +81,8 @@ export staggering!
 
 Propagate ``E_0`` to ``E_{1/2}`` and ``x_0`` to ``x_{1/2}`` to initialize 
 the staggering
-- splitting : time splitting object 
-- dt   : time step
+- `splitting` : time splitting object 
+- `dt`   : time step
 """
 function staggering!(splitting, dt)
 
@@ -119,9 +116,9 @@ end
     strang_splitting(splitting, dt, number_steps)
 
 Second order Boris pusher using staggered grid
-- splitting : time splitting object 
-- dt   : time step
-- number_steps : number of time steps
+- `splitting` : time splitting object 
+- `dt`   : time step
+- `number_steps` : number of time steps
 """
 function strang_splitting!(splitting    :: HamiltonianSplittingBoris, 
                            dt           :: Float64, 

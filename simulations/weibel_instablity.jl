@@ -31,7 +31,7 @@ function run_simulation( )
     v2 = LinRange(v2min, v2max, nv2) |> collect
     f = zeros(Float64,(nv1,nv2))
     for i in eachindex(v1), j in eachindex(v2)
-        f[i,j] = eval_v_density(df, [v1[i],v2[j]])
+        f[i,j] = GEMPIC.eval_v_density(df, [v1[i],v2[j]])
     end
     
      # Initialize the particles   (mass and charge set to 1.0 with one weight)
@@ -95,5 +95,5 @@ end
 
 using Gadfly
 
-results = run_simulation()
+@time results = run_simulation()
 Gadfly.plot(results,  x=:Time, y=:PotentialEnergyE2, Geom.point, Geom.line)

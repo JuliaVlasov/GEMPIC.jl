@@ -277,7 +277,7 @@ end
 Push H_E: Equations to be solved
 ```math
 \\begin{eqnarray}
-\\partial_t f + E_1 \\partial_{v_1} f + E_2 \\partial_{v_2} f = 0 &->& V_new = V_old + dt * E \\\\
+\\partial_t f + E_1 \\partial_{v_1} f + E_2 \\partial_{v_2} f = 0 &->& V_{new} = V_{old} + dt * E \\\\
 \\partial_t E_1 = 0 &->& E_{1,new} = E_{1,old} \\\\
 \\partial_t E_2 = 0 &->& E_{2,new} = E_{2,old} \\\\
 \\partial_t B + \\partial_{x_1} E_2 = 0 &->& B_{new} = B_{old} - dt \\partial_{x_1} E_2
@@ -310,13 +310,13 @@ end
 """
     operatorHB(h, dt)
 
-Push H_B: Equations to be solved ``V_new = V_old``
+Push H_B: Equations to be solved ``V_{new} = V_{old}``
 
 ```math
 \\begin{eqnarray}
 \\partial_t E_1 = 0 & -> & E_{1,new} = E_{1,old} \\\\
 \\partial_t E_2 = - \\partial_{x_1} B & -> & E_{2,new} = E_{2,old}-dt*\\partial_{x_1} B \\\\
-\\partial_t B = 0 & -> & B_new = B_old \\\\
+\\partial_t B = 0 & -> & B_{new} = B_{old} \\\\
 \\end{eqnarray}
 ```
 """

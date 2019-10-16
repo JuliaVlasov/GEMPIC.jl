@@ -152,7 +152,7 @@ end
                               marker_charge, qoverm, bfield_dofs, vi)
 
 Add current for one particle and update v 
-(according to H_p1 part in Hamiltonian splitting)
+(according to `H_p1` part in Hamiltonian splitting)
 """
 function add_current_update_v_pp!( j_dofs        :: AbstractArray, 
                                    p             :: ParticleMeshCoupling, 
@@ -216,7 +216,7 @@ end
     update_jv_pp!( j_dofs, p, lower, upper, index, marker_charge, 
                    qoverm, vi, bfield_dofs)
 
-Helper function for add_current_update_v.
+Helper function for `add_current_update_v`.
 """
 function update_jv_pp!( j_dofs         :: AbstractArray,
                         p              :: ParticleMeshCoupling, 
@@ -262,7 +262,7 @@ part in Hamiltonian splitting)
 
 - Read out particle position and velocity
 - Compute index_old, the index of the last DoF on the grid the 
-particle contributes to, and r_old, its position (normalized to cell size one).
+particle contributes to, and `r_old`, its position (normalized to cell size one).
 
 """
 function add_current_update_v!( j_dofs        :: AbstractArray,
@@ -331,7 +331,7 @@ end
                lower, upper, index, marker_charge, 
                qoverm, sign, vi, bfield_dofs)
 
-Helper function for add_current_update_v.
+Helper function for `add_current_update_v`.
 """
 function update_jv!(j_dofs        :: AbstractArray, 
                     p             :: ParticleMeshCoupling, 

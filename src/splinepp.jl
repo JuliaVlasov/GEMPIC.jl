@@ -20,12 +20,12 @@ const  inv_720 = 1. / 720.
 """
     SplinePP( degree, ncells)
 
-- degree         : degree of 1d spline
-- poly_coeffs    : poly_coeffs[i,j] coefficient of ``x^{deg+1-j}`` for ith B-spline function  size= (degree+1, degree+1)
-- poly_coeffs_fp : poly_coeffs[i,j] coefficient of ``x^{deg+1-j}`` for ith B-spline function  size= (degree+1, degree+1)
-- ncells        : number of gridcells
-- scratch_b      : scratch data for b_to_pp-converting
-- scratch_p      : scratch data for b_to_pp-converting
+- `degree` : degree of 1d spline
+- `poly_coeffs` : `poly_coeffs[i,j]` coefficient of ``x^{deg+1-j}`` for ith B-spline function  size= (degree+1, degree+1)
+- `poly_coeffs_fp` : `poly_coeffs[i,j]` coefficient of ``x^{deg+1-j}`` for ith B-spline function  size= (degree+1, degree+1)
+- `ncells` : number of gridcells
+- `scratch_b` : scratch data for b_to_pp-converting
+- `scratch_p` : scratch data for b_to_pp-converting
 """
 mutable struct SplinePP
 
