@@ -146,9 +146,11 @@ for i in 1:n_particles
             get_weights(particle_group,i)))
 end
 
-p = vcat(xp[1:100:end]'...);
+p = vcat(xp'...);
 
-scatter(p[:,2], p[:,3], markersize=1)
+histogram(p[:,2], weights=p[:,4], normalize=true, bins=100)
+
+histogram(p[:,3], weights=p[:,4], normalize=true, bins=100)
 
 ?ParticleMeshCoupling
 
