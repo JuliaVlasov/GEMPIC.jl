@@ -175,16 +175,19 @@ end
 """
     push_v_epart(splitting, dt)
 
+
 Pusher for ``E \\nabla_v `` part
+
+```math
+V_{new} = V_{old} + dt ⋅ E
+```
 """
 function push_v_epart!(splitting, dt)
 
     qm = splitting.particle_group.q_over_m
 
-    # V_new = V_old + dt * E
     for i_part = 1:splitting.particle_group.n_particles
 
-        # Evaluate efields at particle position
         xi = get_x(splitting.particle_group, i_part)
 
         efield_1 = evaluate(splitting.kernel_smoother_1, xi[1], splitting.e_dofs_mid[1])
@@ -244,10 +247,11 @@ Pusher for x and accumulate current densities
 For each particle compute the index of the first DoF on the grid it 
 contributes to and its position (normalized to cell size one). 
 
+Then update particle position:  ``X_{new} = X_{old} + dt ⋅ V``
+
 !!! note
     `j_dofs` does not hold the values for j itself but 
     for the integrated j.
-    Then update particle position:  ``X_{new} = X_{old} + dt * V``
 
 """
 function push_x_accumulate_j!(splitting, dt)

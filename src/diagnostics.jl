@@ -103,8 +103,8 @@ Compute ``e^T M_0^{-1}  R^T b``
 
 - `maxwell_solver` : maxwell solver object
 - `degree` : degree of finite element
-- `efield_dofs` : coefficients of efield
-- `bfield_dofs` : coefficients of bfield
+- `efield_dofs` : coefficients of `efield`
+- `bfield_dofs` : coefficients of `bfield`
 
 """
 function pic_diagnostics_poynting( maxwell_solver, degree, efield_dofs, 
@@ -172,12 +172,12 @@ export write_step!
                  efield_dofs_n, efield_poisson)
 
 write diagnostics for PIC
-- time : Time
-- efield_dofs : Electric field
-- efield_dofs_n : Electric field at half step
-- efield_poisson : Electric field compute from Poisson equation
-- bfield_dofs : Magnetic field
-- degree : Spline degree
+- `time` : Time
+- `efield_dofs` : Electric field
+- `efield_dofs_n` : Electric field at half step
+- `efield_poisson` : Electric field compute from Poisson equation
+- `bfield_dofs` : Magnetic field
+- `degree` : Spline degree
 """
 function write_step!( thdiag :: TimeHistoryDiagnostics,
                       time, degree, efield_dofs,
@@ -188,14 +188,16 @@ function write_step!( thdiag :: TimeHistoryDiagnostics,
     potential_energy = zeros(Float64, 3)
 
     for i_part=1:thdiag.particle_group.n_particles
+
        vi = get_v(   thdiag.particle_group, i_part)
        wi = get_mass(thdiag.particle_group, i_part)
        # Kinetic energy
-       diagnostics[1] += (vi[1]^2+vi[2]^2)*wi[1]
+       diagnostics[1] += (vi[1]^2+vi[2]^2) * wi[1]
        # Momentum 1
        diagnostics[2] += vi[1] * wi[1]
        # Momentum 2
        diagnostics[3] += vi[2] * wi[1]
+
     end
 
     transfer = pic_diagnostics_transfer( thdiag.particle_group, 
@@ -245,8 +247,8 @@ export evaluate
 
 Evaluate the field at points xi
 
-- field_dofs : field value on dofs
-- xi : positions where the field is evaluated
+- `field_dofs` : field value on dofs
+- `xi` : positions where the field is evaluated
 """
 function evaluate( kernel_smoother :: ParticleMeshCoupling, 
                    field_dofs :: AbstractArray,  x :: AbstractArray )
@@ -264,9 +266,9 @@ end
 
 compute v(index)-part of kinetic energy
 
-- particle_group 
-- index : velocity component
-- kinetic : value of index part of kinetic energy
+- `particle_group` 
+- `index` : velocity component
+- `kinetic` : value of index part of kinetic energy
 
 """
 function pic_diagnostics_hpi( particle_group,  index, kinetic )
@@ -288,13 +290,13 @@ end
 
 Compute the spline coefficient of the derivative of some given spline expansion
 
-- position : particle position
-- xmin : lower boundary of the domain
-- delta_x : step 
-- n_grid : number of grid points
-- field_dofs : coefficients of spline representation of the field
-- degree : degree of spline
-- derivative : value of the derivative
+- `position` : particle position
+- `xmin` : lower boundary of the domain
+- `delta_x` : step 
+- `n_grid` : number of grid points
+- `field_dofs` : coefficients of spline representation of the field
+- `degree` : degree of spline
+- `derivative` : value of the derivative
 """
 function eval_derivative_spline( position, xmin, delta_x, 
                                  n_grid, field_dofs, degree )
