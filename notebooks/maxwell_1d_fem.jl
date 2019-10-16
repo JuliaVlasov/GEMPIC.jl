@@ -3,16 +3,19 @@
 # jupyter:
 #   jupytext:
 #     comment_magics: false
+#     formats: ipynb,jl:light
 #     text_representation:
 #       extension: .jl
 #       format_name: light
 #       format_version: '1.4'
-#       jupytext_version: 1.1.7
+#       jupytext_version: 1.2.4
 #   kernelspec:
-#     display_name: Julia 1.1.1
+#     display_name: Julia 1.2.0
 #     language: julia
-#     name: julia-1.1
+#     name: julia-1.2
 # ---
+
+# # Maxwell solver FEM 1D
 
 using Plots
 
@@ -134,20 +137,18 @@ compute_e_from_b!( ey, maxwell_1d,     dt, bz)
 plot(ey)
 
 # +
-   compute_b_from_e!( bz, maxwell_1d, 0.5*dt, ey)
-   
-   time = time + dt
+compute_b_from_e!( bz, maxwell_1d, 0.5*dt, ey)
 
-   for i = 1:nc_eta1
-      xi = eta1_min + (i-1)*delta_eta1
-      ey_exact[i] = sin(mode * 2π * xi/Lx) * sin(mode * 2π * time/Lx)
-      bz_exact[i] = cos(mode * 2π * xi/Lx) * cos(mode * 2π * time/Lx)
-   end
+time = time + dt
 
-   sval = eval_uniform_periodic_spline_curve(deg, ey)
-   @show err_ey = norm(sval .- ey_exact)
+for i = 1:nc_eta1
+   xi = eta1_min + (i-1)*delta_eta1
+   ey_exact[i] = sin(mode * 2π * xi/Lx) * sin(mode * 2π * time/Lx)
+   bz_exact[i] = cos(mode * 2π * xi/Lx) * cos(mode * 2π * time/Lx)
+end
 
-   sval = eval_uniform_periodic_spline_curve(deg-1, bz)
-   @show err_bz = norm(sval .- bz_exact)
+sval = eval_uniform_periodic_spline_curve(deg, ey)
+@show err_ey = norm(sval .- ey_exact)
 
-#end
+sval = eval_uniform_periodic_spline_curve(deg-1, bz)
+@show err_bz = norm(sval .- bz_exact)
