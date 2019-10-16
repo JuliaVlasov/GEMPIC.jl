@@ -8,12 +8,14 @@
 #       extension: .jl
 #       format_name: light
 #       format_version: '1.4'
-#       jupytext_version: 1.1.7
+#       jupytext_version: 1.2.4
 #   kernelspec:
 #     display_name: Julia 1.1.1
 #     language: julia
 #     name: julia-1.1
 # ---
+
+# ## Initialize a probablity distribution
 
 include("../src/distributions.jl")
 
@@ -58,3 +60,5 @@ df = CosSumGaussian{1,1}( [[k]], [0.1], [[1.0]], [[0.0]], [1.0] )
 plot( xg, [eval_x_density(df, x) for x in xg])
 
 plot( vg, [eval_v_density(df, v) for v in vg])
+
+
