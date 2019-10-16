@@ -33,10 +33,10 @@ end
 
 
 """
-  pic_diagnostics_transfer( particle_group, kernel_smoother_0, 
+    pic_diagnostics_transfer( particle_group, kernel_smoother_0, 
                             kernel_smoother_1, efield_dofs, transfer)
 
-  Compute ``\\sum_{particles} w_p ( v_1,p e_1(x_p) + v_2,p e_2(x_p)) ``
+Compute ``\\sum_{particles} w_p ( v_1,p e_1(x_p) + v_2,p e_2(x_p)) ``
 
 - `particle_group`   
 - `kernel_smoother_0`  : Kernel smoother (order p+1)
