@@ -8,11 +8,11 @@
 #       extension: .jl
 #       format_name: light
 #       format_version: '1.4'
-#       jupytext_version: 1.1.7
+#       jupytext_version: 1.2.4
 #   kernelspec:
-#     display_name: Julia 1.1.1
+#     display_name: Julia 1.2.0
 #     language: julia
-#     name: julia-1.1
+#     name: julia-1.2
 # ---
 
 # # Vlasov–Maxwell in 1D2V
@@ -154,25 +154,16 @@ scatter(p[:,2], p[:,3], markersize=1)
 
 kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-1, :galerkin)    
 kernel_smoother0 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree, :galerkin)
-rho = zeros(Float64, nx)
-for i_part = 1:particle_group.n_particles
-   xi = get_x(particle_group, i_part)
-   wi = get_charge( particle_group, i_part)
-   add_charge!(rho, kernel_smoother0, xi, wi)
-end
-xg = LinRange(xmin, xmax, nx)
-plot( xg, rho )
-
+rho = zeros(Float64, nx);
 efield_poisson = zeros(Float64, nx)
 # Init!ialize the field solver
 maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
 # efield by Poisson
-solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
-plot( xg, efield_poisson )       
+solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )    
 
 # +
 # Initialize the arrays for the spline coefficients of the fields
-efield_dofs = [zeros(Float64, nx), zeros(Float64, nx)]
+efield_dofs = [copy(efield_poisson), zeros(Float64, nx)]
 bfield_dofs = zeros(Float64, nx)
     
 propagator = HamiltonianSplitting( maxwell_solver,
@@ -189,7 +180,6 @@ efield_dofs_n = propagator.e_dofs
 beta_cos_k(x) = β * cos(2π * x / domain[3]) 
 l2projection!( bfield_dofs, maxwell_solver, beta_cos_k, spline_degree-1)
 plot( xg, bfield_dofs ) 
-?TimeHistoryDiagnostics
 
 thdiag = TimeHistoryDiagnostics( particle_group, maxwell_solver, 
                         kernel_smoother0, kernel_smoother1 );
