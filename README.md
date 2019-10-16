@@ -30,12 +30,35 @@ and bring `GEMPIC` into scope:
 ```julia
 julia> using GEMPIC
 ```
+## Run examples
+
+To open the notebooks you need to install [jupytext](https://github.com/mwouts/jupytext)
+
+```bash
+conda install jupytext -c conda-forge
+```
+or
+```bash
+pip install jupytext
+```
+
+```bash
+jupytext --to ipynb notebooks/*.jl
+```
+```julia
+julia> using IJulia
+julia> notebook(dir=joinpath(pwd(),"notebooks"))
+```
+
+## Credits
 
 This is a translation from a Fortran code written by :
 
+- Yaman Güçlü
 - Katharina Kormann  
 - Benedikt Perse
-- Eric Sonnendrucker
+- Eric Sonnendrücker
+- Edouardo Zoni
 
 from [Max-Planck-Institut fur Plasmaphysik - Garching (Germany)](https://www.ipp.mpg.de/4098496/kgkm)
 
