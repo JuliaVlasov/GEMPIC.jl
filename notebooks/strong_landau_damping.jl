@@ -123,7 +123,7 @@ efield_dofs_n = propagator.e_dofs
 thdiag = TimeHistoryDiagnostics( particle_group, maxwell_solver, 
                         kernel_smoother0, kernel_smoother1 );
 
-steps, Δt = 500, 0.05
+steps, Δt = 1000, 0.05
 
 @showprogress 1 for j = 1:steps # loop over time
 
@@ -142,5 +142,7 @@ end
 # -
 
 plot(thdiag.data[!,:Time], log.(thdiag.data[!,:PotentialEnergyE1]))
+
+
 
 
