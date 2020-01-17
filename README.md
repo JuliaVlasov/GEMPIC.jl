@@ -21,7 +21,7 @@ In a Julia session switch to `pkg>` mode to add `GEMPIC`:
 
 ```julia
 julia>] # switch to pkg> mode
-pkg> add https://github.com/juliavlasov/GEMPIC.jl
+pkg> add GEMPIC
 ```
 
 When finished, make sure that you're back to the Julian prompt (`julia>`)
