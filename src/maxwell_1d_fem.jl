@@ -312,6 +312,39 @@ function l2norm_squared(self, coefs_dofs, degree)
 
 end 
 
+
+
+export l2norm_squared2
+
+"""
+    l2norm_squared(maxwell_solver, coefs_dofs, degree)
+
+Compute square of the L2norm 
+
+"""
+function l2norm_squared2(self, coefs_dofs, degree)
+
+    # Multiply coefficients by mass matrix (use diagonalization FFT and mass matrix eigenvalues)
+    if (degree == self.s_deg_0 )
+
+        solve_circulant!(self, self.eig_mass0, coefs_dofs)
+
+    elseif (degree == self.s_deg_1)
+
+        solve_circulant!(self, self.eig_mass1, coefs_dofs)
+
+    end
+
+    # Multiply by the coefficients from the left (inner product)
+    r = sum(self.work .* self.work)
+    # Scale by delt_x
+    r .* self.delta_x
+
+end 
+
+
+
+
 export l2projection!
 
 """
@@ -397,6 +430,43 @@ function compute_b_from_e!( field_out :: Vector{Float64},
     field_out[1] = field_out[1] + coef * ( field_in[end] - field_in[1] )
 
 end
+
+
+
+
+export compute_derivatives_from_basis!
+
+function compute_derivatives_from_basis!( field_out :: Vector{Float64},
+                            self      :: Maxwell1DFEM, 
+                            field_in  :: Vector{Float64}) 
+
+    coef = 1/self.delta_x
+    # relation betwen spline coefficients for strong Ampere
+    for i=1:(self.n_dofs-1)
+       field_out[i] =  coef * ( field_in[i] - field_in[i+1] )
+    end
+    # treat Periodic point
+    field_out[end] =  coef * ( field_in[end] - field_in[1] )
+
+end
+
+export compute_derivatives_from_basis2!
+
+function compute_derivatives_from_basis2!( field_out :: Vector{Float64},
+                            self      :: Maxwell1DFEM, 
+                            field_in  :: Vector{Float64}) 
+
+    coef = 1/self.delta_x
+    # relation betwen spline coefficients for strong Ampere
+    for i=2:(self.n_dofs)
+       field_out[i] =  coef * ( field_in[i] - field_in[i-1] )
+    end
+    # treat Periodic point
+    field_out[1] =  coef * ( field_in[1] - field_in[end] )
+
+end
+
+
 
 """
     inner_product( maxwell_solver, coefs1_dofs, coefs2_dofs, degree )
