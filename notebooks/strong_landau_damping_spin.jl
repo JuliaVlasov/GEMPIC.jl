@@ -18,16 +18,15 @@
 using ProgressMeter, Plots
 
 include("../src/mesh.jl")
-include("../src/distributions.jl")
+include("../src/distributions_spin.jl")
 include("../src/low_level_bsplines.jl")
 include("../src/splinepp.jl")
 include("../src/maxwell_1d_fem.jl")
-include("../src/particle_group.jl")
-include("../src/particle_mesh_coupling.jl")
-include("../src/hamiltonian_splitting.jl")
-include("../src/hamiltonian_splitting_boris.jl")
-include("../src/particle_sampling.jl")
-include("../src/diagnostics.jl")
+include("../src/particle_group_spin.jl")
+include("../src/particle_mesh_coupling_spin.jl")
+include("../src/hamiltonian_splitting_spin.jl")
+include("../src/particle_sampling_spin.jl")
+include("../src/diagnostics_spin.jl")
 
 # -
 
@@ -50,8 +49,8 @@ include("../src/diagnostics.jl")
 kx, α = 1.004355, 0.001
 xmin, xmax = 0, 2π/kx
 domain = [xmin, xmax, xmax - xmin]
-nx = 1024 
-n_particles = 100000
+nx = 128 
+n_particles = 10000
 mesh = Mesh( xmin, xmax, nx)
 spline_degree = 3
 
