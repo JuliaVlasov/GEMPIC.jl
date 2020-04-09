@@ -45,7 +45,7 @@ struct SpinHamiltonianSplitting
                                    particle_group,
                                    e_dofs,
                                    a_dofs,
-                                   domain :: Vector{Float64}) 
+                                   domain :: Vector{Float64}, nx) 
 
         # Check that n_dofs is the same for both kernel smoothers.
         @assert kernel_smoother_0.n_dofs == kernel_smoother_1.n_dofs

@@ -95,22 +95,22 @@ function run( steps)
        set_weights(particle_group, i_part, w[1])
    end
    
-   xp = Vector{Float64}[] # particles data
-   for i in 1:n_particles
-       push!(xp, vcat(get_x(particle_group,i), 
-               get_v(particle_group,i),
-               get_weights(particle_group,i)))
-   end
+   #xp = Vector{Float64}[] # particles data
+   #.for i in 1:n_particles
+   ##    push!(xp, vcat(get_x(particle_group,i), 
+   #            get_v(particle_group,i),
+   #            get_weights(particle_group,i)))
+   #end
    # -
    
-   xp = vcat([get_x(particle_group, i) for i in 1:n_particles]...)
-   vp = vcat([get_v(particle_group, i) for i in 1:n_particles]'...)
-   wp = vcat([get_weights(particle_group, i) for i in 1:n_particles]'...)
-   p = plot(layout=(2,1))
-   histogram!(p[1,1], xp, weights=wp, normalize= true, bins = 100, lab = "")
-   plot!(p[1,1], x-> (1+α*cos(kx*x))/(2π/kx), 0., 2π/kx, lab="")
-   histogram!(p[2,1], vp, weights=wp, normalize=true, bins = 100, lab = "")
-   plot!(p[2,1], v-> 1/sqrt(2*pi)/σ*(exp( - (v-μ)^2 / 2/σ/σ)), -6, 6, lab="")
+   #xp = vcat([get_x(particle_group, i) for i in 1:n_particles]...)
+   #vp = vcat([get_v(particle_group, i) for i in 1:n_particles]'...)
+   #wp = vcat([get_weights(particle_group, i) for i in 1:n_particles]'...)
+   #p = plot(layout=(2,1))
+   #histogram!(p[1,1], xp, weights=wp, normalize= true, bins = 100, lab = "")
+   #plot!(p[1,1], x-> (1+α*cos(kx*x))/(2π/kx), 0., 2π/kx, lab="")
+   #histogram!(p[2,1], vp, weights=wp, normalize=true, bins = 100, lab = "")
+   #plot!(p[2,1], v-> 1/sqrt(2*pi)/σ*(exp( - (v-μ)^2 / 2/σ/σ)), -6, 6, lab="")
    #plot!(p[2,1], v-> 1/2/sqrt(2*pi)/σ*(exp( - (v-μ)^2 / 2/σ/σ)+exp( - (v+μ)^2 / 2/σ/σ)), -6, 6, lab="")
    
    
@@ -134,7 +134,7 @@ function run( steps)
    # efield by Poisson
    solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
    sval = eval_uniform_periodic_spline_curve(spline_degree-1, efield_poisson)
-   plot( xg, sval )       
+   # plot( xg, sval )       
    
    # +
    # # +
@@ -165,7 +165,7 @@ function run( steps)
                                       particle_group,
                                       efield_dofs,
                                       afield_dofs,
-                                      domain);
+                                      domain, nx);
    
    #propagator = HamiltonianSplittingBoris( maxwell_solver,
    #         kernel_smoother0, kernel_smoother1, particle_group,
@@ -184,11 +184,11 @@ function run( steps)
    store = zeros(ComplexF64,nx)
    
    #=
-   test = zeros(Float64,nx)
-   nengliang = zeros(Float64,steps)
-   xp = vcat([get_x(particle_group, i) for i in 1:n_particles]...)
-   vp = vcat([get_v(particle_group, i) for i in 1:n_particles]'...)
-   histogram2d(xp, vp, ylims=(-pi/kx,pi/kx),nbins=200)
+   # test = zeros(Float64,nx)
+   # nengliang = zeros(Float64,steps)
+   # xp = vcat([get_x(particle_group, i) for i in 1:n_particles]...)
+   # vp = vcat([get_v(particle_group, i) for i in 1:n_particles]'...)
+   # histogram2d(xp, vp, ylims=(-pi/kx,pi/kx),nbins=200)
    =#
    ss11 = zeros(Float64,steps)
    ss12 = zeros(Float64,steps)
