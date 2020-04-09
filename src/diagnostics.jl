@@ -13,8 +13,8 @@ Accumulate rho and solve Poisson
  - `efield_dofs` : spline coefficients of electric field (1D)
 """
 function solve_poisson!( efield_dofs       :: Vector{Float64},
-                         particle_group    :: ParticleGroup, 
-                         kernel_smoother_0 :: ParticleMeshCoupling, 
+                         particle_group    :: AbstractParticleGroup, 
+                         kernel_smoother_0 :: AbstractParticleMeshCoupling, 
                          maxwell_solver    :: Maxwell1DFEM, 
                          rho               :: Vector{Float64}) 
 
