@@ -1,7 +1,7 @@
-export ParticleMeshCoupling
+export SpinParticleMeshCoupling
 
 """
-    ParticleMeshCoupling( domain, n_grid, 
+    SpinParticleMeshCoupling( domain, n_grid, 
                           no_particles, spline_degree, 
                           smoothing_type )
     
@@ -25,7 +25,7 @@ Spline with index i starts at point i
     Only 1D version is implemented for now
 
 """
-mutable struct ParticleMeshCoupling
+mutable struct SpinParticleMeshCoupling <: AbstractParticleMeshCoupling
 
     dims            :: Int
     domain          :: Vector{Float64}
@@ -43,7 +43,7 @@ mutable struct ParticleMeshCoupling
     quad_w          :: Vector{Float64}
     spline_pp       :: SplinePP
 
-    function ParticleMeshCoupling( domain         :: AbstractArray, 
+    function SpinParticleMeshCoupling( domain     :: AbstractArray, 
                                    n_grid         :: Vector{Int64}, 
                                    no_particles   :: Int, 
                                    spline_degree  :: Int, 
@@ -94,7 +94,7 @@ Add charge of one particle
 - `rho_dofs`      : Coefficient vector of the charge distribution
 """
 function add_charge_pp!(rho_dofs :: Vector{Float64}, 
-                        p        :: ParticleMeshCoupling, 
+                        p        :: SpinParticleMeshCoupling, 
                         position, 
                         marker_charge)
     
@@ -129,7 +129,7 @@ Add charge of one particle
 - `rho_dofs`      : Coefficient vector of the charge distribution
 """
 function add_charge!( rho_dofs      :: Vector{Float64},
-                      p             :: ParticleMeshCoupling,
+                      p             :: SpinParticleMeshCoupling,
                       position      , 
                       marker_charge :: Float64) 
 
@@ -155,7 +155,7 @@ Add current for one particle and update v
 (according to `H_p1` part in Hamiltonian splitting)
 """
 function add_current_update_v_pp!( j_dofs        :: AbstractArray, 
-                                   p             :: ParticleMeshCoupling, 
+                                   p             :: SpinParticleMeshCoupling, 
                                    position_old, 
                                    position_new, 
                                    marker_charge :: Float64, 
@@ -219,7 +219,7 @@ end
 Helper function for `add_current_update_v`.
 """
 function update_jv_pp!( j_dofs         :: AbstractArray,
-                        p              :: ParticleMeshCoupling, 
+                        p              :: SpinParticleMeshCoupling, 
                         lower          :: Float64, 
                         upper          :: Float64, 
                         index          :: Int64, 
@@ -266,7 +266,7 @@ particle contributes to, and `r_old`, its position (normalized to cell size one)
 
 """
 function add_current_update_v!( j_dofs        :: AbstractArray,
-                                p             :: ParticleMeshCoupling, 
+                                p             :: SpinParticleMeshCoupling, 
                                 position_old  :: Vector{Float64}, 
                                 position_new  :: Vector{Float64}, 
                                 marker_charge :: Float64, 
@@ -333,7 +333,7 @@ end
 Helper function for `add_current_update_v`.
 """
 function update_jv!(j_dofs        :: AbstractArray, 
-                    p             :: ParticleMeshCoupling, 
+                    p             :: SpinParticleMeshCoupling, 
                     lower         :: Float64, 
                     upper         :: Float64, 
                     index         :: Int64, 
@@ -388,7 +388,7 @@ Evaluate field at `position` using horner scheme
 - `field_value` : Value(s) of the electric fields at given position
 
 """ 
-function evaluate_pp(p             :: ParticleMeshCoupling, 
+function evaluate_pp(p             :: SpinParticleMeshCoupling, 
                      position      :: Float64, 
                      field_dofs_pp :: Array{Float64,2})
 
@@ -409,7 +409,7 @@ Evaluate field at `position`
 - `field_dofs` : Coefficient vector for the field DoFs
 - `field_value` : Value(s) of the electric fields at given position
 """
-function evaluate(p          :: ParticleMeshCoupling, 
+function evaluate(p          :: SpinParticleMeshCoupling, 
                   position   :: Float64, 
                   field_dofs :: Vector{Float64})
 

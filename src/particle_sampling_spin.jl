@@ -1,9 +1,9 @@
 using Sobol, Random, Distributions
 
-export ParticleSampler
+export SpinParticleSampler
 
 """
-    ParticleSampler{D,V,S}( sampling_type, symmetric, dims, n_particles)
+    SpinParticleSampler{D,V,S}( sampling_type, symmetric, dims, n_particles)
 
 Particle initializer class with various functions to initialize a particle.
 
@@ -11,16 +11,14 @@ Particle initializer class with various functions to initialize a particle.
 - `symmetric` : `true` or `false`
 - `n_particles` : number of particles
 """
-struct ParticleSampler{D,V,S}
+struct SpinParticleSampler{D,V,S}
 
     sampling_type :: Symbol
     dims          :: Tuple{Int64, Int64, Int64}
     n_particles   :: Int
-    symmetric     :: Bool
     seed          :: Int64
 
-    function ParticleSampler{D,V,S}( sampling_type :: Symbol, 
-                                   symmetric     :: Bool, 
+    function SpinParticleSampler{D,V,S}( sampling_type :: Symbol, 
                                    n_particles   :: Int64,
                                    seed          :: Int64 = 1234) where {D,V,S}
 
@@ -31,20 +29,7 @@ struct ParticleSampler{D,V,S}
 
         dims = (D, V, S)
 
-        # Make sure that the particle number is conforming 
-        # with symmetric sampling (if necessary)
-        if symmetric
-            ncopies = 2^(sum(dims))
-            np = mod(n_particles,ncopies)
-            if np != 0
-                n_particles += np
-            end
-        else
-            ncopies = 1
-        end
-
-
-        new( sampling_type, dims, n_particles, symmetric, seed)
+        new( sampling_type, dims, n_particles, seed)
 
     end
 
@@ -63,26 +48,10 @@ Sample from a Particle sampler
 - `xmin` : lower bound of the domain
 - `Lx`   : length of the domain.
 """
-function sample!( pg   :: ParticleGroup{1,1,3}, 
-                  ps   :: ParticleSampler, 
+function sample!( pg   :: SpinParticleGroup{1,1,3}, 
+                  ps   :: SpinParticleSampler, 
                   df   :: AbstractCosGaussian, 
                   mesh :: Mesh )
-
-    if ps.symmetric 
-        sample_sym( ps, pg, df, mesh )
-    else
-        sample_all( ps, pg, df, mesh )
-    end 
-    
-end
-
-
-"""
-    sample_all( ps, pg, df, mesh )
-
-Helper function for pure sampling
-"""
-function sample_all( ps, pg, df :: AbstractCosGaussian, mesh )
 
     ndx, ndv, nds = df.dims
 
@@ -252,95 +221,3 @@ function sample_all( ps, pg, df :: AbstractCosGaussian, mesh )
     
 end
 
-"""
-    sample_sym( ps, pg, df, mesh )
-
-Helper function for antithetic sampling in 1d2v
-"""
-function sample_sym( ps, pg, df, mesh )
-
-    ndx, ndv, nds = df.dims
-
-    x = zeros(Float64, ndx)
-    v = zeros(Float64, ndv)
-    
-    n_rnds = 0
-    (df.params.n_gaussians > 1) && (n_rnds = 1)
-
-    δ = zeros(Float64, df.params.n_gaussians)
-    for i_v = 1:df.params.n_gaussians
-       δ[i_v] = sum(df.params.δ[1:i_v])
-    end
-    
-    n_rnds = n_rnds + ndx + ndv
-    rdn    = zeros( ndx + ndv + 1 )
-    
-    # 1/Np in common weight
-    set_common_weight(pg, 1.0/pg.n_particles)
-
-    if ps.sampling_type == :sobol
-       rng_sobol  = SobolSeq(ndx + ndv + 1)
-    else
-       rng_random = MersenneTwister(ps.seed)
-    end 
-
-    dnormal = Normal()
-
-    i_gauss = 1   :: Int64
-    wi      = 0.0 :: Float64
-    
-    for i_part = 1:pg.n_particles
-
-        ip = i_part % 8
-
-        if ip == 1
-
-            # Generate Random or Sobol numbers on [0,1]
-            if ps.sampling_type == :sobol
-               rdn .= Sobol.next!(rng_sobol)
-            else
-               rdn .= rand!(rng_random, rdn)
-            end 
-            
-            # Transform rdn to the interval
-            x[1:ndx] .= mesh.xmin .+ mesh.Lx .* rdn[1:ndx]
-            
-            # Set weight according to value of perturbation
-            wi = eval_x_density(df, x[1:ndx]) * prod(mesh.Lx)
-            
-            # Maxwellian distribution of the temperature
-
-            v .= rand!(dnormal, v)
-
-            # For multiple Gaussian, draw which one to take
-            rnd_no = rdn[ndx+ndv+1]
-            i_gauss = 1
-            while i_gauss < df.params.n_gaussians && rnd_no > δ[i_gauss]
-               i_gauss += 1
-            end
-
-            v .= v .* df.params.σ[i_gauss] .+ df.params.μ[i_gauss]
-
-        elseif ip == 5
-
-            x[1] = mesh.Lx[1] - x[1] + 2.0 * mesh.xmin[1]
-
-        elseif ip % 2 == 0
-
-            v[1] = - v[1] + 2.0 * df.params.μ[i_gauss][1]
-
-        else          
-
-            v[2] = - v[2] + 2.0 * df.params.μ[i_gauss][2]
-
-        end
-             
-        # Copy the generated numbers to the particle
-
-        set_x( pg, i_part, x)
-        set_v( pg, i_part, v)
-        set_weights( pg, i_part, wi)
-       
-    end
-
-end

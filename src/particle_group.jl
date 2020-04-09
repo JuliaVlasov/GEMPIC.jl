@@ -32,7 +32,7 @@ mutable struct ParticleGroup{D,V} <:  AbstractParticleGroup
 
         dims = (D, V)
         particle_array = zeros( Float64, (sum(dims)+n_weights, n_particles)) 
-        common_weight  = 1.0
+        common_weight = 1.0
         q_over_m = charge / mass
 
         new( dims, n_particles, particle_array, common_weight, charge,

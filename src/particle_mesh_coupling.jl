@@ -1,3 +1,5 @@
+abstract type AbstractParticleMeshCoupling end
+
 export ParticleMeshCoupling
 
 """
@@ -25,7 +27,7 @@ Spline with index i starts at point i
     Only 1D version is implemented for now
 
 """
-mutable struct ParticleMeshCoupling
+mutable struct ParticleMeshCoupling <: AbstractParticleMeshCoupling
 
     dims            :: Int
     domain          :: Vector{Float64}
