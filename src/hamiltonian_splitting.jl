@@ -180,7 +180,7 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
     fill!(h.j_dofs[1], 0.0)
     fill!(h.j_dofs[2], 0.0)
 
-    for i_part = 1:h.particle_group.n_particles  
+    @inbounds for i_part = 1:h.particle_group.n_particles  
 
        # Read out particle position and velocity
        x_old = get_x(h.particle_group, i_part)
@@ -242,6 +242,7 @@ function operatorHp2(h :: HamiltonianSplitting, dt :: Float64)
     fill!(h.j_dofs[2], 0.0)
 
     qm = h.particle_group.q_over_m
+
     # Update v_1
     for i_part=1:h.particle_group.n_particles
 
