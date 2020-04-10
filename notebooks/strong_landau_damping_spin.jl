@@ -7,38 +7,36 @@
 #       extension: .jl
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.4.1
+#       jupytext_version: 1.4.2
 #   kernelspec:
-#     display_name: Julia 1.3.0
+#     display_name: Julia 1.4.0
 #     language: julia
-#     name: julia-1.3
+#     name: julia-1.4
 # ---
 
-# +
+# # Strong Landau Damping
+#
+# Electrostatic example of strong Landau damping
+# $$
+# f(x,v) =\frac{1}{2\pi\sigma^2}  \exp 
+# \Big( - \frac{v_1^2 + v_2^2}{2\sigma^2} \Big)
+# ( 1+\alpha \cos(k x)􏰁),
+# $$
+#
+
 using ProgressMeter, Plots
-using CSV, Dates
+using CSV, Dates, FFTW
 using GEMPIC
 
+# +
 function run( steps) 
    
-   # # Strong Landau Damping
-   #
-   # Electrostatic example of strong Landau damping
-   # $$
-   # f(x,v) =\frac{1}{2\pi\sigma^2}  \exp 
-   # \Big( - \frac{v_1^2 + v_2^2}{2\sigma^2} \Big)
-   # ( 1+\alpha \cos(k x)􏰁),
-   # $$
-   #
-   # The physical parameters 
-   
-   # +
    σ, μ = 0.02, 0.0
    kx, α = 1.004355, 0.001
    xmin, xmax = 0, 2π/kx
    domain = [xmin, xmax, xmax - xmin]
-   nx = 1024 
-   n_particles = 100000
+   nx = 64 
+   n_particles = 1000
    mesh = Mesh( xmin, xmax, nx)
    spline_degree = 3
    
@@ -52,7 +50,7 @@ function run( steps)
    sample!(particle_group2, sampler, df, mesh)
    
    particle_group = SpinParticleGroup{1,1,3}( n_particles, mass, charge, 1)   
-   set_common_weight(particle_group, (1.0/n_particles))
+   GEMPIC.set_common_weight(particle_group, (1.0/n_particles))
    for  i_part = 1:n_particles
        x = zeros( 1 )
        v = zeros( 1 )
@@ -60,22 +58,23 @@ function run( steps)
        w = zeros( 1 )
        x = get_x(particle_group2, i_part)
        v = get_v(particle_group2, i_part)
-       s[1] =  get_s1(particle_group2, i_part)
-       s[2] =  get_s2(particle_group2, i_part)
-       s[3] =  get_s3(particle_group2, i_part)
-       w = get_weights(particle_group2, i_part)
-       set_x(particle_group, i_part, x[1])
-       set_v(particle_group, i_part, v[1])
-       set_s1(particle_group, i_part, s[1])
-       set_s2(particle_group, i_part, s[2])
-       set_s3(particle_group, i_part, s[3])
-       set_weights(particle_group, i_part, w[1])
+       s[1] =  GEMPIC.get_s1(particle_group2, i_part)
+       s[2] =  GEMPIC.get_s2(particle_group2, i_part)
+       s[3] =  GEMPIC.get_s3(particle_group2, i_part)
+       w = GEMPIC.get_weights(particle_group2, i_part)
+       GEMPIC.set_x(particle_group, i_part, x[1])
+       GEMPIC.set_v(particle_group, i_part, v[1])
+       GEMPIC.set_s1(particle_group, i_part, s[1])
+       GEMPIC.set_s2(particle_group, i_part, s[2])
+       GEMPIC.set_s3(particle_group, i_part, s[3])
+       GEMPIC.set_weights(particle_group, i_part, w[1])
    end
    
    kernel_smoother2 = SpinParticleMeshCoupling( domain, [nx], n_particles, spline_degree-2, :galerkin) 
    kernel_smoother1 = SpinParticleMeshCoupling( domain, [nx], n_particles, spline_degree-1, :galerkin)    
    kernel_smoother0 = SpinParticleMeshCoupling( domain, [nx], n_particles, spline_degree, :galerkin)
    
+   rho = zeros(Float64, nx)
    efield_poisson = zeros(Float64, nx)
    
    # Init!ialize the field solver
@@ -83,8 +82,6 @@ function run( steps)
    # efield by Poisson
    solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
    
-   # +
-   # # +
    # Initialize the arrays for the spline coefficients of the fields
    k0 = 12.0523 
    E0 = 10
@@ -119,8 +116,6 @@ function run( steps)
    
    Δt = 0.002
 
-   mode1 = zeros(ComplexF64,steps)
-   mode2 = zeros(ComplexF64,steps)
    store = zeros(ComplexF64,nx)
    
    ss11 = Float64[]
@@ -155,17 +150,17 @@ function run( steps)
        fft!(store)
        electric[j,:] .= store 
        
-       push!(ss11, get_s1(propagator.particle_group, 1)) 
-       push!(ss12, get_s2(propagator.particle_group, 1))
-       push!(ss13, get_s3(propagator.particle_group, 1)) 
+       push!(ss11, GEMPIC.get_s1(propagator.particle_group, 1)) 
+       push!(ss12, GEMPIC.get_s2(propagator.particle_group, 1))
+       push!(ss13, GEMPIC.get_s3(propagator.particle_group, 1)) 
 
-       push!(ss21, get_s1(propagator.particle_group, 100)) 
-       push!(ss22, get_s2(propagator.particle_group, 100)) 
-       push!(ss23, get_s3(propagator.particle_group, 100)) 
+       push!(ss21, GEMPIC.get_s1(propagator.particle_group, 100)) 
+       push!(ss22, GEMPIC.get_s2(propagator.particle_group, 100)) 
+       push!(ss23, GEMPIC.get_s3(propagator.particle_group, 100)) 
 
-       push!(ss31, get_s1(propagator.particle_group, 800)) 
-       push!(ss32, get_s2(propagator.particle_group, 800)) 
-       push!(ss33, get_s3(propagator.particle_group, 800)) 
+       push!(ss31, GEMPIC.get_s1(propagator.particle_group, 800)) 
+       push!(ss32, GEMPIC.get_s2(propagator.particle_group, 800)) 
+       push!(ss33, GEMPIC.get_s3(propagator.particle_group, 800)) 
        
    end
 
@@ -176,3 +171,6 @@ end
 results = run(10000)
 
 CSV.write("thdiag-$(now()).csv", results)
+# -
+
+
