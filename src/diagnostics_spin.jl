@@ -1,7 +1,5 @@
 using DataFrames
 
-export solve_poisson!
-
 """
     pic_diagnostics_transfer( particle_group, kernel_smoother_0, 
                             kernel_smoother_1, efield_dofs, transfer)
@@ -36,10 +34,10 @@ function pic_diagnostics_transfer( particle_group :: SpinParticleGroup,
     
 end
 
-export TimeHistoryDiagnostics
+export SpinTimeHistoryDiagnostics
 
 """
-    TimeHistoryDiagnostics( particle_group, maxwell_solver, 
+    SpinTimeHistoryDiagnostics( particle_group, maxwell_solver, 
                             kernel_smoother_0, kernel_smoother_1 )
 
 Context to save and plot diagnostics
