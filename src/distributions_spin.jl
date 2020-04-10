@@ -49,6 +49,7 @@ struct SpinCosGaussianParams
 
 end
 
+export SpinCosSumGaussian
 
 """
     SpinCosSumGaussian{D,V}( n_cos, n_gaussians, k, α, σ, μ, δ )
@@ -114,46 +115,7 @@ function eval_x_density( f :: SpinCosSumGaussian, x :: Union{Float64,Vector{Floa
 
 end
 
-"""
-    eval_x_density( f, x )
-
-evaluate the cosine part of the distribution function
-"""
-function eval_x_density( f :: SumCosGaussian, 
-                         x :: Union{Float64,Vector{Float64}} )
-    
-    fval = 1.0
-    for j=1:f.params.n_cos
-       fval += f.params.α[j] * cos( sum(f.params.k[j] .* x) )
-    end
-    fval
-
-end
-
-"""
-    eval_v_density( f, v )
-
-evaluate the normal part of the distribution function
-"""
-function eval_v_density( f :: AbstractCosGaussian, 
-                         v :: Union{Float64,Vector{Float64}} ) 
-
-    fval = 0.0
-    for j=1:f.params.n_gaussians
-       fval += f.params.normal[j] * f.params.δ[j] .* exp( - 0.5 * 
-               sum( ((v .- f.params.μ[j]) ./ f.params.σ[j]).^2))
-    end
-    fval
-
-end 
-
-function( f :: CosSumGaussian )( x, v )
-
-    eval_x_density( f, x) * eval_v_density( f, v)
-
-end
-
-function( f :: SumCosGaussian )( x, v )
+function( f :: SpinCosSumGaussian )( x, v )
 
     eval_x_density( f, x) * eval_v_density( f, v)
 
