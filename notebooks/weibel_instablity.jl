@@ -49,17 +49,8 @@
 # Note that $\nabla \cdot B = 0$ is manifest.
 
 using ProgressMeter, Plots
+using GEMPIC
 
-include("../src/mesh.jl")
-include("../src/distributions.jl")
-include("../src/low_level_bsplines.jl")
-include("../src/splinepp.jl")
-include("../src/maxwell_1d_fem.jl")
-include("../src/particle_group.jl")
-include("../src/particle_mesh_coupling.jl")
-include("../src/hamiltonian_splitting.jl")
-include("../src/particle_sampling.jl")
-include("../src/diagnostics.jl")
 
 # # Weibel instability
 #
@@ -209,7 +200,4 @@ first(thdiag.data, 10)
 
 using Gadfly
 
-
 Gadfly.plot(thdiag.data, x=:Time, y=:PotentialEnergyE2, Geom.point, Geom.line)
-
-
