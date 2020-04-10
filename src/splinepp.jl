@@ -147,7 +147,7 @@ Perform a 1d hornerschema on the pp_coeffs at index
 function horner_1d(degree :: Int, pp_coeffs, x :: Float64, index :: Int)
     
     res = pp_coeffs[1,index]
-    for i=1:degree
+    @inbounds for i=1:degree
        res = res * x + pp_coeffs[i+1,index]
     end
     res
