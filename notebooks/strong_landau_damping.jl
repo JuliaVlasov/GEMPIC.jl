@@ -15,7 +15,6 @@
 # ---
 
 using ProgressMeter, Plots
-using Revise
 using GEMPIC
 
 # # Strong Landau Damping
@@ -133,7 +132,7 @@ end
 
 # +
 
-@time results = run(1000)
+@time results = run(1) # change number of steps
 
 plot(results[!,:Time], log.(results[!,:PotentialEnergyE1]))
 # -
