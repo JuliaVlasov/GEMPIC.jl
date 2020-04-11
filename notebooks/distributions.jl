@@ -7,17 +7,17 @@
 #     text_representation:
 #       extension: .jl
 #       format_name: light
-#       format_version: '1.4'
-#       jupytext_version: 1.2.4
+#       format_version: '1.5'
+#       jupytext_version: 1.4.2
 #   kernelspec:
-#     display_name: Julia 1.1.1
+#     display_name: Julia 1.4.0
 #     language: julia
-#     name: julia-1.1
+#     name: julia-1.4
 # ---
 
-# ## Initialize a probablity distribution
+# ## Initialize a distribution
 
-include("../src/distributions.jl")
+using GEMPIC
 
 ?SumCosGaussian
 
@@ -28,8 +28,8 @@ k, α = 0.5, 0.1
 nx, nv = 64, 128
 xmin, xmax = 0, 2π/k
 vmin, vmax = -6, 6
-xg = range(xmin, stop=xmax, length=nx+1)[1:end-1] |> collect
-vg = range(vmin, stop=vmax, length=nv+1)[1:end-1] |> collect;
+xg = LinRange(xmin, xmax, nx+1)[1:end-1] 
+vg = LinRange(vmin, vmax, nv+1)[1:end-1];
 
 # -
 
@@ -57,8 +57,6 @@ surface(xg, vg, fxv)
 
 df = CosSumGaussian{1,1}( [[k]], [0.1], [[1.0]], [[0.0]], [1.0] )
 
-plot( xg, [eval_x_density(df, x) for x in xg])
+plot( xg, [GEMPIC.eval_x_density(df, x) for x in xg])
 
-plot( vg, [eval_v_density(df, v) for v in vg])
-
-
+plot( vg, [GEMPIC.eval_v_density(df, v) for v in vg])
