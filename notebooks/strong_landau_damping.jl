@@ -36,7 +36,7 @@ xmin, xmax = 0, 2π/kx
 domain = [xmin, xmax, xmax - xmin]
 ∆t = 0.05
 nx = 64 
-n_particles = 200000
+n_particles = 100000
 mesh = Mesh( xmin, xmax, nx)
 spline_degree = 3
 
@@ -48,23 +48,17 @@ sampler = ParticleSampler{1,2}( :sobol, true, n_particles)
 
 sample!(particle_group, sampler, df, mesh)
 
-xp = Vector{Float64}[] # particles data
-for i in 1:n_particles
-    push!(xp, vcat(GEMPIC.get_x(particle_group,i), 
-            GEMPIC.get_v(particle_group,i),
-            GEMPIC.get_weights(particle_group,i)))
-end
+xp = view(particle_group.particle_array, 1, :)
+vp = view(particle_group.particle_array, 2:3, :)
+wp = view(particle_group.particle_array, 4, :);
 # -
 
-xp = vcat([GEMPIC.get_x(particle_group, i) for i in 1:n_particles]...)
-vp = vcat([GEMPIC.get_v(particle_group, i) for i in 1:n_particles]'...)
-wp = vcat([GEMPIC.get_weights(particle_group, i) for i in 1:n_particles]'...)
 p = plot(layout=(3,1))
 histogram!(p[1,1], xp, weights=wp, normalize=true, bins = 100, lab = "")
 plot!(p[1,1], x-> (1+α*cos(kx*x))/(2π/kx), 0., 2π/kx, lab="")
-histogram!(p[2,1], vp[:,1], weights=wp, normalize=true, bins = 100, lab = "")
+histogram!(p[2,1], vp[1,:], weights=wp, normalize=true, bins = 100, lab = "")
 plot!(p[2,1], v-> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
-histogram!(p[3,1], vp[:,2], weights=wp, normalize=true, bins = 100, lab = "")
+histogram!(p[3,1], vp[2,:], weights=wp, normalize=true, bins = 100, lab = "")
 plot!(p[3,1], v-> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
 
 
@@ -139,7 +133,7 @@ end
 
 # +
 
-@time results = run(100)
+@time results = run(1000)
 
 plot(results[!,:Time], log.(results[!,:PotentialEnergyE1]))
 # -

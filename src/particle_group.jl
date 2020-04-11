@@ -5,7 +5,6 @@ export ParticleGroup
 abstract type AbstractParticleGroup end
 
 """
-
     ParticleGroup{D,V}( n_particles, 
                         charge, 
                         mass, 

@@ -219,17 +219,6 @@ function write_step!( thdiag :: TimeHistoryDiagnostics,
     potential_energy[3] = l2norm_squared( thdiag.maxwell_solver, 
         bfield_dofs, degree-1 )
 
-#=
-    println( """ 
-time = $time,  
-potential_energy = $potential_energy, 
-diagnostics[1] = $(diagnostics[1]),
-diagnostics + sum(potential_energy) = $(diagnostics[1] + sum(potential_energy))
-diagnostics[2:3] = $(diagnostics[2:3]), 
--transfer+vvb+poynting =  $(-transfer+vvb+poynting),
-maximum(abs.(efield_1_dofs .- efield_poisson))) = $(maximum(abs.(efield_1_dofs .- efield_poisson)))
-""")
-=#
     push!(thdiag.data, ( time,  
                          diagnostics...,
                          potential_energy..., 
@@ -240,8 +229,6 @@ maximum(abs.(efield_1_dofs .- efield_poisson))) = $(maximum(abs.(efield_1_dofs .
 end 
 
     
-export evaluate
-
 """
     evaluate( kernel_smoother, field_dofs,  xi, n_dofs )
 

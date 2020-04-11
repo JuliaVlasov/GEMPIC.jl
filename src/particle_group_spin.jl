@@ -4,7 +4,6 @@ using JLD2, FileIO, Printf
 export SpinParticleGroup
 
 """
-
     ParticleGroup{D,V,S}( n_particles, 
                         charge, 
                         mass, 
@@ -41,7 +40,6 @@ struct SpinParticleGroup{D,V,S} <:  AbstractParticleGroup
     end
 end 
 
-export get_x
 
 """  
     get_x( p, i )
@@ -54,7 +52,6 @@ Get position of ith particle of p
     
 end 
 
-export get_v
 
 """  
     get_v( p, i )
@@ -66,8 +63,9 @@ Get velocity of ith particle of p
     p.particle_array[D+V, i]
 end
 
+
 """  
-get_s1( p, i )
+    get_s1( p, i )
 
 Get s1 of ith particle of p
 """
@@ -76,8 +74,9 @@ Get s1 of ith particle of p
     p.particle_array[D+V+1, i]
 end
 
+
 """  
-get_s2( p, i )
+    get_s2( p, i )
 
 Get s2 of ith particle of p
 """
@@ -85,6 +84,7 @@ Get s2 of ith particle of p
 
     p.particle_array[D+V+2, i]
 end
+
 
 """  
 get_s3( p, i )
@@ -182,7 +182,7 @@ Set velocity of ith particle of p to v
 end
 
 """
-set_s1( p, i, v)
+    set_s1( p, i, v)
 
 Set velocity of ith particle of p to v
 """
@@ -194,7 +194,7 @@ end
 
 
 """
-set_s2( p, i, v)
+    set_s2( p, i, v)
 
 Set velocity of ith particle of p to v
 """
@@ -205,7 +205,7 @@ Set velocity of ith particle of p to v
 end
 
 """
-set_s3( p, i, v)
+    set_s3( p, i, v)
 
 Set velocity of ith particle of p to v
 """
