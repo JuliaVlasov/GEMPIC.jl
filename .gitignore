@@ -17,3 +17,4 @@ notebooks/quietstart.ipynb
 *.csv
 *.jld2
 notebooks/maxwell_1d_fem.ipynb
+notebooks/strong_landau_damping_spin.ipynb
