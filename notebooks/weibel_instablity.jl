@@ -77,8 +77,7 @@ periodic boundary conditions, Weibel instability.
 FEM with splines, degree 3 for B and 2 for E
 """
 
-
-β     = 0.0001
+β  = 0.0001
 
 k  = 1.25
 α  = 0.0
@@ -89,7 +88,7 @@ nx   = 32
 xmin = 0.0
 xmax = 2π / k
 
-n_particles    = 100000
+n_particles    = 10000
 sampling_case  = :sobol
 symmetric      = true
 splitting_case = :symplectic
@@ -97,6 +96,7 @@ spline_degree  = 3
 
 mesh   = Mesh( xmin, xmax, nx)
 domain = [xmin, xmax, xmax - xmin ]
+xg = LinRange(xmin, xmax, nx)
 
 beta_sin_k(x) = beta * sin(2π * x / domain[3]) 
 
@@ -109,32 +109,25 @@ v1 = LinRange(v1min, v1max, nv1) |> collect
 v2 = LinRange(v2min, v2max, nv2) |> collect
 f = zeros(Float64,(nv1,nv2))
 for i in eachindex(v1), j in eachindex(v2)
-    f[i,j] = eval_v_density(df, [v1[i],v2[j]])
+    f[i,j] = GEMPIC.eval_v_density(df, [v1[i],v2[j]])
 end
 
 contourf(v1, v2, f)
-
-?ParticleGroup
 
  # Initialize the particles   (mass and charge set to 1.0 with one weight)
 mass, charge = 1.0, 1.0
 particle_group = ParticleGroup{1,2}( n_particles, mass, charge, 1)   
 
-?ParticleSampler
 
 sampler = ParticleSampler{1,2}( sampling_case, symmetric, n_particles)
 
-?sample!
-
 sample!(  particle_group, sampler, df, mesh)
-
-?get_x
 
 xp = Vector{Float64}[]
 for i in 1:n_particles
     push!(xp, vcat(get_x(particle_group,i), 
-            get_v(particle_group,i),
-            get_weights(particle_group,i)))
+            GEMPIC.get_v(particle_group,i),
+            GEMPIC.get_weights(particle_group,i)))
 end
 
 p = vcat(xp'...);
@@ -143,7 +136,6 @@ histogram(p[:,2], weights=p[:,4], normalize=true, bins=100)
 
 histogram(p[:,3], weights=p[:,4], normalize=true, bins=100)
 
-?ParticleMeshCoupling
 
 kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-1, :galerkin)    
 kernel_smoother0 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree, :galerkin)
@@ -180,24 +172,30 @@ thdiag = TimeHistoryDiagnostics( particle_group, maxwell_solver,
 # +
 steps, Δt = 500, 0.05
 
-@showprogress 1 for j = 1:steps # loop over time
+time = @elapsed begin 
 
-    # Strang splitting
-    strang_splitting!(propagator, Δt, 1)
-
-    # Diagnostics
-    solve_poisson!( efield_poisson, particle_group, 
-                    kernel_smoother0, maxwell_solver, rho)
+    @showprogress 1 for j = 1:steps # loop over time
     
-    write_step!(thdiag, j * Δt, spline_degree, 
-                    efield_dofs,  bfield_dofs,
-                    efield_dofs_n, efield_poisson)
+        # Strang splitting
+        strang_splitting!(propagator, Δt, 1)
+    
+        # Diagnostics
+        solve_poisson!( efield_poisson, particle_group, 
+                        kernel_smoother0, maxwell_solver, rho)
+        
+        write_step!(thdiag, j * Δt, spline_degree, 
+                        efield_dofs,  bfield_dofs,
+                        efield_dofs_n, efield_poisson)
+    
+    end
 
 end
+
+@show time
 
 # -
 first(thdiag.data, 10)
 
-using Gadfly
-
-Gadfly.plot(thdiag.data, x=:Time, y=:PotentialEnergyE2, Geom.point, Geom.line)
+# using Gadfly
+# 
+# Gadfly.plot(thdiag.data, x=:Time, y=:PotentialEnergyE2, Geom.point, Geom.line)
