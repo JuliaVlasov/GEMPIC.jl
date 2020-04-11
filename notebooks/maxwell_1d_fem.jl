@@ -7,22 +7,19 @@
 #     text_representation:
 #       extension: .jl
 #       format_name: light
-#       format_version: '1.4'
-#       jupytext_version: 1.2.4
+#       format_version: '1.5'
+#       jupytext_version: 1.4.2
 #   kernelspec:
-#     display_name: Julia 1.2.0
+#     display_name: Julia 1.4.0
 #     language: julia
-#     name: julia-1.2
+#     name: julia-1.4
 # ---
 
 # # Maxwell solver FEM 1D
 
-using Plots
+using GEMPIC, LinearAlgebra, Plots
 
 const mode = 2
-
-include("../src/low_level_bsplines.jl")
-include("../src/maxwell_1d_fem.jl")
 
 eta1_min = .0
 eta1_max = 2π
@@ -55,15 +52,14 @@ for i = 1:nc_eta1
    ex_exact[i] = sin_k(xi)/(2.0*mode*pi/Lx)
 end
 
-x = range(eta1_min , stop=eta1_max, length=nc_eta1+1)[1:end-1] |> collect;
+x = LinRange(eta1_min, eta1_max, nc_eta1+1)[1:end-1]
 
 compute_rhs_from_function!( rho, maxwell_1d, cos_k, deg)
 
 compute_e_from_rho!( ex, maxwell_1d, rho ) 
 
 plot(x, ex_exact)
-sval = eval_uniform_periodic_spline_curve(deg-1, ex);
-
+sval = eval_uniform_periodic_spline_curve(deg-1, ex)
 scatter!(x, sval)
 
 dt = .5 * delta_eta1
@@ -126,9 +122,7 @@ l2projection!(bz, maxwell_1d, cos_k, deg-1) # 0-form -> splines of degree deg-1
 plot(bz)
 
 # +
-#for istep = 1:nstep 
-
-   compute_b_from_e!( bz, maxwell_1d, 0.5*dt, ey)
+compute_b_from_e!( bz, maxwell_1d, 0.5*dt, ey)
 
 plot(bz)
 # -
@@ -152,3 +146,6 @@ sval = eval_uniform_periodic_spline_curve(deg, ey)
 
 sval = eval_uniform_periodic_spline_curve(deg-1, bz)
 @show err_bz = norm(sval .- bz_exact)
+# -
+
+
