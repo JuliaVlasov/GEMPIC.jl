@@ -48,7 +48,7 @@ export get_x
 
 Get position of ith particle of p
 """
-function get_x( p :: SpinParticleGroup{D,V,S}, i :: Int64 ) where {D, V, S}
+@inline function get_x( p :: SpinParticleGroup{D,V,S}, i :: Int64 ) where {D, V, S}
 
     p.particle_array[1:D, i]
     
@@ -61,7 +61,7 @@ export get_v
 
 Get velocity of ith particle of p
 """
-function get_v( p :: SpinParticleGroup{D,V,S}, i  :: Int64) where {D, V, S}
+@inline function get_v( p :: SpinParticleGroup{D,V,S}, i  :: Int64) where {D, V, S}
 
     p.particle_array[D+V, i]
 end
@@ -71,7 +71,7 @@ get_s1( p, i )
 
 Get s1 of ith particle of p
 """
-function get_s1( p :: SpinParticleGroup{D,V,S}, i  :: Int64) where {D, V, S}
+@inline function get_s1( p :: SpinParticleGroup{D,V,S}, i  :: Int64) where {D, V, S}
 
     p.particle_array[D+V+1, i]
 end
@@ -81,7 +81,7 @@ get_s2( p, i )
 
 Get s2 of ith particle of p
 """
-function get_s2( p :: SpinParticleGroup{D,V,S}, i  :: Int64) where {D, V, S}
+@inline function get_s2( p :: SpinParticleGroup{D,V,S}, i  :: Int64) where {D, V, S}
 
     p.particle_array[D+V+2, i]
 end
@@ -91,7 +91,7 @@ get_s3( p, i )
 
 Get velocity of ith particle of p
 """
-function get_s3( p :: SpinParticleGroup{D,V,S}, i  :: Int64) where {D, V, S}
+@inline function get_s3( p :: SpinParticleGroup{D,V,S}, i  :: Int64) where {D, V, S}
 
     p.particle_array[D+V+3, i]
 end
@@ -104,7 +104,7 @@ end
 
 Get charge of ith particle of p (q * particle_weight)
 """
-function get_charge( p :: SpinParticleGroup{D,V,S}, i :: Int64; i_wi=1) where {D, V, S}
+@inline function get_charge( p :: SpinParticleGroup{D,V,S}, i :: Int64; i_wi=1) where {D, V, S}
 
     p.charge * p.particle_array[D+V+S+i_wi, i] * p.common_weight[]
 
@@ -116,7 +116,7 @@ end
 
 Get mass of ith particle of p (m * particle_weight)
 """
-function get_mass( p :: SpinParticleGroup{D,V,S}, i :: Int64; i_wi=1) where {D,V,S}
+@inline function get_mass( p :: SpinParticleGroup{D,V,S}, i :: Int64; i_wi=1) where {D,V,S}
 
     p.mass * p.particle_array[D+V+S+i_wi, i] * p.common_weight[]
 
@@ -127,7 +127,7 @@ end
 
 Get ith particle weights of group p
 """
-function get_weights( p :: SpinParticleGroup{D,V,S}, i :: Int64) where {D, V, S}
+@inline function get_weights( p :: SpinParticleGroup{D,V,S}, i :: Int64) where {D, V, S}
 
     p.particle_array[D+V+S+1, i]
 
@@ -138,7 +138,7 @@ end
 
 Set position of ith particle of p to x 
 """
-function set_x( p :: SpinParticleGroup{D,V,S}, i :: Int64, x :: Vector{Float64} ) where {D, V, S}
+@inline function set_x( p :: SpinParticleGroup{D,V,S}, i :: Int64, x :: Vector{Float64} ) where {D, V, S}
 
     for j in 1:D p.particle_array[j, i] = x[j] end
     
@@ -152,7 +152,7 @@ Set position of ith particle of p to x
 !!! note
     if `x` is a scalar value, only the first x dimension will be set.
 """
-function set_x( p :: SpinParticleGroup{D,V,S}, i :: Int64, x :: Float64 ) where {D, V, S}
+@inline function set_x( p :: SpinParticleGroup{D,V,S}, i :: Int64, x :: Float64 ) where {D, V, S}
 
     p.particle_array[1, i] = x
 
@@ -164,7 +164,7 @@ end
 
 Set velocity of ith particle of p to v
 """
-function set_v( p :: SpinParticleGroup{D,V,S}, i :: Int64, v :: Vector{Float64} ) where {D, V, S}
+@inline function set_v( p :: SpinParticleGroup{D,V,S}, i :: Int64, v :: Vector{Float64} ) where {D, V, S}
 
     for j in 1:V p.particle_array[D+j, i] = v[j] end
     
@@ -175,7 +175,7 @@ end
 
 Set velocity of ith particle of p to v
 """
-function set_v( p :: SpinParticleGroup{D,V,S}, i :: Int64, v :: Float64 ) where {D, V, S}
+@inline function set_v( p :: SpinParticleGroup{D,V,S}, i :: Int64, v :: Float64 ) where {D, V, S}
 
     p.particle_array[D+V, i] = v
     
@@ -186,7 +186,7 @@ set_s1( p, i, v)
 
 Set velocity of ith particle of p to v
 """
-function set_s1( p :: SpinParticleGroup{D,V,S}, i :: Int64, v :: Float64 ) where {D, V, S}
+@inline function set_s1( p :: SpinParticleGroup{D,V,S}, i :: Int64, v :: Float64 ) where {D, V, S}
 
     p.particle_array[D+V+1, i] = v
     
@@ -198,7 +198,7 @@ set_s2( p, i, v)
 
 Set velocity of ith particle of p to v
 """
-function set_s2( p :: SpinParticleGroup{D,V,S}, i :: Int64, v :: Float64 ) where {D, V, S}
+@inline function set_s2( p :: SpinParticleGroup{D,V,S}, i :: Int64, v :: Float64 ) where {D, V, S}
 
     p.particle_array[D+V+2, i] = v
     
@@ -209,7 +209,7 @@ set_s3( p, i, v)
 
 Set velocity of ith particle of p to v
 """
-function set_s3( p :: SpinParticleGroup{D,V,S}, i :: Int64, v :: Float64 ) where {D, V, S}
+@inline function set_s3( p :: SpinParticleGroup{D,V,S}, i :: Int64, v :: Float64 ) where {D, V, S}
 
     p.particle_array[D+V+3, i] = v
     

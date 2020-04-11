@@ -49,7 +49,7 @@ export get_x
 
 Get position of ith particle of p
 """
-function get_x( p :: ParticleGroup{D,V}, i :: Int64 ) where {D, V}
+@inline function get_x( p :: ParticleGroup{D,V}, i :: Int64 ) where {D, V}
 
     p.particle_array[1:D, i]
     
@@ -62,7 +62,7 @@ export get_v
 
 Get velocity of ith particle of p
 """
-function get_v( p :: ParticleGroup{D,V}, i  :: Int64) where {D, V}
+@inline function get_v( p :: ParticleGroup{D,V}, i  :: Int64) where {D, V}
 
     p.particle_array[D+1:D+V, i]
 end
@@ -73,7 +73,7 @@ end
 
 Get charge of ith particle of p (q * particle_weight)
 """
-function get_charge( p :: ParticleGroup{D,V}, i :: Int64; i_wi=1) where {D, V}
+@inline function get_charge( p :: ParticleGroup{D,V}, i :: Int64; i_wi=1) where {D, V}
 
     p.charge * p.particle_array[D+V+i_wi, i] * p.common_weight[]
 
@@ -85,7 +85,7 @@ end
 
 Get mass of ith particle of p (m * particle_weight)
 """
-function get_mass( p :: ParticleGroup{D,V}, i :: Int64; i_wi=1) where {D,V}
+@inline function get_mass( p :: ParticleGroup{D,V}, i :: Int64; i_wi=1) where {D,V}
 
     p.mass * p.particle_array[D+V+i_wi, i] * p.common_weight[]
 
@@ -96,7 +96,7 @@ end
 
 Get ith particle weights of group p
 """
-function get_weights( p :: ParticleGroup{D,V}, i :: Int64) where {D, V}
+@inline function get_weights( p :: ParticleGroup{D,V}, i :: Int64) where {D, V}
 
     p.particle_array[D+V+1:D+V+p.n_weights, i]
 
@@ -107,7 +107,7 @@ end
 
 Set position of ith particle of p to x 
 """
-function set_x( p :: ParticleGroup{D,V}, i :: Int64, x :: Vector{Float64} ) where {D, V}
+@inline function set_x( p :: ParticleGroup{D,V}, i :: Int64, x :: Vector{Float64} ) where {D, V}
 
     for j in 1:D p.particle_array[j, i] = x[j] end
     
@@ -121,7 +121,7 @@ Set position of ith particle of p to x
 !!! note
     if `x` is a scalar value, only the first x dimension will be set.
 """
-function set_x( p :: ParticleGroup{D,V}, i :: Int64, x :: Float64 ) where {D, V}
+@inline function set_x( p :: ParticleGroup{D,V}, i :: Int64, x :: Float64 ) where {D, V}
 
     p.particle_array[1, i] = x
 
@@ -133,7 +133,7 @@ end
 
 Set velocity of ith particle of p to v
 """
-function set_v( p :: ParticleGroup{D,V}, i :: Int64, v :: Vector{Float64} ) where {D, V}
+@inline function set_v( p :: ParticleGroup{D,V}, i :: Int64, v :: Vector{Float64} ) where {D, V}
 
     for j in 1:V p.particle_array[D+j, i] = v[j] end
     
@@ -144,7 +144,7 @@ end
 
 Set velocity of ith particle of p to v
 """
-function set_v( p :: ParticleGroup{D,V}, i :: Int64, v :: Float64 ) where {D, V}
+@inline function set_v( p :: ParticleGroup{D,V}, i :: Int64, v :: Float64 ) where {D, V}
 
     p.particle_array[D+1, i] = v
     

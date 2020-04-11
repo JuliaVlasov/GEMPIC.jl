@@ -50,15 +50,15 @@ sample!(particle_group, sampler, df, mesh)
 
 xp = Vector{Float64}[] # particles data
 for i in 1:n_particles
-    push!(xp, vcat(get_x(particle_group,i), 
-            get_v(particle_group,i),
-            get_weights(particle_group,i)))
+    push!(xp, vcat(GEMPIC.get_x(particle_group,i), 
+            GEMPIC.get_v(particle_group,i),
+            GEMPIC.get_weights(particle_group,i)))
 end
 # -
 
-xp = vcat([get_x(particle_group, i) for i in 1:n_particles]...)
-vp = vcat([get_v(particle_group, i) for i in 1:n_particles]'...)
-wp = vcat([get_weights(particle_group, i) for i in 1:n_particles]'...)
+xp = vcat([GEMPIC.get_x(particle_group, i) for i in 1:n_particles]...)
+vp = vcat([GEMPIC.get_v(particle_group, i) for i in 1:n_particles]'...)
+wp = vcat([GEMPIC.get_weights(particle_group, i) for i in 1:n_particles]'...)
 p = plot(layout=(3,1))
 histogram!(p[1,1], xp, weights=wp, normalize=true, bins = 100, lab = "")
 plot!(p[1,1], x-> (1+α*cos(kx*x))/(2π/kx), 0., 2π/kx, lab="")
@@ -79,49 +79,11 @@ xg = LinRange(xmin, xmax, nx)
 sval = eval_uniform_periodic_spline_curve(spline_degree-1, rho)
 plot( xg, sval )
 
-import Pkg; Pkg.add("BenchmarkTools")
-
-using BenchmarkTools
-
-# +
-import GEMPIC.solve_poisson!
-using Base.Threads: @spawn, @sync, nthreads
-
-
-#    @sync for x_index_chunk in Iterators.partition(eachindex(x), lx ÷ 2nthreads()) 
-#        
-
-function solve_poisson!( efield_dofs       :: Vector{Float64},
-                         p    :: ParticleGroup, 
-                         kernel_smoother_0 :: ParticleMeshCoupling, 
-                         maxwell_solver    :: Maxwell1DFEM, 
-                         rho               :: Vector{Float64}) 
-
-    
-    fill!(rho, 0.0)
-
-    @sync for i_part_chunk = Iterators.partition(1:p.n_particles, nthreads())
-        @spawn begin
-            for i_part in i_part_chunk
-               xi :: Float64 = p.particle_array[1,i_part]
-               wi :: Float64 = p.charge * p.particle_array[4, i_part] * p.common_weight
-               GEMPIC.add_charge!(rho, kernel_smoother_0, xi, wi)
-            end
-        end
-    end
-
-    compute_e_from_rho!( efield_dofs, maxwell_solver, rho )
-
-end
-
-# -
-
 efield_poisson = zeros(Float64, nx)
 # Init!ialize the field solver
 maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
 # efield by Poisson
-@show nthreads()
-@btime solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
+solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
 
 solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
 sval = eval_uniform_periodic_spline_curve(spline_degree-1, efield_poisson)
@@ -133,7 +95,7 @@ plot( xg, sval )
 function run( steps)
 
     efield_poisson = zeros(Float64, nx)
-    # Init!ialize the field solver
+    # Initialize the field solver
     maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
     # efield by Poisson
     solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
