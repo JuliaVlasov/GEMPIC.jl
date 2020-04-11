@@ -24,10 +24,10 @@ const  inv_720 = 1. / 720.
 - `poly_coeffs` : `poly_coeffs[i,j]` coefficient of ``x^{deg+1-j}`` for ith B-spline function  size= (degree+1, degree+1)
 - `poly_coeffs_fp` : `poly_coeffs[i,j]` coefficient of ``x^{deg+1-j}`` for ith B-spline function  size= (degree+1, degree+1)
 - `ncells` : number of gridcells
-- `scratch_b` : scratch data for b_to_pp-converting
-- `scratch_p` : scratch data for b_to_pp-converting
+- `scratch_b` : scratch data for `b_to_pp-converting`
+- `scratch_p` : scratch data for `b_to_pp-converting`
 """
-mutable struct SplinePP
+struct SplinePP
 
     degree         :: Int64
     poly_coeffs    :: Array{Float64,2}
@@ -121,14 +121,14 @@ function b_to_pp( self :: SplinePP, ncells :: Int64, b_coeffs :: Vector{Float64}
     pp_coeffs = zeros(Float64, (degp1,ncells)) 
     coeffs    = zeros(Float64, degp1) 
        
-    for i=1:self.degree   
+    @inbounds for i=1:self.degree   
         coeffs .= vcat(b_coeffs[end-self.degree+i:end],b_coeffs[1:i]) 
         for j=1:degp1
             pp_coeffs[j, i] = sum(coeffs .* self.poly_coeffs[j,:])
         end
     end
     
-    for i=self.degree+1:ncells
+    @inbounds for i=self.degree+1:ncells
         coeffs .= b_coeffs[i-self.degree:i]
         for j=1:degp1
             pp_coeffs[j, i] = sum(coeffs .* self.poly_coeffs[j,:])
@@ -142,7 +142,7 @@ end
 """
     horner_1d(degree, pp_coeffs, x, index)
 
-Perform a 1d hornerschema on the pp_coeffs at index
+Perform a 1d hornerschema on the `pp_coeffs` at index
 """
 function horner_1d(degree :: Int, pp_coeffs, x :: Float64, index :: Int)
     
@@ -157,11 +157,11 @@ end
 """
     horner_primitive_1d(val, degree, pp_coeffs, x)
 
-Perform a 1d hornerschema on the pp_coeffs evaluate at x
+Perform a 1d hornerschema on the `pp_coeffs` evaluate at x
 """
 function horner_primitive_1d(val :: Vector{Float64}, degree, pp_coeffs, x)
 
-  for i in eachindex(val)
+  @inbounds for i in eachindex(val)
 
      val[i] = horner_1d(degree, pp_coeffs, x, i) * x
 

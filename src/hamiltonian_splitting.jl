@@ -138,14 +138,14 @@ end
     operatorHp1(h, dt)
 
 ```math
-\\begin{eqnarray}
-\\partial_t f + v_1 \\partial_{x_1} f = 0 & -> &  X_{new} = X_{old} + dt V_1 \\\\
-V_{new},2 = V_{old},2 + \\int_0 h V_{old},1 B_{old} && \\\\
-\\partial_t E_1 = - \\int v_1 f(t,x_1, v) dv & -> & E_{1,new} = E_{1,old} - 
-\\int \\int v_1 f(t,x_1+s v_1,v) dv ds  && \\\\
-\\partial_t E_2 = 0 & -> & E_{2,new} = E_{2,old} \\\\
-\\partial_t B = 0 & => & B_{new} = B_{old} 
-\\end{eqnarray}
+\\begin{aligned}
+\\partial_t f + v_1 \\partial_{x_1} f = 0 & \\rightarrow  X_{new} = X_{old} + dt V_1 \\\\
+V_{new},2 = V_{old},2 + \\int_0 h V_{old},1 B_{old} & \\\\
+\\partial_t E_1 = - \\int v_1 f(t,x_1, v) dv & \\rightarrow E_{1,new} = E_{1,old} - 
+\\int \\int v_1 f(t,x_1+s v_1,v) dv ds  & \\\\
+\\partial_t E_2 = 0 & \\rightarrow E_{2,new} = E_{2,old} \\\\
+\\partial_t B = 0 & \\rightarrow B_{new} = B_{old} 
+\\end{aligned}
 ```
 
 Here we have to accumulate j and integrate over the time interval.
@@ -225,13 +225,13 @@ end
 Push Hp2: Equations to solve are
 
 ```math
-\\begin{eqnarray} X_{new}  =  X_{old} && \\\\
-V_{new,1} = V_{old,1} + \\int_0 h V_{old,2} B_{old} && \\\\
-\\partial_t E_1 = 0 & => & E_{1,new} = E_{1,old}  \\\\
-\\partial_t E_2 = - \\int v_2 f(t,x_1, v) dv & => &
+\\begin{aligned} X_{new}  =  X_{old} & \\\\
+V_{new,1} = V_{old,1} + \\int_0 h V_{old,2} B_{old} & \\\\
+\\partial_t E_1 = 0 & \\rightarrow  E_{1,new} = E_{1,old}  \\\\
+\\partial_t E_2 = - \\int v_2 f(t,x_1, v) dv & \\rightarrow 
 E_{2,new} = E_{2,old} - \\int \\int v_2 f(t,x_1 + s v_1,v) dv ds\\\\
-\\partial_t B = 0 & => & B_{new} = B_{old} && \\\\
-\\end{eqnarray}
+\\partial_t B = 0 & => & B_{new} = B_{old} & \\\\
+\\end{aligned}
 ```
 """
 function operatorHp2(h :: HamiltonianSplitting, dt :: Float64)
@@ -275,14 +275,14 @@ end
 """
     operatorHE(h, dt)
 
-Push H_E: Equations to be solved
+Push ``H_E``: Equations to be solved
 ```math
-\\begin{eqnarray}
-\\partial_t f + E_1 \\partial_{v_1} f + E_2 \\partial_{v_2} f = 0 &->& V_{new} = V_{old} + dt * E \\\\
-\\partial_t E_1 = 0 &->& E_{1,new} = E_{1,old} \\\\
-\\partial_t E_2 = 0 &->& E_{2,new} = E_{2,old} \\\\
-\\partial_t B + \\partial_{x_1} E_2 = 0 &->& B_{new} = B_{old} - dt \\partial_{x_1} E_2
-\\end{eqnarray}
+\\begin{aligned}
+\\partial_t f + E_1 \\partial_{v_1} f + E_2 \\partial_{v_2} f = 0 &\\rightarrow& V_{new} = V_{old} + dt * E \\\\
+\\partial_t E_1 = 0 &\\rightarrow& E_{1,new} = E_{1,old} \\\\
+\\partial_t E_2 = 0 &\\rightarrow& E_{2,new} = E_{2,old} \\\\
+\\partial_t B + \\partial_{x_1} E_2 = 0 &\\rightarrow& B_{new} = B_{old} - dt \\partial_{x_1} E_2
+\\end{aligned}
 ```
 """
 function operatorHE(h :: HamiltonianSplitting, dt :: Float64)
@@ -308,17 +308,17 @@ function operatorHE(h :: HamiltonianSplitting, dt :: Float64)
         
 end
   
-"""
+@doc raw"""
     operatorHB(h, dt)
 
-Push H_B: Equations to be solved ``V_{new} = V_{old}``
+Push ``H_B``: Equations to be solved ``V_{new} = V_{old}``
 
 ```math
-\\begin{eqnarray}
-\\partial_t E_1 = 0 & -> & E_{1,new} = E_{1,old} \\\\
-\\partial_t E_2 = - \\partial_{x_1} B & -> & E_{2,new} = E_{2,old}-dt*\\partial_{x_1} B \\\\
-\\partial_t B = 0 & -> & B_{new} = B_{old} \\\\
-\\end{eqnarray}
+\begin{aligned}
+\partial_t E_1 = 0 & \rightarrow & E_{1,new} = E_{1,old} \\
+\partial_t E_2 = - \partial_{x_1} B & \rightarrow & E_{2,new} = E_{2,old}-dt*\partial_{x_1} B \\
+\partial_t B = 0 & \rightarrow & B_{new} = B_{old} \\
+\end{aligned}
 ```
 """
 function operatorHB(h :: HamiltonianSplitting, dt :: Float64)
