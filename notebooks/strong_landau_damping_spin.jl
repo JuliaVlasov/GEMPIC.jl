@@ -29,7 +29,7 @@ using CSV, Dates, FFTW
 using GEMPIC
 
 # +
-function run( steps) 
+function run( steps :: Int64) 
    
    σ, μ = 0.02, 0.0
    kx, α = 1.004355, 0.001
@@ -134,14 +134,14 @@ function run( steps)
 
        for i in eachindex(store)
            xi = 2π/kx/nx*(i-1)
-           store[i] = evaluate(propagator.kernel_smoother_1, xi, propagator.e_dofs[1])
+           store[i] = GEMPIC.evaluate(propagator.kernel_smoother_1, xi, propagator.e_dofs[1])
        end
 
        fft!(store)
        electric[j,:] .= store 
        
-       if step % 1000 == 0 
-           save( "particles", step, particle_group)
+       if (j % 1000) == 0 
+           GEMPIC.save( "particles", step, particle_group)
        end
        
    end
@@ -149,8 +149,8 @@ function run( steps)
    thdiag.data
 
 end
-
-results = run(10000)
+# +
+results = run(10000) # choose number of steps
 
 CSV.write("thdiag-$(now()).csv", results)
 # -
