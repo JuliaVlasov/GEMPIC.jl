@@ -7,12 +7,12 @@
 #     text_representation:
 #       extension: .jl
 #       format_name: light
-#       format_version: '1.4'
-#       jupytext_version: 1.2.4
+#       format_version: '1.5'
+#       jupytext_version: 1.4.2
 #   kernelspec:
-#     display_name: Julia 1.2.0
+#     display_name: Julia 1.4.0
 #     language: julia
-#     name: julia-1.2
+#     name: julia-1.4
 # ---
 
 # # Vlasov–Maxwell in 1D2V
@@ -123,18 +123,13 @@ sampler = ParticleSampler{1,2}( sampling_case, symmetric, n_particles)
 
 sample!(  particle_group, sampler, df, mesh)
 
-xp = Vector{Float64}[]
-for i in 1:n_particles
-    push!(xp, vcat(get_x(particle_group,i), 
-            GEMPIC.get_v(particle_group,i),
-            GEMPIC.get_weights(particle_group,i)))
-end
+xp = view( particle_group.particle_array, 1, :)
+vp = view( particle_group.particle_array, 2:3, :)
+wp = view( particle_group.particle_array, 4, :);
 
-p = vcat(xp'...);
+histogram(vp[1,:], weights=wp, normalize=true, bins=100)
 
-histogram(p[:,2], weights=p[:,4], normalize=true, bins=100)
-
-histogram(p[:,3], weights=p[:,4], normalize=true, bins=100)
+histogram(vp[2,:], weights=wp, normalize=true, bins=100)
 
 
 kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-1, :galerkin)    
@@ -195,7 +190,3 @@ end
 
 # -
 first(thdiag.data, 10)
-
-# using Gadfly
-# 
-# Gadfly.plot(thdiag.data, x=:Time, y=:PotentialEnergyE2, Geom.point, Geom.line)
