@@ -35,8 +35,8 @@ function run( steps :: Int64)
    kx, α = 1.004355, 0.001
    xmin, xmax = 0, 2π/kx
    domain = [xmin, xmax, xmax - xmin]
-   nx = 64 
-   n_particles = 1000
+   nx = 512 
+   n_particles = 100000
    mesh = Mesh( xmin, xmax, nx)
    spline_degree = 3
    
@@ -51,7 +51,9 @@ function run( steps :: Int64)
    
    particle_group = SpinParticleGroup{1,1,3}( n_particles, mass, charge, 1)   
    GEMPIC.set_common_weight(particle_group, (1.0/n_particles))
+
    for  i_part = 1:n_particles
+
        x = zeros( 1 )
        v = zeros( 1 )
        s = zeros( 3 )
@@ -68,6 +70,7 @@ function run( steps :: Int64)
        GEMPIC.set_s2(particle_group, i_part, s[2])
        GEMPIC.set_s3(particle_group, i_part, s[3])
        GEMPIC.set_weights(particle_group, i_part, w[1])
+
    end
    
    kernel_smoother2 = SpinParticleMeshCoupling( domain, [nx], n_particles, spline_degree-2, :galerkin) 
@@ -116,11 +119,7 @@ function run( steps :: Int64)
    
    Δt = 0.002
 
-   store = zeros(ComplexF64,nx)
-   
-   electric = zeros(ComplexF64, steps, nx)
-   
-   @showprogress 1 for j = 1:steps # loop over time
+   @showprogress 1 for jstep = 1:steps # loop over time
    
        # Strang splitting
        strang_splitting!(propagator, Δt, 1)
@@ -128,20 +127,12 @@ function run( steps :: Int64)
        solve_poisson!( efield_poisson, particle_group, 
                        kernel_smoother0, maxwell_solver, rho)
        
-       write_step!(thdiag, j * Δt, spline_degree, 
+       write_step!(thdiag, jstep * Δt, spline_degree, 
                        efield_dofs,  afield_dofs,
                        efield_dofs_n, efield_poisson, propagator)
 
-       for i in eachindex(store)
-           xi = 2π/kx/nx*(i-1)
-           store[i] = GEMPIC.evaluate(propagator.kernel_smoother_1, xi, propagator.e_dofs[1])
-       end
-
-       fft!(store)
-       electric[j,:] .= store 
-       
-       if (j % 1000) == 0 
-           GEMPIC.save( "particles", step, particle_group)
+       if (jstep % 1000 == 0)
+           GEMPIC.save( "particles", jstep, particle_group)
        end
        
    end
@@ -154,5 +145,3 @@ results = run(10000) # choose number of steps
 
 CSV.write("thdiag-$(now()).csv", results)
 # -
-
-
