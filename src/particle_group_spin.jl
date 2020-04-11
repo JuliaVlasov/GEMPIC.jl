@@ -1,3 +1,6 @@
+using JLD2, FileIO, Printf
+
+
 export SpinParticleGroup
 
 """
@@ -233,4 +236,16 @@ Set weights of particle @ i
 
     :(p.particle_array[$D+$V+$S+1, i] = w)
     
+end
+
+
+function save( file, step, p :: SpinParticleGroup{D,V,S}) where {D, V, S}
+
+    datafile = @sprintf("%s-%06d.jld2", file, step)
+
+    FileIO.save(datafile, Dict("x" => p.particle_array[1:D,:],
+                               "v" => p.particle_array[D+1:D+V,:], 
+                               "s" => p.particle_array[D+V+1:D+V+S,:],
+                               "w" => p.particle_array[D+V+S+1,:]))
+
 end

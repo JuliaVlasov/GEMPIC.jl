@@ -10,7 +10,7 @@ struct LandauDamping
 end
 
 """
-    sample!( LandauDamping(α, kx), pg)
+    sample!( d, pg)
 
 Sampling from a probability distribution to initialize
 a Landau damping

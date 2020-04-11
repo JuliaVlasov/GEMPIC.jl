@@ -14,3 +14,5 @@ notebooks/weibel_instablity.ipynb
 notebooks/distributions.ipynb
 notebooks/strong_landau_damping.ipynb
 notebooks/quietstart.ipynb
+*.csv
+*.jld2

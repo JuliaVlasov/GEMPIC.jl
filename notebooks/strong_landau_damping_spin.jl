@@ -118,16 +118,6 @@ function run( steps)
 
    store = zeros(ComplexF64,nx)
    
-   ss11 = Float64[]
-   ss12 = Float64[]
-   ss13 = Float64[]
-   ss21 = Float64[]
-   ss22 = Float64[]
-   ss23 = Float64[]
-   ss31 = Float64[]
-   ss32 = Float64[]
-   ss33 = Float64[]
-
    electric = zeros(ComplexF64, steps, nx)
    
    @showprogress 1 for j = 1:steps # loop over time
@@ -150,21 +140,13 @@ function run( steps)
        fft!(store)
        electric[j,:] .= store 
        
-       push!(ss11, GEMPIC.get_s1(propagator.particle_group, 1)) 
-       push!(ss12, GEMPIC.get_s2(propagator.particle_group, 1))
-       push!(ss13, GEMPIC.get_s3(propagator.particle_group, 1)) 
-
-       push!(ss21, GEMPIC.get_s1(propagator.particle_group, 100)) 
-       push!(ss22, GEMPIC.get_s2(propagator.particle_group, 100)) 
-       push!(ss23, GEMPIC.get_s3(propagator.particle_group, 100)) 
-
-       push!(ss31, GEMPIC.get_s1(propagator.particle_group, 800)) 
-       push!(ss32, GEMPIC.get_s2(propagator.particle_group, 800)) 
-       push!(ss33, GEMPIC.get_s3(propagator.particle_group, 800)) 
+       if step % 1000 == 0 
+           save( "particles", step, particle_group)
+       end
        
    end
 
-   return thdiag.data
+   thdiag.data
 
 end
 

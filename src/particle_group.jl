@@ -1,3 +1,5 @@
+using Printf, FileIO, JLD2
+
 export ParticleGroup
 
 abstract type AbstractParticleGroup end
@@ -164,9 +166,9 @@ end
 
 Set weights of particle @ i
 """
-@generated function set_weights( p :: ParticleGroup{D,V}, i :: Int64, w :: Float64 ) where {D, V}
+function set_weights( p :: ParticleGroup{D,V}, i :: Int64, w :: Float64 ) where {D, V}
 
-    :(p.particle_array[$D+$V+1, i] = w)
+    p.particle_array[D+V+1, i] = w
     
 end
 
@@ -179,4 +181,14 @@ function set_common_weight( p :: AbstractParticleGroup, x :: Float64 )
 
     p.common_weight = x
     
+end
+
+function save( file, step, p :: ParticleGroup{D,V}) where {D, V}
+
+    datafile = @sprintf("%s-%06d.jld2", file, step)
+
+    FileIO.save(datafile, Dict("x" => p.particle_array[1:D,:],
+                               "v" => p.particle_array[D+1:D+V,:],
+                               "w" => p.particle_array[D+V+1:D+V+1,:]))
+
 end
