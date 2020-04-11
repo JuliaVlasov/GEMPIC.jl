@@ -7,36 +7,23 @@
 #     text_representation:
 #       extension: .jl
 #       format_name: light
-#       format_version: '1.4'
-#       jupytext_version: 1.2.4
+#       format_version: '1.5'
+#       jupytext_version: 1.4.2
 #   kernelspec:
-#     display_name: Julia 1.2.0
+#     display_name: Julia 1.4.0
 #     language: julia
-#     name: julia-1.2
+#     name: julia-1.4
 # ---
 
 # ## Initialize a particle group
 
-using Test, Plots
-
-include("../src/mesh.jl")
-include("../src/low_level_bsplines.jl")
-include("../src/splinepp.jl")
-include("../src/distributions.jl")
-include("../src/maxwell_1d_fem.jl")
-include("../src/particle_group.jl")
-include("../src/particle_mesh_coupling.jl")
-include("../src/particle_sampling.jl")
-include("../src/landau_damping.jl")
-include("../src/hamiltonian_splitting.jl")
-include("../src/hamiltonian_splitting_boris.jl")
-include("../src/diagnostics.jl")
+using GEMPIC, Plots, Test
 
 # +
 function test_sampling( sampling_type :: Symbol, 
                         symmetric     :: Bool, 
                         pg            :: ParticleGroup{D,V}, 
-                        df            :: AbstractCosGaussian ) where {D, V}
+                        df             ) where {D, V}
 
    mean  = zeros(3)
    sigma = zeros(3)
@@ -118,10 +105,10 @@ mean, sigma = test_sampling( :random, true,  pg, df1)
 @show abs.(sigma .- sigma_ref)
 @test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e-12
 
-xp = vcat([get_x(pg, i) for i in 1:n_particles]...)
-wp = vcat([get_weights(pg, i) for i in 1:n_particles]...);
+xp = view(pg.particle_array,1,:)
+wp = view(pg.particle_array,4,:);
 
-histogram(xp, weights=wp, normalize=true, bins=100)
+histogram(xp, weights=wp, normalize=true, bins=200)
 
 # Expected mean:
 # 2π+1, 0, 0
