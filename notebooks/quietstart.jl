@@ -6,15 +6,18 @@
 #     text_representation:
 #       extension: .jl
 #       format_name: light
-#       format_version: '1.4'
-#       jupytext_version: 1.2.2
+#       format_version: '1.5'
+#       jupytext_version: 1.4.2
 #   kernelspec:
-#     display_name: Julia 1.2.0
+#     display_name: Julia 1.4.0
 #     language: julia
-#     name: julia-1.2
+#     name: julia-1.4
 # ---
 
-## Sampling from a probability distribution
+# # Sampling from a probability distribution
+#
+# This is a test notebook to study the best way to sample a density function.
+# It is not directly linked with the GEMPIC package.
 
 using Plots, BenchmarkTools, Sobol
 
@@ -177,3 +180,5 @@ end
 
 histogram(xp, normalize=true, bins = 100)
 plot!(x-> (1+alpha*cos(kx*x))/4π, 0., 4π)
+
+
