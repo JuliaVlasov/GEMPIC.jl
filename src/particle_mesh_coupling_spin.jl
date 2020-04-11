@@ -99,7 +99,7 @@ function add_charge_pp!(rho_dofs :: Vector{Float64},
                         marker_charge)
     
     xi    = (position[1] - p.domain[1])/p.delta_x
-    index = floor(Int64, xi)+1
+    index = trunc(Int64, xi)+1
     xi    = xi    - (index-1)
     index = index - p.spline_degree
 
@@ -134,7 +134,7 @@ function add_charge!( rho_dofs      :: Vector{Float64},
                       marker_charge :: Float64) 
 
     xi    = (position[1] - p.domain[1])/p.delta_x[1]
-    index = floor(Int64, xi)+1
+    index = trunc(Int64, xi)+1
     xi    = xi - (index-1)
     index = index - p.spline_degree
 
@@ -168,12 +168,12 @@ function add_current_update_v_pp!( j_dofs        :: AbstractArray,
     # contributes to, and r_old, its position (normalized to cell size one).
 
     xi = (position_old[1] - p.domain[1]) / p.delta_x[1]
-    index_old = floor(Int64, xi)
+    index_old = trunc(Int64, xi)
     r_old = xi - index_old
 
     # Compute the new box index index_new and normalized position r_old.
     xi = (position_new[1] - p.domain[1]) / p.delta_x[1]
-    index_new = floor(Int64, xi)
+    index_new = trunc(Int64, xi)
     r_new = xi - index_new
  
     if index_old == index_new
@@ -275,13 +275,13 @@ function add_current_update_v!( j_dofs        :: AbstractArray,
 
 
     xi = (position_old[1] - p.domain[1]) / p.delta_x[1]
-    index_old = floor(Int64,xi)
+    index_old = trunc(Int64,xi)
     r_old = xi - index_old
 
     # Compute the new box index index_new and normalized position r_old.
 
     xi = (position_new[1] - p.domain[1]) / p.delta_x[1]
-    index_new = floor(Int64, xi)
+    index_new = trunc(Int64, xi)
     r_new = xi - index_new
  
     if index_old == index_new
@@ -393,7 +393,7 @@ function evaluate_pp(p             :: SpinParticleMeshCoupling,
                      field_dofs_pp :: Array{Float64,2})
 
     xi = (position[1] - p.domain[1])/p.delta_x[1]
-    index = floor(Int64, xi)+1
+    index = trunc(Int64, xi)+1
     xi = xi - (index-1)
    
     horner_1d(p.spline_degree, field_dofs_pp, xi, index)
@@ -414,7 +414,7 @@ function evaluate(p          :: SpinParticleMeshCoupling,
                   field_dofs :: Vector{Float64})
 
     xi = (position[1] - p.domain[1])/p.delta_x[1]
-    index = floor(Int64, xi)+1
+    index = trunc(Int64, xi)+1
     xi = xi - (index-1)
     index = index - p.spline_degree
     p.spline_val .= uniform_bsplines_eval_basis(p.spline_degree, xi)

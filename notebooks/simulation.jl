@@ -1,16 +1,15 @@
-
-include("mesh.jl")
-include("low_level_bsplines.jl")
-include("splinepp.jl")
-include("distributions.jl")
-include("maxwell_1d_fem.jl")
-include("particle_group.jl")
-include("particle_mesh_coupling.jl")
-include("particle_sampling.jl")
-include("landau_damping.jl")
-include("hamiltonian_splitting.jl")
-include("hamiltonian_splitting_boris.jl")
-include("diagnostics.jl")
+include("../src/mesh.jl")
+include("../src/low_level_bsplines.jl")
+include("../src/splinepp.jl")
+include("../src/distributions.jl")
+include("../src/maxwell_1d_fem.jl")
+include("../src/particle_group.jl")
+include("../src/particle_mesh_coupling.jl")
+include("../src/particle_sampling.jl")
+include("../src/landau_damping.jl")
+include("../src/hamiltonian_splitting.jl")
+include("../src/hamiltonian_splitting_boris.jl")
+include("../src/diagnostics.jl")
 
 const β = 0.0001
 const k  = 1.25
@@ -105,7 +104,4 @@ function run_simulation( steps )
 end
 
 run_simulation(1)
-using Profile
-Profile.clear()
-@profile run_simulation(500)
-Profile.print()
+@time run_simulation(500)

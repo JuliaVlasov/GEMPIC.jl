@@ -209,6 +209,7 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
                     wi[1])
       
        x_new[1] = mod(x_new[1], h.Lx)
+
        set_x(h.particle_group, i_part, x_new)
        set_v(h.particle_group, i_part, vi)
 
