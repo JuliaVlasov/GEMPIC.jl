@@ -19,7 +19,7 @@
 
 using GEMPIC
 
-?SumCosGaussian
+@doc SumCosGaussian
 
 # +
 using Plots
@@ -53,7 +53,7 @@ fxv(x, v) = ( 1 + α * cos(k * x )) / sqrt(2π) * exp(- (v^2)/ 2)
 surface(xg, vg, fxv)
 # -
 
-?CosSumGaussian
+@doc CosSumGaussian
 
 df = CosSumGaussian{1,1}( [[k]], [0.1], [[1.0]], [[0.0]], [1.0] )
 
