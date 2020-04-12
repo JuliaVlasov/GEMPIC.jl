@@ -34,9 +34,8 @@ function run( steps :: Int64)
    σ, μ = 0.02, 0.0
    kx, α = 1.004355, 0.001
    xmin, xmax = 0, 2π/kx
-   domain = [xmin, xmax, xmax - xmin]
-   nx = 512 
-   n_particles = 100000
+   nx = 32 
+   n_particles = 1000
    mesh = Mesh( xmin, xmax, nx)
    spline_degree = 3
    
@@ -74,15 +73,15 @@ function run( steps :: Int64)
 
    end
    
-   kernel_smoother2 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-2, :galerkin) 
-   kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-1, :galerkin)    
-   kernel_smoother0 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree, :galerkin)
+   kernel_smoother2 = ParticleMeshCoupling( mesh, n_particles, spline_degree-2, :galerkin) 
+   kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :galerkin)    
+   kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree, :galerkin)
    
    rho = zeros(Float64, nx)
    efield_poisson = zeros(Float64, nx)
    
    # Init!ialize the field solver
-   maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
+   maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
    # efield by Poisson
    solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
    
@@ -110,9 +109,8 @@ function run( steps :: Int64)
                                       kernel_smoother2,
                                       particle_group,
                                       efield_dofs,
-                                      afield_dofs,
-                                      domain, nx);
-   
+                                      afield_dofs)
+  
    efield_dofs_n = propagator.e_dofs
    
    thdiag = TimeHistoryDiagnosticsSpin( particle_group, maxwell_solver, 
@@ -142,7 +140,7 @@ function run( steps :: Int64)
 
 end
 # +
-results = run(10000) # choose number of steps
+results = run(1000) # choose number of steps
 
 CSV.write("thdiag-$(now()).csv", results)
 # -

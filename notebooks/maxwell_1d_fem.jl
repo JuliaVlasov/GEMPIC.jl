@@ -26,10 +26,10 @@ eta1_max = 2π
 nc_eta1  = 128
 Lx = eta1_max - eta1_min
 delta_eta1 = Lx / nc_eta1
-domain = [eta1_min, eta1_max]
 deg = 3
 
-maxwell_1d = Maxwell1DFEM(domain, nc_eta1, deg);
+mesh = Mesh( eta1_min , eta1_max, nc_eta1)
+maxwell_1d = Maxwell1DFEM(mesh, deg);
 
 ex = zeros(Float64, nc_eta1)
 ey = zeros(Float64, nc_eta1)
@@ -87,11 +87,9 @@ Lx = eta1_max - eta1_min
 
 delta_eta1 = Lx / nc_eta1
 
-domain = [eta1_min, eta1_max]
-
 deg = 3
 
-maxwell_1d = Maxwell1DFEM(domain, nc_eta1, deg)
+maxwell_1d = Maxwell1DFEM(mesh, deg)
 
 ex = zeros(Float64, nc_eta1)
 ey = zeros(Float64, nc_eta1)

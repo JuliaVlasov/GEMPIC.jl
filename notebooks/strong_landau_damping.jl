@@ -32,7 +32,6 @@ using GEMPIC
 σ, μ = 1.0, 0.0
 kx, α = 0.5, 0.5
 xmin, xmax = 0, 2π/kx
-domain = [xmin, xmax, xmax - xmin]
 ∆t = 0.05
 nx = 64 
 n_particles = 100000
@@ -62,8 +61,8 @@ plot!(p[3,1], v-> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
 savefig("histograms.png")
 
 
-kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-1, :galerkin)    
-kernel_smoother0 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree, :galerkin)
+kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :galerkin)    
+kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree, :galerkin)
 rho = zeros(Float64, nx)
 xg = LinRange(xmin, xmax, nx)
 sval = eval_uniform_periodic_spline_curve(spline_degree-1, rho)
@@ -72,7 +71,7 @@ savefig("charge_density.png")
 
 efield_poisson = zeros(Float64, nx)
 # Initialize the field solver
-maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
+maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
 # efield by Poisson
 solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
 sval = eval_uniform_periodic_spline_curve(spline_degree-1, efield_poisson)
@@ -86,7 +85,7 @@ function run( steps)
 
     efield_poisson = zeros(Float64, nx)
     # Initialize the field solver
-    maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
+    maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
     # efield by Poisson
     solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
     
@@ -98,8 +97,7 @@ function run( steps)
                                        kernel_smoother1, 
                                        particle_group,
                                        efield_dofs,
-                                       bfield_dofs,
-                                       domain)
+                                       bfield_dofs)
     
     efield_dofs_n = propagator.e_dofs
     
@@ -134,5 +132,3 @@ end
 plot(results[!,:Time], log.(results[!,:PotentialEnergyE1]))
 savefig("potential_energy.png")
 # -
-
-
