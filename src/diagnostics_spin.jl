@@ -10,16 +10,16 @@ Compute ``\\sum_{particles} w ( v, p e(x_p) ``
 - `efield_dofs` : coefficients of efield
 
 """
-function pic_diagnostics_transfer( particle_group :: ParticleGroup, 
+function pic_diagnostics_transfer( particle_group :: ParticleGroup{1,1}, 
                                    kernel_smoother, efield_dofs :: Vector{Float64} )
 
     transfer = 0.0
 
     @inbounds for i_part = 1:particle_group.n_particles
 
-       xi = get_x( particle_group,i_part )
-       wi = get_charge(particle_group, i_part )
-       vi = get_v( particle_group, i_part )
+       xi = get_x( particle_group,i_part )[1]
+       wi = get_charge(particle_group, i_part)[1]
+       vi = get_v( particle_group, i_part)[1]
 
        efield = evaluate( kernel_smoother, xi, efield_dofs )
 

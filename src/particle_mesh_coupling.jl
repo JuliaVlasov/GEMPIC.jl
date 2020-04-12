@@ -414,7 +414,7 @@ function evaluate(p          :: ParticleMeshCoupling,
     index = trunc(Int, xi)+1
     xi = xi - (index-1)
     index = index - p.spline_degree
-    p.spline_val .= uniform_bsplines_eval_basis(p.spline_degree, xi)
+    uniform_bsplines_eval_basis!( p.spline_val, p.spline_degree, xi)
 
     field_value = 0.0
     for i = 1:p.n_span

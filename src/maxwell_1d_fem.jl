@@ -435,7 +435,7 @@ end
 export compute_rderivatives_from_basis!
 export compute_lderivatives_from_basis!
 
-function compute_derivatives_from_basis!( field_out :: Vector{Float64},
+function compute_rderivatives_from_basis!( field_out :: Vector{Float64},
                             self      :: Maxwell1DFEM, 
                             field_in  :: Vector{Float64}) 
 

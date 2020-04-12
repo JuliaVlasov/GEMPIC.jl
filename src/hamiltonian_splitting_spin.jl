@@ -148,11 +148,11 @@ function operatorHp1(h :: HamiltonianSplittingSpin, dt :: Float64)
     for i_part = 1:h.particle_group.n_particles  
 
        # Read out particle position and velocity
-       x_old = get_x(h.particle_group, i_part)
-       vi    = get_v(h.particle_group, i_part)
+       x_old = get_x(h.particle_group, i_part)[1]
+       vi    = get_v(h.particle_group, i_part)[1]
         
        # Then update particle position:  X_new = X_old + dt * V
-       x_new = x_old[1] + dt * vi[1]
+       x_new = x_old + dt * vi
 
        # Get charge for accumulation of j
        wi     = get_charge(h.particle_group, i_part)
@@ -161,9 +161,9 @@ function operatorHp1(h :: HamiltonianSplittingSpin, dt :: Float64)
                               h.kernel_smoother_1,
                               x_old, 
                               x_new, 
-                              wi[1])
+                              wi)
 
-       x_new[1] = mod(x_new[1], h.Lx)
+       x_new = mod(x_new, h.Lx)
        set_x(h.particle_group, i_part, x_new)
        
     end
@@ -183,7 +183,9 @@ function operatorHp2(h :: HamiltonianSplittingSpin, dt :: Float64)
     
     qm = h.particle_group.q_over_m
     # Update v_1
+    aa = zeros(Float64,n_cells)
     for i_part=1:h.particle_group.n_particles
+
         fill!(h.j_dofs[1], 0.0)
         fill!(h.j_dofs[2], 0.0)
         # Evaluate b at particle position (splines of order p)
@@ -194,8 +196,7 @@ function operatorHp2(h :: HamiltonianSplittingSpin, dt :: Float64)
         add_charge!( h.j_dofs[2], h.kernel_smoother_0, xi, 1.0)# R0 
         add_charge!( h.j_dofs[1], h.kernel_smoother_1, xi, 1.0)# R1
         # values of the derivatives of basis function
-        aa = zeros(Float64,n_cells)
-        compute_derivatives_from_basis!(aa, h.maxwell_solver, h.j_dofs[1])
+        compute_rderivatives_from_basis!(aa, h.maxwell_solver, h.j_dofs[1])
         h.j_dofs[1] .= aa
         vi = vi - dt/2*(h.a_dofs[1]'*h.j_dofs[1] * (h.j_dofs[2]'*h.a_dofs[1]))
         vi = vi - dt/2*(h.a_dofs[1]'*h.j_dofs[2] * (h.j_dofs[1]'*h.a_dofs[1]))
@@ -293,7 +294,7 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
         fill!(h.j_dofs[1], 0.0)
         fill!(h.j_dofs[2], 0.0)
         add_charge!( h.j_dofs[2], h.kernel_smoother_1, xi, 1.0)
-        compute_derivatives_from_basis!(h.j_dofs[1], h.maxwell_solver, h.j_dofs[2])
+        compute_rderivatives_from_basis!(h.j_dofs[1], h.maxwell_solver, h.j_dofs[2])
         Y = h.a_dofs[1]'*h.j_dofs[1]
         Z = h.a_dofs[2]'*h.j_dofs[1]
         V = [0,Z,-Y];
@@ -333,8 +334,8 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
         # update velocity
         fill!(h.j_dofs[2], 0.0)
         add_charge!( h.j_dofs[2], h.kernel_smoother_2, xi, 1.0)
-        compute_derivatives_from_basis!(h.j_dofs[1], h.maxwell_solver, h.j_dofs[2])
-        compute_derivatives_from_basis!(aa, h.maxwell_solver, h.j_dofs[1])
+        compute_rderivatives_from_basis!(h.j_dofs[1], h.maxwell_solver, h.j_dofs[2])
+        compute_rderivatives_from_basis!(aa, h.maxwell_solver, h.j_dofs[1])
         h.j_dofs[1] .= aa
         vi = v_new - HH  * (h.a_dofs[2]'*h.j_dofs[1] * St[2] + h.a_dofs[1]'*h.j_dofs[1] * St[3])
 
@@ -345,8 +346,8 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
     # Update bfield
     aa = zeros(Float64,n_cells)
     bb = zeros(Float64,n_cells)
-    compute_derivatives_from_basis!(aa, h.maxwell_solver,  h.part1)
-    compute_derivatives_from_basis!(bb, h.maxwell_solver, -h.part2)
+    compute_rderivatives_from_basis!(aa, h.maxwell_solver,  h.part1)
+    compute_rderivatives_from_basis!(bb, h.maxwell_solver, -h.part2)
     
     compute_e_from_j!( h.e_dofs[2], h.maxwell_solver, HH .* aa, 2) 
     compute_e_from_j!( h.e_dofs[3], h.maxwell_solver, HH .* bb, 2)

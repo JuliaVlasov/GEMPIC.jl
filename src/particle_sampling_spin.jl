@@ -36,9 +36,9 @@ function sample!( pg   :: ParticleGroup{1,1},
 
     if ps.sampling_type == :sobol
        rng_sobol  = SobolSeq(1)
-    else
-       rng_random = MersenneTwister(ps.seed)
     end 
+
+    rng_random = MersenneTwister(ps.seed)
 
     d = Normal()
 
@@ -50,7 +50,7 @@ function sample!( pg   :: ParticleGroup{1,1},
            x = mesh.xmin[1] + rand(rng_random) * mesh.Lx[1]
        end
 
-       v = rand(d)
+       v = rand(rng_random, d)
 
        # For multiple Gaussian, draw which one to take
        rnd_no = rdn[3]
