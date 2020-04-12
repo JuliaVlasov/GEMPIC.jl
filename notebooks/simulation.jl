@@ -35,18 +35,8 @@ function run_simulation( steps )
     
     df = CosSumGaussian{1,2}([[k]], [α], [σ], [μ] )
     
-    v1min, v1max, nv1 = -1., 1., 64
-    v2min, v2max, nv2 = -0.015, 0.015, 64
-    v1 = LinRange(v1min, v1max, nv1) |> collect
-    v2 = LinRange(v2min, v2max, nv2) |> collect
-    f = zeros(Float64,(nv1,nv2))
-    for i in eachindex(v1), j in eachindex(v2)
-        f[i,j] = eval_v_density(df, [v1[i],v2[j]])
-    end
-    
      # Initialize the particles   (mass and charge set to 1.0 with one weight)
-    mass, charge = 1.0, 1.0
-    particle_group = ParticleGroup{1,2}( n_particles, mass, charge, 1)   
+    particle_group = ParticleGroup{1,2}( n_particles)   
     
     sampler = ParticleSampler{1,2}( sampling_case, symmetric, n_particles)
     
@@ -74,8 +64,7 @@ function run_simulation( steps )
                                        domain);
     
     efield_dofs_n = propagator.e_dofs
-    # -
-    # bfield = beta*cos(kx): Use b = M{-1}(N_i,beta*cos(kx))
+    
     beta_cos_k(x) = β * cos(2π * x / domain[3]) 
     l2projection!( bfield_dofs, maxwell_solver, beta_cos_k, spline_degree-1)
     
@@ -84,7 +73,7 @@ function run_simulation( steps )
     
     Δt = 0.05
     
-    for j = 1:steps # loop over time
+    for step = 1:steps # loop over time
     
         # Strang splitting
         strang_splitting!(propagator, Δt, 1)
@@ -93,7 +82,7 @@ function run_simulation( steps )
         solve_poisson!( efield_poisson, particle_group, 
                         kernel_smoother0, maxwell_solver, rho)
         
-        write_step!(thdiag, j * Δt, spline_degree, 
+        write_step!(thdiag, step * Δt, spline_degree, 
                         efield_dofs,  bfield_dofs,
                         efield_dofs_n, efield_poisson)
     

@@ -42,7 +42,7 @@ spline_degree = 3
 df = CosSumGaussian{1,2}([[kx]], [α], [[σ,σ]], [[μ,μ]] )
 
 mass, charge = 1.0, 1.0
-particle_group = ParticleGroup{1,2}( n_particles, mass, charge, 1)   
+particle_group = ParticleGroup{1,2}(n_particles)   
 sampler = ParticleSampler{1,2}( :sobol, true, n_particles)
 
 sample!(particle_group, sampler, df, mesh)

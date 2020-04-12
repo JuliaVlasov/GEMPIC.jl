@@ -152,7 +152,7 @@ function operatorHp1(h :: HamiltonianSplittingSpin, dt :: Float64)
        vi    = get_v(h.particle_group, i_part)
         
        # Then update particle position:  X_new = X_old + dt * V
-       x_new = x_old .+ dt * vi
+       x_new = x_old[1] + dt * vi[1]
 
        # Get charge for accumulation of j
        wi     = get_charge(h.particle_group, i_part)
@@ -187,8 +187,8 @@ function operatorHp2(h :: HamiltonianSplittingSpin, dt :: Float64)
         fill!(h.j_dofs[1], 0.0)
         fill!(h.j_dofs[2], 0.0)
         # Evaluate b at particle position (splines of order p)
-        xi    = get_x(h.particle_group, i_part)       
-        vi    = get_v(h.particle_group, i_part)
+        xi    = get_x(h.particle_group, i_part)[1]
+        vi    = get_v(h.particle_group, i_part)[1]
         
         wi = get_charge(h.particle_group, i_part) 
         add_charge!( h.j_dofs[2], h.kernel_smoother_0, xi, 1.0)# R0 
@@ -217,8 +217,8 @@ function operatorHp2(h :: HamiltonianSplittingSpin, dt :: Float64)
     compute_e_from_j!( h.e_dofs[3], h.maxwell_solver, -h.part2, 2)
 
     # define part3 and part4
-    compute_derivatives_from_basis2!(h.part3, h.maxwell_solver, h.a_dofs[1])
-    compute_derivatives_from_basis2!(h.part4, h.maxwell_solver, h.a_dofs[2])
+    compute_lderivatives_from_basis!(h.part3, h.maxwell_solver, h.a_dofs[1])
+    compute_lderivatives_from_basis!(h.part4, h.maxwell_solver, h.a_dofs[2])
     
     compute_e_from_b!( h.e_dofs[2], h.maxwell_solver, dt, h.part3)
     compute_e_from_b!( h.e_dofs[3], h.maxwell_solver, dt, h.part4)
@@ -247,8 +247,7 @@ function operatorHB(h :: HamiltonianSplittingSpin, dt :: Float64)
         vi = get_v(h.particle_group, i_part)
         xi = get_x(h.particle_group, i_part)
         e1 = evaluate(h.kernel_smoother_1, xi[1], h.e_dofs[1])
-        vi = vi + dt  * e1;  
-        set_v(h.particle_group, i_part, vi)
+        set_v(h.particle_group, i_part, vi[1] + dt * e1)
 
     end
 
@@ -287,7 +286,7 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
     
     @inbounds for i_part=1:h.particle_group.n_particles
 
-        v_new = get_v( h.particle_group, i_part)
+        v_new = get_v( h.particle_group, i_part)[1]
          
         # Evaluate efields at particle position
         xi = get_x(h.particle_group, i_part)

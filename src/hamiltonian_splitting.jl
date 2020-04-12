@@ -25,7 +25,7 @@ struct HamiltonianSplitting
     kernel_smoother_1 :: ParticleMeshCoupling
     particle_group    :: ParticleGroup
 
-    spline_degree     :: Int64
+    spline_degree     :: Int
     Lx                :: Float64
     x_min             :: Float64
     delta_x           :: Float64
@@ -77,8 +77,8 @@ Strang splitting
 - number of time steps
 """
 function strang_splitting!( h            :: HamiltonianSplitting,
-                           dt           :: Float64, 
-                           number_steps :: Int64)
+                            dt           :: Float64, 
+                            number_steps :: Int)
 
     for i_step = 1:number_steps
        operatorHB(  h, 0.5dt)
@@ -100,7 +100,7 @@ Lie splitting
 """
 function lie_splitting!(h            :: HamiltonianSplitting,
                         dt           :: Float64, 
-                        number_steps :: Int64)
+                        number_steps :: Int)
 
     for i_step = 1:number_steps
        operatorHE(dt)
@@ -119,7 +119,7 @@ Lie splitting (oposite ordering)
 """
 function lie_splitting_back!(h            :: HamiltonianSplitting,
                              dt           :: Float64, 
-                             number_steps :: Int64)
+                             number_steps :: Int)
 
     for i_step = 1:number_steps
 

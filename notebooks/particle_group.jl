@@ -33,11 +33,11 @@ function test_sampling( sampling_type :: Symbol,
    
    sampling = ParticleSampler{D,V}( sampling_type, symmetric, n_particles )
 
-   sample!( pg, sampling, df, mesh )
+   GEMPIC.sample!( pg, sampling, df, mesh )
    
    for i_part = 1:n_particles
-       xi = get_x(pg, i_part)
-       vi = get_v(pg, i_part)
+       xi = GEMPIC.get_x(pg, i_part)
+       vi = GEMPIC.get_v(pg, i_part)
        mean[1] += xi[1]
        mean[2] += vi[1]
        mean[3] += vi[2]
@@ -46,8 +46,8 @@ function test_sampling( sampling_type :: Symbol,
    mean = mean/n_particles
 
    for i_part = 1:n_particles
-       xi = get_x(pg, i_part)
-       vi = get_v(pg, i_part)
+       xi = GEMPIC.get_x(pg, i_part)
+       vi = GEMPIC.get_v(pg, i_part)
        sigma[1] += (xi[1] - mean[1])^2
        sigma[2] += (vi[1] - mean[2])^2
        sigma[3] += (vi[2] - mean[3])^2
@@ -68,7 +68,7 @@ nx          = 64
 
 mesh = Mesh( xmax, xmin, nx)
 
-pg = ParticleGroup{1,2}(n_particles, 1.0, 1.0, 1)
+pg = ParticleGroup{1,2}(n_particles)
 
 params = ( k = [[0.5]],
            α = [0.01],
