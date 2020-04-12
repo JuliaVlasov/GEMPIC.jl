@@ -7,7 +7,7 @@ abstract type AbstractMaxwellSolver end
 export Maxwell1DFEM
 
 """
-    maxwell_solver = MaxwellFEM1D( domain, ncells, degree )
+    maxwell_solver = MaxwellFEM1D( mesh, degree )
 
 1D Maxwell spline finite element solver on a periodic grid
 
@@ -45,10 +45,10 @@ mutable struct Maxwell1DFEM <: AbstractMaxwellSolver
     work    :: Vector{Float64}
     wsave   :: Vector{Float64}
 
-    function Maxwell1DFEM( domain, ncells :: Int, degree :: Int )
+    function Maxwell1DFEM( mesh :: Mesh, degree :: Int )
 
-        n_dofs  = ncells
-        Lx      = domain[2] - domain[1]
+        n_dofs  = mesh.nx[1]
+        Lx      = mesh.xmax[1] - mesh.xmin[1]
         delta_x = Lx / n_dofs
         s_deg_0 = degree
         s_deg_1 = degree - 1
@@ -342,9 +342,6 @@ function l2norm_squared2(self, coefs_dofs, degree)
 
 end 
 
-
-
-
 export l2projection!
 
 """
@@ -433,7 +430,6 @@ end
 
 
 export compute_rderivatives_from_basis!
-export compute_lderivatives_from_basis!
 
 function compute_rderivatives_from_basis!( field_out :: Vector{Float64},
                             self      :: Maxwell1DFEM, 
@@ -448,6 +444,8 @@ function compute_rderivatives_from_basis!( field_out :: Vector{Float64},
     field_out[end] =  coef * ( field_in[end] - field_in[1] )
 
 end
+
+export compute_lderivatives_from_basis!
 
 function compute_lderivatives_from_basis!( field_out :: Vector{Float64},
                             self      :: Maxwell1DFEM, 

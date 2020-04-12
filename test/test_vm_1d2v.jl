@@ -47,12 +47,12 @@ FEM with splines, degree 3 for B and 2 for E
     particle_group = ParticleGroup{1,2}( n_particles )
     
     # Initialize the field solver
-    maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
+    maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
     
-    kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, 
+    kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, 
                  spline_degree, :galerkin)
     
-    kernel_smoother0 = ParticleMeshCoupling( domain, [nx], n_particles, 
+    kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, 
                  spline_degree, :galerkin)
     
     # Initialize the arrays for the spline coefficients of the fields

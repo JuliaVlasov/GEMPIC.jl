@@ -16,22 +16,21 @@
     degree_smoother = 3
     rnd_seed        = 10
 
-    domain = [eta_min, eta_max, eta_max - eta_min]
+    mesh = Mesh( eta_min, eta_max, num_cells)
 
     pg = ParticleGroup{1,1}(n_particles, n_spin = 3)
 
     set_common_weight( pg, 1.0)
 
     # Initialize kernel smoothers
-    kernel_smoother_1 = ParticleMeshCoupling( domain[1:2], [num_cells],
+    kernel_smoother_1 = ParticleMeshCoupling( mesh,
          n_particles, degree_smoother-1, :galerkin) 
 
-    kernel_smoother_0 = ParticleMeshCoupling( domain[1:2], [num_cells],
+    kernel_smoother_0 = ParticleMeshCoupling( mesh,
          n_particles, degree_smoother, :galerkin) 
     
     # Initialize Maxwell solver
-    maxwell_solver = Maxwell1DFEM( [eta_min, eta_max], num_cells,
-                                    degree_smoother)
+    maxwell_solver = Maxwell1DFEM( mesh, degree_smoother)
     
     n_dofs = kernel_smoother_0.n_dofs
 

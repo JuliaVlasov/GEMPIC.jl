@@ -183,11 +183,11 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
     @inbounds for i_part = 1:h.particle_group.n_particles  
 
        # Read out particle position and velocity
-       x_old = get_x(h.particle_group, i_part)
+       x_old = get_x(h.particle_group, i_part)[1]
        vi    = get_v(h.particle_group, i_part)
 
        # Then update particle position:  X_new = X_old + dt * V
-       x_new = x_old .+ dt * vi[1]
+       x_new = x_old + dt * vi[1]
 
        # Get charge for accumulation of j
        wi     = get_charge(h.particle_group, i_part)
@@ -208,7 +208,7 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
                     x_new, 
                     wi)
       
-       x_new[1] = mod(x_new[1], h.Lx)
+       x_new = mod(x_new, h.Lx)
 
        set_x(h.particle_group, i_part, x_new)
        set_v(h.particle_group, i_part, vi)

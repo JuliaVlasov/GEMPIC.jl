@@ -11,6 +11,8 @@ import GEMPIC: push_x_accumulate_j!
     delta_t         = 0.1
     degree_smoother = 3
 
+    mesh = Mesh( eta_min, eta_max, num_cells)
+
     domain = [eta_min, eta_max, eta_max - eta_min]
 
     pg = ParticleGroup{1,2}(n_particles)
@@ -43,14 +45,13 @@ import GEMPIC: push_x_accumulate_j!
 
     # Initialize kernel smoother    
 
-    kernel_smoother_1 = ParticleMeshCoupling( domain[1:2], [num_cells],
+    kernel_smoother_1 = ParticleMeshCoupling( mesh,
          n_particles, degree_smoother-1, :galerkin) 
-    kernel_smoother_0 = ParticleMeshCoupling( domain[1:2], [num_cells],
+    kernel_smoother_0 = ParticleMeshCoupling( mesh,
          n_particles, degree_smoother, :galerkin) 
     
     # Initialize Maxwell solver
-    maxwell_solver = Maxwell1DFEM( [eta_min, eta_max], num_cells,
-                                    degree_smoother)
+    maxwell_solver = Maxwell1DFEM( mesh, degree_smoother)
     
     efield  = [ ones(Float64, (kernel_smoother_0.n_dofs)),
                 ones(Float64, (kernel_smoother_0.n_dofs))]

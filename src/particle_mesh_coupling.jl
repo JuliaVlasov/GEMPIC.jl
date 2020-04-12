@@ -3,7 +3,7 @@ abstract type AbstractParticleMeshCoupling end
 export ParticleMeshCoupling
 
 """
-    ParticleMeshCoupling( domain, n_grid, 
+    ParticleMeshCoupling( mesh, n_grid, 
                           no_particles, spline_degree, 
                           smoothing_type )
     
@@ -27,7 +27,7 @@ Spline with index i starts at point i
     Only 1D version is implemented for now
 
 """
-mutable struct ParticleMeshCoupling <: AbstractParticleMeshCoupling
+struct ParticleMeshCoupling <: AbstractParticleMeshCoupling
 
     dims            :: Int
     domain          :: Vector{Float64}
@@ -45,13 +45,14 @@ mutable struct ParticleMeshCoupling <: AbstractParticleMeshCoupling
     quad_w          :: Vector{Float64}
     spline_pp       :: SplinePP
 
-    function ParticleMeshCoupling( domain         :: AbstractArray, 
-                                   n_grid         :: Vector{Int64}, 
+    function ParticleMeshCoupling( mesh           :: Mesh, 
                                    no_particles   :: Int, 
                                    spline_degree  :: Int, 
                                    smoothing_type :: Symbol )
         dims    = 1
+        n_grid  = mesh.nx
         n_dofs  = prod(n_grid)
+        domain  = [mesh.xmin[1], mesh.xmax[1]]
         delta_x = (domain[2]-domain[1])/n_grid[1]
         n_span  = spline_degree + 1
 
@@ -266,8 +267,8 @@ particle contributes to, and `r_old`, its position (normalized to cell size one)
 """
 function add_current_update_v!( j_dofs        :: AbstractArray,
                                 p             :: ParticleMeshCoupling, 
-                                position_old  :: Vector{Float64}, 
-                                position_new  :: Vector{Float64}, 
+                                position_old  :: Float64, 
+                                position_new  :: Float64, 
                                 marker_charge :: Float64, 
                                 qoverm        :: Float64, 
                                 bfield_dofs   :: Vector{Float64}, 

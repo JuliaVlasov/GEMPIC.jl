@@ -5,6 +5,7 @@
    xmin, xmax = 0, 2π/kx
    domain = [xmin, xmax, xmax - xmin]
    nx = 8 
+   mesh = Mesh( xmin, xmax, nx)
    n_particles = 2
    mesh = Mesh( xmin, xmax, nx)
    spline_degree = 3
@@ -52,15 +53,15 @@
 
    end
    
-   kernel_smoother2 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-2, :galerkin) 
-   kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-1, :galerkin)    
-   kernel_smoother0 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree, :galerkin)
+   kernel_smoother2 = ParticleMeshCoupling( mesh, n_particles, spline_degree-2, :galerkin) 
+   kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :galerkin)    
+   kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree, :galerkin)
    
    rho = zeros(Float64, nx)
    efield_poisson = zeros(Float64, nx)
    
    # Init!ialize the field solver
-   maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
+   maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
    # efield by Poisson
    solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
 

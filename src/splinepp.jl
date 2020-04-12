@@ -142,7 +142,7 @@ end
 """
     horner_1d(degree, pp_coeffs, x, index)
 
-Perform a 1d hornerschema on the `pp_coeffs` at index
+Perform a 1d Horner schema on the `pp_coeffs` at index
 """
 function horner_1d(degree :: Int, pp_coeffs, x :: Float64, index :: Int)
     
@@ -157,7 +157,7 @@ end
 """
     horner_primitive_1d(val, degree, pp_coeffs, x)
 
-Perform a 1d hornerschema on the `pp_coeffs` evaluate at x
+Perform a 1d Horner schema on the `pp_coeffs` evaluate at x
 """
 function horner_primitive_1d(val :: Vector{Float64}, degree, pp_coeffs, x)
 

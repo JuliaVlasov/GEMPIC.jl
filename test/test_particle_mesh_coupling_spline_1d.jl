@@ -9,7 +9,7 @@ import GEMPIC: b_to_pp, evaluate, evaluate_pp
 n_cells       = 10            # Number of cells
 n_particles   = 4             # Number of particles
 spline_degree = 3             # Spline degree
-domain        = [0.0, 2.0]    # x_min, x_max
+mesh          = Mesh(0.0, 2.0, n_cells)    # x_min, x_max
 x_vec = [0.1, 0.65, 0.7, 1.5] # Particle positions
 v_vec = [1.5  -3.0  0.0  6.0; 
          0.0   0.5  0.0  0.0]'
@@ -40,8 +40,7 @@ values_grid[:,1,2] .= [7.0312500000000000e-002,
                        0.31510416666666663,        
                        2.6041666666666665E-003 ]
 
-kernel = ParticleMeshCoupling( domain, [n_cells], n_particles, 
-             spline_degree, :collocation)
+kernel = ParticleMeshCoupling( mesh, n_particles, spline_degree, :collocation)
 
 # Accumulate rho
 rho_dofs  = zeros(Float64, n_cells)
@@ -58,7 +57,7 @@ rho_dofs_ref[8:10] .= values_grid[1:3,1,1]
 rho_dofs_ref[1]     = values_grid[4,1,1]
 rho_dofs_ref[1:4]  .= rho_dofs_ref[1:4] + values_grid[:,1,2] + values_grid[:,1,3]
 rho_dofs_ref[5:8]  .= rho_dofs_ref[5:8] + values_grid[:,1,4]
-rho_dofs_ref       .= rho_dofs_ref/n_particles * n_cells/domain[2]
+rho_dofs_ref       .= rho_dofs_ref/n_particles * n_cells/mesh.xmax[1]
 
 @test maximum(abs.(rho_dofs  .- rho_dofs_ref)) < 1e-15
 @test maximum(abs.(rho_dofs1 .- rho_dofs_ref)) < 1e-15
@@ -69,11 +68,11 @@ b_dofs  = zeros(Float64, n_cells)
 
 for i_part = 1:n_particles 
 
-    xi    = get_x(particle_group, i_part)
+    xi    = get_x(particle_group, i_part)[1]
     wi    = get_charge(particle_group, i_part)
     vi    = get_v(particle_group, i_part)
     vi1   = vi
-    x_new = xi .+ vi[1]/10.0
+    x_new = xi + vi[1]/10.0
 
     vi  = add_current_update_v!(    j_dofs,  kernel, xi, x_new, wi, 1.0, b_dofs, vi )
     vi1 = add_current_update_v_pp!( j_dofs1, kernel, xi, x_new, wi, 1.0, b_dofs, vi1 )
@@ -132,7 +131,7 @@ particle_values_ref = [ 1.1560058593749998,
                         2.2656250000000000,
                         1.1512586805555554 ] 
 
-particle_values_ref ./= domain[2]
+particle_values_ref ./= mesh.xmax[1]
 
 @test maximum(abs.(particle_values  .- particle_values_ref)) < 1e-15
 @test maximum(abs.(particle_values1 .- particle_values_ref)) < 1e-15
