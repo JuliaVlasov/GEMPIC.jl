@@ -182,12 +182,22 @@ function set_common_weight( p :: AbstractParticleGroup, x :: Float64 )
     
 end
 
-function save( file, step, p :: ParticleGroup{D,V}) where {D, V}
+function save( file, step, p :: ParticleGroup{D,V}, spin = false) where {D, V}
 
     datafile = @sprintf("%s-%06d.jld2", file, step)
 
-    FileIO.save(datafile, Dict("x" => p.particle_array[1:D,:],
-                               "v" => p.particle_array[D+1:D+V,:],
-                               "w" => p.particle_array[D+V+1:D+V+1,:]))
+    if spin 
+
+        FileIO.save(datafile, Dict("x" => p.particle_array[1:D,:],
+                                   "v" => p.particle_array[D+1:D+V,:], 
+                                   "w" => p.particle_array[D+V+1,:]))
+                                   "s" => p.particle_array[D+V+2:end,:],
+
+    else
+
+        FileIO.save(datafile, Dict("x" => p.particle_array[1:D,:],
+                                   "v" => p.particle_array[D+1:D+V,:],
+                                   "w" => p.particle_array[D+V+1:end,:]))
+    end
 
 end
