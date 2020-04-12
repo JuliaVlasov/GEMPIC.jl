@@ -16,7 +16,6 @@
     degree_smoother = 3
     rnd_seed        = 10
 
-    domain = [eta_min, eta_max, eta_max - eta_min]
     mesh = Mesh(eta_min, eta_max, num_cells)
 
     pg = ParticleGroup{1,2}(n_particles)
@@ -77,7 +76,7 @@
 
     propagator = HamiltonianSplitting( maxwell_solver,
          kernel_smoother_0, kernel_smoother_1, pg,
-         [efield_1, efield_2], bfield, domain )
+         [efield_1, efield_2], bfield )
 
     operatorHp1(propagator, delta_t)
 

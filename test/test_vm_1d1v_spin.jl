@@ -99,8 +99,7 @@
                                       kernel_smoother2,
                                       particle_group,
                                       efield_dofs,
-                                      afield_dofs,
-                                      domain, nx);
+                                      afield_dofs)
    
    efield_dofs_n = propagator.e_dofs
    

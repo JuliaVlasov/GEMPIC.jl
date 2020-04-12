@@ -4,8 +4,7 @@ export HamiltonianSplittingBoris
     HamiltonianSplittingBoris( maxwell_solver,
                                kernel_smoother_0, kernel_smoother_1,
                                particle_group,
-                               e_dofs_1, e_dofs_2, b_dofs,
-                               x_min, Lx ) 
+                               e_dofs_1, e_dofs_2, b_dofs)
 
 Boris pusher in GEMPIC framework (spline finite elements)
 
@@ -48,7 +47,7 @@ struct HamiltonianSplittingBoris <: AbstractSplitting
          particle_group :: ParticleGroup,
          e_dofs :: Array{Vector{Float64},1},
          b_dofs :: Vector{Float64},
-         domain :: Vector{Float64} ) 
+         ) 
 
          e_dofs_mid = [zeros(Float64, kernel_smoother_1.n_dofs),
                        zeros(Float64, kernel_smoother_1.n_dofs)]
@@ -58,8 +57,8 @@ struct HamiltonianSplittingBoris <: AbstractSplitting
 
          b_dofs_mid = zeros(Float64, kernel_smoother_1.n_dofs)
 
-         x_min         = domain[1]
-         Lx            = domain[3]
+         x_min         = maxwell_solver.xmin
+         Lx            = maxwell_solver.Lx
          spline_degree = 3
          delta_x       = Lx/kernel_smoother_1.n_dofs
     

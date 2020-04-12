@@ -28,6 +28,7 @@ export Maxwell1DFEM
 """
 mutable struct Maxwell1DFEM <: AbstractMaxwellSolver
 
+    xmin             :: Float64
     Lx               :: Float64  
     delta_x          :: Float64     
     n_dofs           :: Int32   
@@ -47,6 +48,7 @@ mutable struct Maxwell1DFEM <: AbstractMaxwellSolver
 
     function Maxwell1DFEM( mesh :: Mesh, degree :: Int )
 
+        xmin    = mesh.xmin[1]
         n_dofs  = mesh.nx[1]
         Lx      = mesh.xmax[1] - mesh.xmin[1]
         delta_x = Lx / n_dofs
@@ -140,7 +142,7 @@ mutable struct Maxwell1DFEM <: AbstractMaxwellSolver
         # N/2 mode
         coef0 = mass_0[1]
         coef1 = mass_1[1]
-        for j=1:s_deg_0 - 1
+        for j in 1:s_deg_0-1
            coef0 = coef0 + 2 * mass_0[j+1]*cos(pi*j)
            coef1 = coef1 + 2 * mass_1[j+1]*cos(pi*j)
         end
@@ -155,7 +157,7 @@ mutable struct Maxwell1DFEM <: AbstractMaxwellSolver
         eig_weak_ampere[n_dofs÷2+1] = 2.0 * (coef1 / coef0)
         eig_weak_poisson[n_dofs÷2+1] = 1.0 / (coef1 * 4.0) 
 
-        new( Lx, delta_x, n_dofs, s_deg_0, s_deg_1, mass_0, mass_1,
+        new( xmin, Lx, delta_x, n_dofs, s_deg_0, s_deg_1, mass_0, mass_1,
              eig_mass0, eig_mass1, eig_weak_ampere, eig_weak_poisson,
              plan_fw, plan_bw, work, wsave )
 

@@ -4,15 +4,14 @@ export HamiltonianSplittingSpin
 """
     HamiltonianSplittingSpin( maxwell_solver,
                               kernel_smoother_0, kernel_smoother_1,
-                              particle_group, e_dofs, b_dofs, domain) 
+                              particle_group, e_dofs, a_dofs ) 
 
 Hamiltonian splitting type for Vlasov-Maxwell
 
 - Integral over the spline function on each interval (order p+1)
 - Integral over the spline function on each interval (order p)
 - `e_dofs` describing the two components of the electric field
-- `b_dofs` describing the magnetic field
-- `j_dofs` for kernel representation of current density. 
+- `a_dofs` describing the potential vector
 """
 struct HamiltonianSplittingSpin
 
@@ -33,10 +32,7 @@ struct HamiltonianSplittingSpin
     e_dofs :: Array{Array{Float64,1}}
     a_dofs :: Array{Array{Float64,1}}
     j_dofs :: Array{Array{Float64,1}}
-    part1  :: Array{Float64,1}
-    part2  :: Array{Float64,1}
-    part3  :: Array{Float64,1}
-    part4  :: Array{Float64,1}
+    part   :: Array{Array{Float64,1}}
 
     function HamiltonianSplittingSpin( maxwell_solver,
                                    kernel_smoother_0,
@@ -44,19 +40,17 @@ struct HamiltonianSplittingSpin
                                    kernel_smoother_2,
                                    particle_group,
                                    e_dofs,
-                                   a_dofs,
-                                   domain :: Vector{Float64}, nx) 
+                                   a_dofs) 
 
         # Check that n_dofs is the same for both kernel smoothers.
         @assert kernel_smoother_0.n_dofs == kernel_smoother_1.n_dofs
 
         j_dofs = [zeros(Float64,kernel_smoother_0.n_dofs) for i in 1:2]
-        part1 = zeros(Float64, nx)
-        part2 = zeros(Float64, nx)
-        part3 = zeros(Float64, nx)
-        part4 = zeros(Float64, nx)
-        x_min = domain[1]
-        Lx    = domain[3]
+
+        nx = maxwell_solver.n_dofs
+        part = [zeros(Float64, nx) for i in 1:4]
+        x_min = maxwell_solver.xmin
+        Lx    = maxwell_solver.Lx
         spline_degree = 3
         delta_x = Lx/kernel_smoother_1.n_dofs
         
@@ -66,7 +60,7 @@ struct HamiltonianSplittingSpin
         new( maxwell_solver, kernel_smoother_0, kernel_smoother_1, kernel_smoother_2, 
              particle_group, spline_degree, Lx, x_min, delta_x,
              cell_integrals_0, cell_integrals_1, e_dofs, a_dofs, j_dofs,
-            part1, part2, part3, part4)
+             part)
 
     end
 
@@ -176,10 +170,8 @@ end
 function operatorHp2(h :: HamiltonianSplittingSpin, dt :: Float64)
     
     n_cells = h.kernel_smoother_0.n_dofs
-    fill!(h.part1, 0.0)
-    fill!(h.part2, 0.0)
-    fill!(h.part3, 0.0)
-    fill!(h.part4, 0.0)
+
+    for i in 1:4 fill!(h.part[i], 0.0) end
     
     qm = h.particle_group.q_over_m
     # Update v_1
@@ -207,22 +199,22 @@ function operatorHp2(h :: HamiltonianSplittingSpin, dt :: Float64)
         
         # below we solve electric field
         # first define part1 and part2 to be 0 vector
-        h.part1 .= h.part1 .+ dt*wi*(h.j_dofs[2]'*h.a_dofs[1])*h.j_dofs[2]
-        h.part2 .= h.part2 .+ dt*wi*(h.j_dofs[2]'*h.a_dofs[2])*h.j_dofs[2]
+        h.part[1] .+= dt*wi*(h.j_dofs[2]'*h.a_dofs[1])*h.j_dofs[2]
+        h.part[2] .+= dt*wi*(h.j_dofs[2]'*h.a_dofs[2])*h.j_dofs[2]
         
     end
 
     # Update the electric field. Also, we still need to scale with 1/Lx 
 
-    compute_e_from_j!( h.e_dofs[2], h.maxwell_solver, -h.part1, 2)
-    compute_e_from_j!( h.e_dofs[3], h.maxwell_solver, -h.part2, 2)
+    compute_e_from_j!( h.e_dofs[2], h.maxwell_solver, -h.part[1], 2)
+    compute_e_from_j!( h.e_dofs[3], h.maxwell_solver, -h.part[2], 2)
 
     # define part3 and part4
-    compute_lderivatives_from_basis!(h.part3, h.maxwell_solver, h.a_dofs[1])
-    compute_lderivatives_from_basis!(h.part4, h.maxwell_solver, h.a_dofs[2])
+    compute_lderivatives_from_basis!(h.part[3], h.maxwell_solver, h.a_dofs[1])
+    compute_lderivatives_from_basis!(h.part[4], h.maxwell_solver, h.a_dofs[2])
     
-    compute_e_from_b!( h.e_dofs[2], h.maxwell_solver, dt, h.part3)
-    compute_e_from_b!( h.e_dofs[3], h.maxwell_solver, dt, h.part4)
+    compute_e_from_b!( h.e_dofs[2], h.maxwell_solver, dt, h.part[3])
+    compute_e_from_b!( h.e_dofs[3], h.maxwell_solver, dt, h.part[4])
     
     
 end
@@ -275,10 +267,9 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
 
     HH = 0.00022980575
     n_cells = h.kernel_smoother_0.n_dofs
-    fill!(h.part1, 0.0)
-    fill!(h.part2, 0.0)
-    fill!(h.part3, 0.0)
-    fill!(h.part4, 0.0)
+
+    for i in 1:4 fill!(h.part[i], 0.0) end
+
     hat_v = zeros(Float64, 3, 3)
 
     S  = zeros(Float64,3)
@@ -328,8 +319,8 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
         wi = get_charge(h.particle_group, i_part) 
 
         # define part1 and part2
-        h.part1 .= h.part1 .+ wi[1]*St[3]*h.j_dofs[2]
-        h.part2 .= h.part2 .+ wi[1]*St[2]*h.j_dofs[2]
+        h.part[1] .+= wi[1]*St[3]*h.j_dofs[2]
+        h.part[2] .+= wi[1]*St[2]*h.j_dofs[2]
         
         # update velocity
         fill!(h.j_dofs[2], 0.0)
@@ -346,8 +337,8 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
     # Update bfield
     aa = zeros(Float64,n_cells)
     bb = zeros(Float64,n_cells)
-    compute_rderivatives_from_basis!(aa, h.maxwell_solver,  h.part1)
-    compute_rderivatives_from_basis!(bb, h.maxwell_solver, -h.part2)
+    compute_rderivatives_from_basis!(aa, h.maxwell_solver,  h.part[1])
+    compute_rderivatives_from_basis!(bb, h.maxwell_solver, -h.part[2])
     
     compute_e_from_j!( h.e_dofs[2], h.maxwell_solver, HH .* aa, 2) 
     compute_e_from_j!( h.e_dofs[3], h.maxwell_solver, HH .* bb, 2)

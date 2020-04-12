@@ -13,8 +13,6 @@ import GEMPIC: push_x_accumulate_j!
 
     mesh = Mesh( eta_min, eta_max, num_cells)
 
-    domain = [eta_min, eta_max, eta_max - eta_min]
-
     pg = ParticleGroup{1,2}(n_particles)
 
     set_common_weight(pg, 1.0)
@@ -74,7 +72,7 @@ import GEMPIC: push_x_accumulate_j!
 
     propagator = HamiltonianSplittingBoris( maxwell_solver,
          kernel_smoother_0, kernel_smoother_1, pg,
-         efield, bfield, domain)
+         efield, bfield)
 
     staggering!( propagator, 0.5*delta_t )
 

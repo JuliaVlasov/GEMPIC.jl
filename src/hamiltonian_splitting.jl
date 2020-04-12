@@ -8,7 +8,7 @@ export HamiltonianSplitting
 """
     HamiltonianSplitting( maxwell_solver,
                           kernel_smoother_0, kernel_smoother_1,
-                          particle_group, e_dofs, b_dofs, domain) 
+                          particle_group, e_dofs, b_dofs) 
 
 Hamiltonian splitting type for Vlasov-Maxwell
 
@@ -42,16 +42,15 @@ struct HamiltonianSplitting
                                    kernel_smoother_1,
                                    particle_group,
                                    e_dofs,
-                                   b_dofs,
-                                   domain :: Vector{Float64}) 
+                                   b_dofs) 
 
         # Check that n_dofs is the same for both kernel smoothers.
         @assert kernel_smoother_0.n_dofs == kernel_smoother_1.n_dofs
 
         j_dofs = [zeros(Float64,kernel_smoother_0.n_dofs) for i in 1:2]
 
-        x_min = domain[1]
-        Lx    = domain[3]
+        x_min = maxwell_solver.xmin
+        Lx    = maxwell_solver.Lx
         spline_degree = 3
         delta_x = Lx/kernel_smoother_1.n_dofs
         

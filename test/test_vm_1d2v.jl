@@ -68,8 +68,7 @@ FEM with splines, degree 3 for B and 2 for E
                                        kernel_smoother1, 
                                        particle_group,
                                        efield_dofs, 
-                                       bfield_dofs,
-                                       domain )
+                                       bfield_dofs )
 
     efield_dofs_n = propagator.e_dofs
 
