@@ -432,9 +432,8 @@ function compute_b_from_e!( field_out :: Vector{Float64},
 end
 
 
-
-
-export compute_derivatives_from_basis!
+export compute_rderivatives_from_basis!
+export compute_lderivatives_from_basis!
 
 function compute_derivatives_from_basis!( field_out :: Vector{Float64},
                             self      :: Maxwell1DFEM, 
@@ -450,9 +449,7 @@ function compute_derivatives_from_basis!( field_out :: Vector{Float64},
 
 end
 
-export compute_derivatives_from_basis2!
-
-function compute_derivatives_from_basis2!( field_out :: Vector{Float64},
+function compute_lderivatives_from_basis!( field_out :: Vector{Float64},
                             self      :: Maxwell1DFEM, 
                             field_in  :: Vector{Float64}) 
 

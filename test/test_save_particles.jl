@@ -8,7 +8,7 @@ nx          = 64
 
 mesh = Mesh( xmax, xmin, nx)
 
-pg = ParticleGroup{1,2}(n_particles, 1.0, 1.0, 1)
+pg = ParticleGroup{1,2}(n_particles)
 
 params = ( k = [[0.5]],
            α = [0.01],
@@ -37,12 +37,10 @@ n_particles = 1000
 mesh = Mesh( xmin, xmax, nx)
 spline_degree = 3
    
-df = SpinCosSumGaussian{1,1,3}([[kx]], [α], [[σ]], [[μ]] )
+df = CosSumGaussianSpin([[kx]], [α], [[σ]], [[μ]] )
    
-mass, charge = 1.0, 1.0
-   
-spg = SpinParticleGroup{1,1,3}( n_particles, mass, charge, 1)   
-sampler = SpinParticleSampler{1,1,3}( :sobol, n_particles)
+spg = ParticleGroup{1,1}( n_particles, n_spin=3)   
+sampler = ParticleSampler{1, 1}( :sobol, n_particles)
    
 sample!(spg, sampler, df, mesh)
    

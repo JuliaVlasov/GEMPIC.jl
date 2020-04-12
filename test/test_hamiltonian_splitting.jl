@@ -18,7 +18,7 @@
 
     domain = [eta_min, eta_max, eta_max - eta_min]
 
-    pg = ParticleGroup{1,2}(n_particles, 1.0, 1.0, 1)
+    pg = ParticleGroup{1,2}(n_particles)
 
     set_common_weight( pg, 1.0)
 

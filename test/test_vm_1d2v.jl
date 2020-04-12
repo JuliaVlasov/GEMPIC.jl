@@ -44,7 +44,7 @@ FEM with splines, degree 3 for B and 2 for E
     sampler = ParticleSampler{1,2}( sampling_case, symmetric, n_particles)
     
     # Initialize the particles : mass and charge set to 1.0 with one weight
-    particle_group = ParticleGroup{1,2}( n_particles, 1.0, 1.0, 1)
+    particle_group = ParticleGroup{1,2}( n_particles )
     
     # Initialize the field solver
     maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)

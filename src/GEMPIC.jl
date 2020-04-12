@@ -13,7 +13,6 @@ module GEMPIC
 
     # Particle Groups
     include("particle_group.jl")
-    include("particle_group_spin.jl")
 
     # Particle-Mesh coupling
     include("particle_mesh_coupling.jl")

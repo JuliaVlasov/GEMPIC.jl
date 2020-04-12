@@ -14,7 +14,7 @@ x_vec = [0.1, 0.65, 0.7, 1.5] # Particle positions
 v_vec = [1.5  -3.0  0.0  6.0; 
          0.0   0.5  0.0  0.0]'
 
-particle_group = ParticleGroup{1,2}( n_particles, 1.0, 1.0, 1)
+particle_group = ParticleGroup{1,2}(n_particles)
 
 set_common_weight(particle_group, 1.0/n_particles)
 

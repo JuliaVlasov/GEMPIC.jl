@@ -197,7 +197,7 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
                               h.kernel_smoother_1,
                               x_old, 
                               x_new, 
-                              wi[1],
+                              wi,
                               qoverm, 
                               h.b_dofs, 
                               vi)
@@ -206,7 +206,7 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
        add_charge!( h.j_dofs[2],
                     h.kernel_smoother_0, 
                     x_new, 
-                    wi[1])
+                    wi)
       
        x_new[1] = mod(x_new[1], h.Lx)
 
