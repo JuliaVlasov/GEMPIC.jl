@@ -1,5 +1,7 @@
 module GEMPIC
 
+    import Base.Threads: @sync, @spawn, nthreads, threadid
+
     # Utilities
     include("mesh.jl")
     include("low_level_bsplines.jl")

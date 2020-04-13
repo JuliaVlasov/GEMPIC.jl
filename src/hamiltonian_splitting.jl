@@ -289,17 +289,36 @@ function operatorHE(h :: HamiltonianSplitting, dt :: Float64)
 
     qm = h.particle_group.q_over_m
 
-    # V_new = V_old + dt * E
-    for i_part=1:h.particle_group.n_particles
+    np = h.particle_group.n_particles
 
-       v_new = get_v( h.particle_group, i_part)
-       # Evaluate efields at particle position
-       xi = get_x(h.particle_group, i_part)
-       e1 = evaluate(h.kernel_smoother_1, xi[1], h.e_dofs[1])
-       e2 = evaluate(h.kernel_smoother_0, xi[1], h.e_dofs[2])
-       v_new = get_v(h.particle_group, i_part)
-       v_new[1:2] .= v_new[1:2] .+ dt * qm * [e1, e2]
-       set_v(h.particle_group, i_part, v_new)
+    # V_new = V_old + dt * E
+
+    @sync for i_chunk = Iterators.partition(1:np, nthreads())
+
+
+        @spawn begin
+
+            for i_part in i_chunk
+
+                v_new1 = h.particle_group.particle_array[2, i_part]
+                v_new2 = h.particle_group.particle_array[3, i_part]
+
+                # Evaluate efields at particle position
+
+                xi = h.particle_group.particle_array[1, i_part]
+
+                e1 = evaluate(h.kernel_smoother_1, xi, h.e_dofs[1])
+                e2 = evaluate(h.kernel_smoother_0, xi, h.e_dofs[2])
+
+                v_new1 = v_new1 + dt * qm * e1
+                v_new2 = v_new2 + dt * qm * e2
+
+                h.particle_group.particle_array[2, i_part] = v_new1
+                h.particle_group.particle_array[3, i_part] = v_new2
+
+            end
+
+        end
 
     end
     
