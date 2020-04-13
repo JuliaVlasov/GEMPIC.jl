@@ -3,8 +3,7 @@ abstract type AbstractParticleMeshCoupling end
 export ParticleMeshCoupling
 
 """
-    ParticleMeshCoupling( mesh, n_grid, 
-                          no_particles, spline_degree, 
+    ParticleMeshCoupling( mesh, no_particles, spline_degree, 
                           smoothing_type )
     
 Kernel smoother with splines of arbitrary degree placed on a uniform mesh.
@@ -32,7 +31,7 @@ struct ParticleMeshCoupling <: AbstractParticleMeshCoupling
     dims            :: Int
     domain          :: Vector{Float64}
     delta_x         :: Float64 
-    n_grid          :: Vector{Int} 
+    n_grid          :: Vector{Int}
     n_dofs          :: Int
     no_particles    :: Int
     spline_degree   :: Int
@@ -238,7 +237,7 @@ function evaluate_pp(p             :: ParticleMeshCoupling,
                      position      :: Float64, 
                      field_dofs_pp :: Array{Float64,2})
 
-    xi = (position[1] - p.domain[1])/p.delta_x[1]
+    xi = (position - p.domain[1])/p.delta_x
     index = trunc(Int, xi)+1
     xi = xi - (index-1)
    
@@ -415,15 +414,16 @@ function evaluate(p          :: ParticleMeshCoupling,
                   position   :: Float64, 
                   field_dofs :: Vector{Float64})
 
-    xi = (position[1] - p.domain[1])/p.delta_x[1]
-    index = trunc(Int, xi)+1
-    xi = xi - (index-1)
+    xi = (position - p.domain[1]) / p.delta_x
+    index = trunc(Int, xi)
+    xi = xi - index
     index = index - p.spline_degree
     uniform_bsplines_eval_basis!( p.spline_val, p.spline_degree, xi)
 
+    nx = p.n_grid[1]
     field_value = 0.0
     for i = 1:p.n_span
-       index1d = mod(index+i-2, p.n_grid[1])+1
+       index1d = mod1(index+i, nx)
        field_value += field_dofs[index1d] * p.spline_val[i]
     end
 
