@@ -261,8 +261,8 @@ function add_charge!( rho_dofs      :: Vector{Float64},
                       marker_charge :: Float64) 
 
     xi = (position - p.domain[1])/p.delta_x
-    index = trunc(Int, xi)+1
-    xi = xi - (index-1)
+    index = trunc(Int, xi)
+    xi = xi - index
     index = index - p.spline_degree
 
     uniform_bsplines_eval_basis!(p.spline_val, p.spline_degree, xi)
@@ -270,7 +270,7 @@ function add_charge!( rho_dofs      :: Vector{Float64},
     nx = p.n_grid[1]
 
     @inbounds for i = 1:p.n_span
-       index1d = mod1(index+i-1,nx)
+       index1d = mod1(index+i,nx)
        rho_dofs[index1d] += marker_charge * p.spline_val[i] * p.scaling
     end
 
