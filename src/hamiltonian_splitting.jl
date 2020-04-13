@@ -182,24 +182,25 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
     @inbounds for i_part = 1:h.particle_group.n_particles  
 
        # Read out particle position and velocity
-       x_old = get_x(h.particle_group, i_part)[1]
-       vi    = get_v(h.particle_group, i_part)
+       x_old  = h.particle_group.particle_array[1, i_part]
+       v1_old = h.particle_group.particle_array[2, i_part]
+       v2_old = h.particle_group.particle_array[3, i_part]
 
        # Then update particle position:  X_new = X_old + dt * V
-       x_new = x_old + dt * vi[1]
+       x_new = x_old + dt * v1_old
 
        # Get charge for accumulation of j
        wi     = get_charge(h.particle_group, i_part)
        qoverm = h.particle_group.q_over_m
 
-       vi[2] = add_current_update_v!( h.j_dofs[1], 
+       v2_new = add_current_update_v!( h.j_dofs[1], 
                               h.kernel_smoother_1,
                               x_old, 
                               x_new, 
                               wi,
                               qoverm, 
                               h.b_dofs, 
-                              vi[2])
+                              v2_old)
 
        # Accumulate rho for Poisson diagnostics
        add_charge!( h.j_dofs[2],
@@ -209,8 +210,8 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
       
        x_new = mod(x_new, h.Lx)
 
-       set_x(h.particle_group, i_part, x_new)
-       set_v(h.particle_group, i_part, vi)
+       h.particle_group.particle_array[1, i_part] = x_new
+       h.particle_group.particle_array[3, i_part] = v2_new
 
     end
 
@@ -243,24 +244,27 @@ function operatorHp2(h :: HamiltonianSplitting, dt :: Float64)
 
     qm = h.particle_group.q_over_m
 
+    np = h.particle_group.n_particles
+
     # Update v_1
-    for i_part=1:h.particle_group.n_particles
 
-       # Evaluate b at particle position (splines of order p)
-       xi    = get_x(h.particle_group, i_part)[1]
-       b     = evaluate(h.kernel_smoother_1, xi[1], h.b_dofs)
-       vi    = get_v(h.particle_group, i_part)
-       vi[1] = vi[1] + dt * qm * vi[2] * b
-       set_v(h.particle_group, i_part, vi)
+    for i_part in 1:np
 
-       xi = get_x(h.particle_group, i_part)[1]
+        # Evaluate b at particle position (splines of order p)
+        x1    = h.particle_group.particle_array[1, i_part]
+        v1    = h.particle_group.particle_array[2, i_part]
+        v2    = h.particle_group.particle_array[3, i_part]
 
-       # Scale vi by weight to combine both factors 
-       #for accumulation of integral over j
+        b     = evaluate(h.kernel_smoother_1, x1, h.b_dofs)
+        v1    = v1 + dt * qm * v2 * b
 
-       wi = get_charge(h.particle_group, i_part) * vi[2]
+        h.particle_group.particle_array[2, i_part] = v1
 
-       add_charge!( h.j_dofs[2], h.kernel_smoother_0, xi, wi[1])
+        # Scale vi by weight to combine both factors 
+        #for accumulation of integral over j
+	    w  = get_charge(h.particle_group, i_part) * v2
+
+        add_charge!( h.j_dofs[2], h.kernel_smoother_0, x1, w)
 
     end
 

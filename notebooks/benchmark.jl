@@ -1,6 +1,5 @@
 using BenchmarkTools
 
-
 import Base.Threads: @sync, @spawn, nthreads, threadid
 
 include("../src/mesh.jl")
@@ -74,12 +73,11 @@ function setup( )
     thdiag = TimeHistoryDiagnostics( particle_group, maxwell_solver, 
                             kernel_smoother0, kernel_smoother1 );
     
-    
-    
     return propagator
     
 end
 
 propagator = setup()
 
-@benchmark  strang_splitting!(propagator, 0.05, 1)
+strang_splitting!(propagator, 0.05, 1) # trigger compilation
+@time  strang_splitting!(propagator, 0.05, 10)
