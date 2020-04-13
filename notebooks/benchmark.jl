@@ -19,10 +19,10 @@ const α  = 0.0
 const σ  = [0.2,  0.005773502691896]
 const μ  = [0.0, 0.0]
 
-const nx   = 32
+const nx   = 256
 const xmin = 0.0
 const xmax = 2π / k
-const n_particles    = 100000
+const n_particles    = 1000000
 const sampling_case  = :sobol
 const symmetric      = true
 const splitting_case = :symplectic
@@ -79,4 +79,4 @@ end
 
 propagator = setup()
 
-@btime  strang_splitting!(propagator, 0.05, 1)
+@benchmark  strang_splitting!(propagator, 0.05, 1)
