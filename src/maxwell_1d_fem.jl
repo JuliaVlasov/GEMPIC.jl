@@ -440,7 +440,7 @@ function compute_rderivatives_from_basis!( field_out :: Vector{Float64},
     coef = 1/self.delta_x
     # relation betwen spline coefficients for strong Ampere
     for i=1:(self.n_dofs-1)
-       field_out[i] =  coef * ( field_in[i] - field_in[i+1] )
+       @inbounds field_out[i] =  coef * ( field_in[i] - field_in[i+1] )
     end
     # treat Periodic point
     field_out[end] =  coef * ( field_in[end] - field_in[1] )
@@ -456,7 +456,7 @@ function compute_lderivatives_from_basis!( field_out :: Vector{Float64},
     coef = 1/self.delta_x
     # relation betwen spline coefficients for strong Ampere
     for i=2:(self.n_dofs)
-       field_out[i] =  coef * ( field_in[i] - field_in[i-1] )
+       @inbounds field_out[i] =  coef * ( field_in[i] - field_in[i-1] )
     end
     # treat Periodic point
     field_out[1] =  coef * ( field_in[1] - field_in[end] )

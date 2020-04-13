@@ -52,7 +52,7 @@ struct ParticleMeshCoupling <: AbstractParticleMeshCoupling
         dims    = 1
         n_grid  = mesh.nx
         n_dofs  = prod(n_grid)
-        domain  = [mesh.xmin[1], mesh.xmax[1]]
+        domain  = @SVector([mesh.xmin[1], mesh.xmax[1]])
         delta_x = (domain[2]-domain[1])/n_grid[1]
         n_span  = spline_degree + 1
 
@@ -261,15 +261,17 @@ function add_charge!( rho_dofs      :: Vector{Float64},
                       position      :: Float64, 
                       marker_charge :: Float64) 
 
-    xi = (position[1] - p.domain[1])/p.delta_x[1]
+    xi = (position - p.domain[1])/p.delta_x
     index = trunc(Int, xi)+1
     xi = xi - (index-1)
     index = index - p.spline_degree
 
     uniform_bsplines_eval_basis!(p.spline_val, p.spline_degree, xi)
 
+    nx = p.n_grid[1]
+
     @inbounds for i = 1:p.n_span
-       index1d = mod(index+i-2,p.n_grid[1]) + 1
+       index1d = mod1(index+i-1,nx)
        rho_dofs[index1d] += marker_charge * p.spline_val[i] * p.scaling
     end
 
