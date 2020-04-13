@@ -22,8 +22,8 @@ function solve_poisson!( efield_dofs       :: Vector{Float64},
     fill!(rho, 0.0)
 
     for i_part = 1:particle_group.n_particles
-       xi = get_x(particle_group, i_part)
-       wi = get_charge(particle_group, i_part)
+       xi = get_x(particle_group, i_part)[1]
+       wi = get_charge(particle_group, i_part)[1]
        add_charge!(rho, kernel_smoother_0, xi, wi)
     end
 

@@ -192,14 +192,14 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
        wi     = get_charge(h.particle_group, i_part)
        qoverm = h.particle_group.q_over_m
 
-       add_current_update_v!( h.j_dofs[1], 
+       vi[2] = add_current_update_v!( h.j_dofs[1], 
                               h.kernel_smoother_1,
                               x_old, 
                               x_new, 
                               wi,
                               qoverm, 
                               h.b_dofs, 
-                              vi)
+                              vi[2])
 
        # Accumulate rho for Poisson diagnostics
        add_charge!( h.j_dofs[2],
@@ -247,13 +247,13 @@ function operatorHp2(h :: HamiltonianSplitting, dt :: Float64)
     for i_part=1:h.particle_group.n_particles
 
        # Evaluate b at particle position (splines of order p)
-       xi    = get_x(h.particle_group, i_part)
+       xi    = get_x(h.particle_group, i_part)[1]
        b     = evaluate(h.kernel_smoother_1, xi[1], h.b_dofs)
        vi    = get_v(h.particle_group, i_part)
        vi[1] = vi[1] + dt * qm * vi[2] * b
        set_v(h.particle_group, i_part, vi)
 
-       xi = get_x(h.particle_group, i_part)
+       xi = get_x(h.particle_group, i_part)[1]
 
        # Scale vi by weight to combine both factors 
        #for accumulation of integral over j

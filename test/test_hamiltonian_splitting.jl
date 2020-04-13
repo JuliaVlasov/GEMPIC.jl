@@ -64,10 +64,9 @@
     bfield_ref = zeros(Float64, (n_dofs))
     rho        = zeros(Float64, (n_dofs))
 
-    wi = zeros(1)
     for i_part = 1:n_particles
-       xi = get_x(pg, i_part)
-       wi = get_charge( pg, i_part)
+       xi = get_x(pg, i_part)[1]
+       wi = get_charge( pg, i_part)[1]
        add_charge!( rho, kernel_smoother_0, xi, wi[1])
     end
 
@@ -94,18 +93,18 @@
     # Compare computed values to reference values
     for i_part=1:n_particles
 
-       xi = get_x(pg, i_part)
+       xi = get_x(pg, i_part)[1]
  
-       @test xi[1] ≈ particle_info_ref[i_part,1]
+       @test xi ≈ particle_info_ref[i_part,1]
 
-       xi = get_v(pg, i_part)
+       vi = get_v(pg, i_part)
       
-       @test xi[1] ≈ particle_info_ref[i_part,2]
-       @test xi[2] ≈ particle_info_ref[i_part,3]
+       @test vi[1] ≈ particle_info_ref[i_part,2]
+       @test vi[2] ≈ particle_info_ref[i_part,3]
 
-       xi = get_charge(pg, i_part)
+       wi = get_charge(pg, i_part)
        
-       @test xi[1] ≈ particle_info_ref[i_part,4]
+       @test wi[1] ≈ particle_info_ref[i_part,4]
 
     end
     

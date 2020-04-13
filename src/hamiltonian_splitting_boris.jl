@@ -276,10 +276,10 @@ function push_x_accumulate_j!(splitting, dt)
        #todo "Check here also second posibility with sum of two accumulations"
        # Accumulate jx
        add_charge!(splitting.j_dofs[1], splitting.kernel_smoother_1,
-                [(x_old[1]+x_new[1])*0.5], wi[1]*vi[1])
+                (x_old[1]+x_new[1])*0.5, wi[1]*vi[1])
        # Accumulate jy
        add_charge!(splitting.j_dofs[2], splitting.kernel_smoother_0,
-                [(x_old[1]+x_new[1])*0.5], wi[1]*vi[2])
+                (x_old[1]+x_new[1])*0.5, wi[1]*vi[2])
       
        x_new[1] = mod(x_new[1], splitting.Lx)
        set_x(splitting.particle_group, i_part, x_new)

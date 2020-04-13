@@ -60,7 +60,7 @@ import GEMPIC: push_x_accumulate_j!
 
     for i_part = 1:n_particles
 
-       xi = get_x( pg, i_part)
+       xi = get_x( pg, i_part)[1]
 
        wi = get_charge(pg, i_part)
 

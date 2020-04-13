@@ -1,3 +1,5 @@
+using BenchmarkTools
+
 include("../src/mesh.jl")
 include("../src/low_level_bsplines.jl")
 include("../src/splinepp.jl")
@@ -26,12 +28,11 @@ const symmetric      = true
 const splitting_case = :symplectic
 const spline_degree  = 3
 
-function run_simulation( steps )
+function setup( )
 
     mesh   = Mesh( xmin, xmax, nx)
-    domain = [xmin, xmax, xmax - xmin ]
     
-    beta_sin_k(x) = beta * sin(2π * x / domain[3]) 
+    beta_sin_k(x) = beta * sin(2π * x / (xmax - xmin)) 
     
     df = CosSumGaussian{1,2}([[k]], [α], [σ], [μ] )
     
@@ -42,12 +43,12 @@ function run_simulation( steps )
     
     sample!(  particle_group, sampler, df, mesh)
     
-    kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-1, :galerkin)    
-    kernel_smoother0 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree, :galerkin)
+    kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :galerkin)    
+    kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree, :galerkin)
     rho = zeros(Float64, nx);
     efield_poisson = zeros(Float64, nx)
     # Initialize the field solver
-    maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
+    maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
     # efield by Poisson
     solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )    
     
@@ -60,37 +61,22 @@ function run_simulation( steps )
                                        kernel_smoother1, 
                                        particle_group,
                                        efield_dofs,
-                                       bfield_dofs,
-                                       domain);
+                                       bfield_dofs)
     
     efield_dofs_n = propagator.e_dofs
     
-    beta_cos_k(x) = β * cos(2π * x / domain[3]) 
+    beta_cos_k(x) = β * cos(2π * x / (xmax - xmin))
     l2projection!( bfield_dofs, maxwell_solver, beta_cos_k, spline_degree-1)
     
     thdiag = TimeHistoryDiagnostics( particle_group, maxwell_solver, 
                             kernel_smoother0, kernel_smoother1 );
     
-    Δt = 0.05
     
-    for step = 1:steps # loop over time
     
-        # Strang splitting
-        strang_splitting!(propagator, Δt, 1)
-    
-        # Diagnostics
-        solve_poisson!( efield_poisson, particle_group, 
-                        kernel_smoother0, maxwell_solver, rho)
-        
-        write_step!(thdiag, step * Δt, spline_degree, 
-                        efield_dofs,  bfield_dofs,
-                        efield_dofs_n, efield_poisson)
-    
-    end
-
-    return thdiag.data
+    return propagator
     
 end
 
-run_simulation(1)
-@time run_simulation(500)
+propagator = setup()
+
+@btime  strang_splitting!(propagator, 0.05, 1)

@@ -119,33 +119,6 @@ function add_charge_pp!(rho_dofs :: Vector{Float64},
 end
 
 
-"""
-    add_charge!( rho, p, position, marker_charge) 
-
-Add charge of one particle
-- `p`             : kernel smoother object
-- `position`      : Position of the particle
-- `marker_charge` : Particle weights time charge
-- `rho_dofs`      : Coefficient vector of the charge distribution
-"""
-function add_charge!( rho_dofs      :: Vector{Float64},
-                      p             :: ParticleMeshCoupling,
-                      position      , 
-                      marker_charge :: Float64) 
-
-    xi :: Float64 = (position[1] - p.domain[1])/p.delta_x[1]
-    index :: Int = trunc(Int, xi)+1
-    xi = xi - (index-1)
-    index = index - p.spline_degree
-
-    uniform_bsplines_eval_basis!(p.spline_val, p.spline_degree, xi)
-
-    @inbounds for i = 1:p.n_span
-       index1d :: Int = mod(index+i-2,p.n_grid[1]) + 1
-       rho_dofs[index1d] += marker_charge * p.spline_val[i] * p.scaling
-    end
-
-end
 
 """  
     add_current_update_v_pp!( j_dofs, p, position_old, position_new, 
@@ -252,6 +225,58 @@ end
 
 
 """
+    evaluate_pp(p, position, field_dofs_pp)
+
+Evaluate field at `position` using horner scheme
+- `p` : Kernel smoother object 
+- `position` : Position of the particle
+- `field_dofs_pp` : Degrees of freedom in kernel representation.
+- `field_value` : Value(s) of the electric fields at given position
+
+""" 
+function evaluate_pp(p             :: ParticleMeshCoupling, 
+                     position      :: Float64, 
+                     field_dofs_pp :: Array{Float64,2})
+
+    xi = (position[1] - p.domain[1])/p.delta_x[1]
+    index = trunc(Int, xi)+1
+    xi = xi - (index-1)
+   
+    horner_1d(p.spline_degree, field_dofs_pp, xi, index)
+
+end
+
+
+"""
+    add_charge!( rho, p, position, marker_charge) 
+
+Add charge of one particle
+- `p`             : kernel smoother object
+- `position`      : Position of the particle
+- `marker_charge` : Particle weights time charge
+- `rho_dofs`      : Coefficient vector of the charge distribution
+"""
+function add_charge!( rho_dofs      :: Vector{Float64},
+                      p             :: ParticleMeshCoupling,
+                      position      :: Float64, 
+                      marker_charge :: Float64) 
+
+    xi = (position[1] - p.domain[1])/p.delta_x[1]
+    index = trunc(Int, xi)+1
+    xi = xi - (index-1)
+    index = index - p.spline_degree
+
+    uniform_bsplines_eval_basis!(p.spline_val, p.spline_degree, xi)
+
+    @inbounds for i = 1:p.n_span
+       index1d = mod(index+i-2,p.n_grid[1]) + 1
+       rho_dofs[index1d] += marker_charge * p.spline_val[i] * p.scaling
+    end
+
+end
+
+
+"""
     add_current_update_v!( j_dofs, p, 
                            position_old, position_new, 
                            marker_charge, qoverm, 
@@ -272,7 +297,7 @@ function add_current_update_v!( j_dofs        :: AbstractArray,
                                 marker_charge :: Float64, 
                                 qoverm        :: Float64, 
                                 bfield_dofs   :: Vector{Float64}, 
-                                vi            :: Vector{Float64}) 
+                                vi            :: Float64) 
 
 
     xi = (position_old[1] - p.domain[1]) / p.delta_x[1]
@@ -288,36 +313,36 @@ function add_current_update_v!( j_dofs        :: AbstractArray,
     if index_old == index_new
 
         if r_old < r_new
-            vi[2] = update_jv!(j_dofs, p, r_old, r_new, index_old, marker_charge, 
-                       qoverm, 1.0, vi[2], bfield_dofs)
+            vi = update_jv!(j_dofs, p, r_old, r_new, index_old, marker_charge, 
+                       qoverm, 1.0, vi, bfield_dofs)
         else
-            vi[2] = update_jv!(j_dofs, p, r_new, r_old, index_old, marker_charge, qoverm, 
-                      -1.0, vi[2], bfield_dofs)
+            vi = update_jv!(j_dofs, p, r_new, r_old, index_old, marker_charge, qoverm, 
+                      -1.0, vi, bfield_dofs)
         end
 
     elseif index_old < index_new
 
-        vi[2] = update_jv!(j_dofs, p, r_old, 1.0, index_old, marker_charge, 
-                  qoverm, 1.0, vi[2], bfield_dofs)
+        vi = update_jv!(j_dofs, p, r_old, 1.0, index_old, marker_charge, 
+                  qoverm, 1.0, vi, bfield_dofs)
 
-        vi[2] = update_jv!(j_dofs, p, 0.0, r_new, index_new, marker_charge, 
-                  qoverm, 1.0, vi[2], bfield_dofs)
+        vi = update_jv!(j_dofs, p, 0.0, r_new, index_new, marker_charge, 
+                  qoverm, 1.0, vi, bfield_dofs)
 
         for ind = index_old+1:index_new-1
-            vi[2] = update_jv!(j_dofs, p, 0.0, 1.0, ind, marker_charge, 
-                      qoverm, 1.0, vi[2], bfield_dofs)
+            vi = update_jv!(j_dofs, p, 0.0, 1.0, ind, marker_charge, 
+                      qoverm, 1.0, vi, bfield_dofs)
         end
 
     else
 
-        vi[2] = update_jv!( j_dofs, p, r_new, 1.0, index_new, marker_charge, qoverm, 
-                  -1.0, vi[2], bfield_dofs)
-        vi[2] = update_jv!( j_dofs, p, 0.0, r_old, index_old, marker_charge, qoverm, 
-                  -1.0, vi[2], bfield_dofs)
+        vi = update_jv!( j_dofs, p, r_new, 1.0, index_new, marker_charge, qoverm, 
+                  -1.0, vi, bfield_dofs)
+        vi = update_jv!( j_dofs, p, 0.0, r_old, index_old, marker_charge, qoverm, 
+                  -1.0, vi, bfield_dofs)
 
         for ind = index_new+1:index_old-1
-            vi[2] = update_jv!( j_dofs, p, 0.0, 1.0, ind, marker_charge, qoverm, 
-                      -1.0, vi[2], bfield_dofs)
+            vi = update_jv!( j_dofs, p, 0.0, 1.0, ind, marker_charge, qoverm, 
+                      -1.0, vi, bfield_dofs)
         end
 
      end    
@@ -372,29 +397,6 @@ function update_jv!(j_dofs        :: AbstractArray,
    end
 
    vi
-
-end
-
-
-"""
-    evaluate_pp(p, position, field_dofs_pp)
-
-Evaluate field at `position` using horner scheme
-- `p` : Kernel smoother object 
-- `position` : Position of the particle
-- `field_dofs_pp` : Degrees of freedom in kernel representation.
-- `field_value` : Value(s) of the electric fields at given position
-
-""" 
-function evaluate_pp(p             :: ParticleMeshCoupling, 
-                     position      :: Float64, 
-                     field_dofs_pp :: Array{Float64,2})
-
-    xi = (position[1] - p.domain[1])/p.delta_x[1]
-    index = trunc(Int, xi)+1
-    xi = xi - (index-1)
-   
-    horner_1d(p.spline_degree, field_dofs_pp, xi, index)
 
 end
 

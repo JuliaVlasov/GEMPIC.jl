@@ -111,7 +111,7 @@ FEM with splines, degree 3 for B and 2 for E
     # Compute final rho
     fill!(rho, 0.0)
     for i_part = 1:particle_group.n_particles
-       xi = get_x(particle_group, i_part)
+       xi = get_x(particle_group, i_part)[1]
        wi = get_charge( particle_group, i_part)
        add_charge!(rho, kernel_smoother0, xi, wi)
     end

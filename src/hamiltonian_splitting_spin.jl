@@ -281,18 +281,22 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
         v_new = get_v( h.particle_group, i_part)[1]
          
         # Evaluate efields at particle position
-        xi = get_x(h.particle_group, i_part)
+        xi = get_x(h.particle_group, i_part)[1]
         fill!(h.j_dofs[1], 0.0)
         fill!(h.j_dofs[2], 0.0)
+
         add_charge!( h.j_dofs[2], h.kernel_smoother_1, xi, 1.0)
         compute_rderivatives_from_basis!(h.j_dofs[1], h.maxwell_solver, h.j_dofs[2])
+
         Y = h.a_dofs[1]'*h.j_dofs[1]
         Z = h.a_dofs[2]'*h.j_dofs[1]
         V = [0,Z,-Y];
+
         hat_v[1,2] = Y;
         hat_v[1,3] = Z;
         hat_v[2,1] = -Y;
         hat_v[3,1] = -Z;
+
         s1 = get_spin(h.particle_group, i_part, 1)
         s2 = get_spin(h.particle_group, i_part, 2)
         s3 = get_spin(h.particle_group, i_part, 3)

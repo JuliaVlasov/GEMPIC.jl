@@ -46,7 +46,7 @@ kernel = ParticleMeshCoupling( mesh, n_particles, spline_degree, :collocation)
 rho_dofs  = zeros(Float64, n_cells)
 rho_dofs1 = zeros(Float64, n_cells)
 for i_part = 1:n_particles
-    xi = get_x(particle_group, i_part)
+    xi = get_x(particle_group, i_part)[1]
     wi = get_charge(particle_group, i_part)
     add_charge!(rho_dofs, kernel, xi, wi)
     add_charge_pp!(rho_dofs1, kernel, xi, wi)
@@ -74,7 +74,7 @@ for i_part = 1:n_particles
     vi1   = vi
     x_new = xi + vi[1]/10.0
 
-    vi  = add_current_update_v!(    j_dofs,  kernel, xi, x_new, wi, 1.0, b_dofs, vi )
+    vi[2]  = add_current_update_v!(    j_dofs,  kernel, xi, x_new, wi, 1.0, b_dofs, vi[2] )
     vi1 = add_current_update_v_pp!( j_dofs1, kernel, xi, x_new, wi, 1.0, b_dofs, vi1 )
      
 end

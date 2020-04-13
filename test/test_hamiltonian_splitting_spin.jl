@@ -42,7 +42,7 @@
     rho        = zeros(Float64, n_dofs)
 
     for i_part = 1:n_particles
-       xi = get_x(pg, i_part)
+       xi = get_x(pg, i_part)[1]
        wi = get_charge( pg, i_part)
        add_charge!( rho, kernel_smoother_0, xi, wi)
     end

@@ -112,8 +112,8 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
     for i_part=1:thdiag.particle_group.n_particles
         fill!(propagator.j_dofs[1], 0.0)
         fill!(propagator.j_dofs[2], 0.0)
-        xi = get_x( thdiag.particle_group, i_part)
-        vi = get_v( thdiag.particle_group, i_part)
+        xi = get_x( thdiag.particle_group, i_part)[1]
+        vi = get_v( thdiag.particle_group, i_part)[1]
         s1 = get_spin( thdiag.particle_group, i_part, 1)
         s2 = get_spin( thdiag.particle_group, i_part, 2)
         s3 = get_spin( thdiag.particle_group, i_part, 3) 
