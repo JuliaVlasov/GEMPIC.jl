@@ -1,8 +1,8 @@
 using GEMPIC
 
-import Base.Threads: @sync, @spawn, nthreads, threadid
+using ProgressMeter
 
-function setup( )
+function run( steps )
 
     β = 0.0001
     k = 1.25
@@ -59,13 +59,25 @@ function setup( )
     
     thdiag = TimeHistoryDiagnostics( particle_group, maxwell_solver, 
                             kernel_smoother0, kernel_smoother1 );
+
+    Δt = 0.01
     
-    return propagator
+    @showprogress 1 for j = 1:steps # loop over time
     
+        # Strang splitting
+        strang_splitting!(propagator, Δt, 1)
+    
+        # Diagnostics
+        solve_poisson!( efield_poisson, particle_group, 
+                        kernel_smoother0, maxwell_solver, rho)
+        
+        write_step!(thdiag, j * Δt, spline_degree, 
+                        efield_dofs,  bfield_dofs,
+                        efield_dofs_n, efield_poisson)
+    
+    end
+
 end
 
-propagator = setup()
-
-strang_splitting!(propagator, 0.05, 1) # trigger compilation
-@time  strang_splitting!(propagator, 0.05, 10)
-
+run(1)
+@time run(10)
