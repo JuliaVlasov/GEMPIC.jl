@@ -48,7 +48,8 @@ function pic_diagnostics_transfer( particle_group :: ParticleGroup{1,2},
                                    kernel_smoother_0, kernel_smoother_1, 
                                    efield_dofs )
 
-    transfer = 0.0
+    transfer :: Float64 = 0.0
+
     for i_part = 1:particle_group.n_particles
 
        xi = particle_group.particle_array[1,i_part]
@@ -79,7 +80,7 @@ Compute ``\\sum_{particles} ( w_p v_1, p b(x_p) v_2, p )``
 """
 function pic_diagnostics_vvb( particle_group, kernel_smoother_1, bfield_dofs )
 
-    vvb = 0.0
+    vvb :: Float64 = 0.0
 
     for i_part = 1:particle_group.n_particles
 
