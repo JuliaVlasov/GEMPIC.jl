@@ -190,7 +190,9 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
        x_new = x_old + dt * v1_old
 
        # Get charge for accumulation of j
-       wi     = get_charge(h.particle_group, i_part)
+       wi     = h.particle_group.particle_array[4, i_part]
+       wi     = wi * h.particle_group.charge
+       wi     = wi * h.particle_group.common_weight
 
        qoverm = h.particle_group.q_over_m
 
@@ -265,7 +267,7 @@ function operatorHp2(h :: HamiltonianSplitting, dt :: Float64)
         #for accumulation of integral over j
 	    w  = h.particle_group.particle_array[4, i_part] 
         w  = w * h.particle_group.charge
-        w  = w * h.particle_group.common_weight[]
+        w  = w * h.particle_group.common_weight
         w  = w * v2
 
         add_charge!( h.j_dofs[2], h.kernel_smoother_0, x1, w)

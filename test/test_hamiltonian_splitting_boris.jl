@@ -1,4 +1,4 @@
-import GEMPIC: set_x, set_v, set_weights, set_common_weight
+import GEMPIC: set_x, set_v, set_weights
 import GEMPIC: get_charge, add_charge!
 import GEMPIC: push_x_accumulate_j!
 
@@ -13,9 +13,8 @@ import GEMPIC: push_x_accumulate_j!
 
     mesh = Mesh( eta_min, eta_max, num_cells)
 
-    pg = ParticleGroup{1,2}(n_particles)
+    pg = ParticleGroup{1,2}(n_particles; common_weight=1.0)
 
-    set_common_weight(pg, 1.0)
 
     particle_info_ref = reshape( [11.780972450961723, 
                                  -1.5341205443525459,
@@ -39,8 +38,6 @@ import GEMPIC: push_x_accumulate_j!
 
     end
     
-    set_common_weight(pg, 1.0)
-
     # Initialize kernel smoother    
 
     kernel_smoother_1 = ParticleMeshCoupling( mesh,

@@ -31,9 +31,6 @@ function sample!( pg   :: ParticleGroup{1,1},
     n_rnds += 2
     rdn = zeros(3)
     
-    # 1/Np in common weight
-    set_common_weight(pg, (1.0/pg.n_particles))
-
     if ps.sampling_type == :sobol
        rng_sobol  = SobolSeq(1)
     end 

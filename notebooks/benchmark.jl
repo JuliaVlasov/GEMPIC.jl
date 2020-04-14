@@ -68,3 +68,4 @@ propagator = setup()
 
 strang_splitting!(propagator, 0.05, 1) # trigger compilation
 @time  strang_splitting!(propagator, 0.05, 10)
+

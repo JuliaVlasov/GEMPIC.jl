@@ -1,7 +1,7 @@
 @testset " particle-mesh coupling with spline 1d " begin
 
 using  GEMPIC
-import GEMPIC: set_common_weight, set_x, set_v, set_weights
+import GEMPIC: set_x, set_v, set_weights
 import GEMPIC: get_x, get_v, get_charge, add_charge!, add_charge_pp!
 import GEMPIC: add_current_update_v!, add_current_update_v_pp!
 import GEMPIC: b_to_pp, evaluate, evaluate_pp
@@ -15,8 +15,6 @@ v_vec = [1.5  -3.0  0.0  6.0;
          0.0   0.5  0.0  0.0]'
 
 particle_group = ParticleGroup{1,2}(n_particles)
-
-set_common_weight(particle_group, 1.0/n_particles)
 
 for i_part = 1:n_particles
     set_x(particle_group, i_part, x_vec[i_part])

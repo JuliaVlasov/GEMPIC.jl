@@ -17,7 +17,7 @@ struct ParticleGroup{D,V} <:  AbstractParticleGroup
     dims              :: Tuple{Int, Int}
     n_particles       :: Int
     particle_array    :: Array{Float64, 2} 
-    common_weight     :: Ref{Float64}
+    common_weight     :: Float64
     charge            :: Float64
     mass              :: Float64
     n_weights         :: Int
@@ -28,11 +28,14 @@ struct ParticleGroup{D,V} <:  AbstractParticleGroup
                                  charge = 1.0, 
                                  mass = 1.0, 
                                  n_weights = 1, 
+                                 common_weight = 0.0,
                                  n_spin = 0) where {D, V}
 
         dims = (D, V)
         particle_array = zeros( Float64, (sum(dims)+n_weights+n_spin, n_particles)) 
-        common_weight = 1.0
+        if common_weight == 0.0
+            common_weight = 1.0 / n_particles
+        end
         q_over_m = charge / mass
 
         new( dims, n_particles, particle_array, common_weight, charge,
@@ -61,7 +64,7 @@ Get charge of ith particle of p (q * particle_weight)
 """
 @inline function get_charge( p :: ParticleGroup{D,V}, i :: Int; i_wi=1) where {D, V} 
 
-    p.charge * p.particle_array[D+V+i_wi, i] * p.common_weight[]
+    p.charge * p.particle_array[D+V+i_wi, i] * p.common_weight
 
 end
 
@@ -72,7 +75,7 @@ Get mass of ith particle of p (m * particle_weight)
 """
 @inline function get_mass( p :: ParticleGroup{D,V}, i :: Int; i_wi=1) where {D,V}
 
-	p.mass * p.particle_array[D+V+i_wi, i] * p.common_weight[]
+	p.mass * p.particle_array[D+V+i_wi, i] * p.common_weight
 
 end
 
@@ -176,17 +179,6 @@ Set weights of particle @ i
 function set_weights( p :: ParticleGroup{D,V}, i :: Int, w :: Float64 ) where {D, V}
 
     p.particle_array[D+V+1, i] = w
-    
-end
-
-"""
-    set_common_weight( p, x ) 
-
-Set the common weight
-"""
-function set_common_weight( p :: AbstractParticleGroup, x :: Float64 ) 
-
-    p.common_weight[] = x
     
 end
 

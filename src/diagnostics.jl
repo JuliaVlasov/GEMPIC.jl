@@ -22,8 +22,8 @@ function solve_poisson!( efield_dofs       :: Vector{Float64},
     fill!(rho, 0.0)
 
     for i_part = 1:particle_group.n_particles
-       xi = get_x(particle_group, i_part)[1]
-       wi = get_charge(particle_group, i_part)[1]
+       xi = particle_group.particle_array[1, i_part]
+       wi = get_charge(particle_group, i_part)
        add_charge!(rho, kernel_smoother_0, xi, wi)
     end
 
@@ -51,14 +51,15 @@ function pic_diagnostics_transfer( particle_group :: ParticleGroup{1,2},
     transfer = 0.0
     for i_part = 1:particle_group.n_particles
 
-       xi = get_x( particle_group,i_part)
+       xi = particle_group.particle_array[1,i_part]
        wi = get_charge(particle_group, i_part)
-       vi = get_v( particle_group, i_part)
+       v1 = particle_group.particle_array[2, i_part]
+       v2 = particle_group.particle_array[3, i_part]
 
-       efield_1 = evaluate( kernel_smoother_1, xi[1], efield_dofs[1] )
-       efield_2 = evaluate( kernel_smoother_0, xi[1], efield_dofs[2] )
+       efield_1 = evaluate( kernel_smoother_1, xi, efield_dofs[1] )
+       efield_2 = evaluate( kernel_smoother_0, xi, efield_dofs[2] )
 
-       transfer += (vi[1] * efield_1 + vi[2] * efield_2) * wi
+       transfer += (v1 * efield_1 + v2 * efield_2) * wi
        
     end
 

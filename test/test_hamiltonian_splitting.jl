@@ -1,6 +1,6 @@
 @testset "Hamiltonian splitting" begin
 
-    import GEMPIC: set_common_weight, set_x, set_v
+    import GEMPIC: set_x, set_v
     import GEMPIC: set_weights, get_charge, add_charge!
     import GEMPIC: operatorHp1, operatorHp2, operatorHE, operatorHB
 
@@ -18,9 +18,7 @@
 
     mesh = Mesh(eta_min, eta_max, num_cells)
 
-    pg = ParticleGroup{1,2}(n_particles)
-
-    set_common_weight( pg, 1.0)
+    pg = ParticleGroup{1,2}(n_particles; common_weight = 1.0)
 
     particle_info_ref = reshape([ 11.780972450961723, 
                                    5.4977871437821380,
@@ -41,8 +39,6 @@
        xi[1]   = particle_info_ref[i_part, 4]
        set_weights(pg, i_part, xi[1])
     end
-
-    set_common_weight(pg, 1.0)
 
     # Initialize kernel smoothers
     kernel_smoother_1 = ParticleMeshCoupling( mesh,
