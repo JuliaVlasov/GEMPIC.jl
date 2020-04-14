@@ -282,7 +282,8 @@ function compute_e_from_j!(e         :: Vector{Float64},
      end
      
      # Update the electric field and scale
-     e .= e - self.work ./ self.delta_x
+     self.work ./= self.delta_x
+     e .-= self.work 
 
 end
 

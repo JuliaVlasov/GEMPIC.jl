@@ -43,6 +43,8 @@ struct ParticleMeshCoupling <: AbstractParticleMeshCoupling
     quad_x          :: Vector{Float64}
     quad_w          :: Vector{Float64}
     spline_pp       :: SplinePP
+    xmin            :: Float64
+    Lx              :: Float64
 
     function ParticleMeshCoupling( mesh           :: Mesh, 
                                    no_particles   :: Int, 
@@ -51,7 +53,10 @@ struct ParticleMeshCoupling <: AbstractParticleMeshCoupling
         dims    = 1
         n_grid  = mesh.nx
         n_dofs  = prod(n_grid)
-        domain  = @SVector([mesh.xmin[1], mesh.xmax[1]])
+        domain  = [mesh.xmin[1], mesh.xmax[1]]
+        xmin = mesh.xmin[1]
+        xmax = mesh.xmax[1]
+        Lx = xmax - xmin
         delta_x = (domain[2]-domain[1])/n_grid[1]
         n_span  = spline_degree + 1
 
@@ -78,7 +83,8 @@ struct ParticleMeshCoupling <: AbstractParticleMeshCoupling
         new(dims, domain, delta_x, n_grid, n_dofs,
             no_particles, spline_degree,
             n_span, scaling, n_quad_points, spline_val,
-            spline_val_more, quad_x, quad_w, spline_pp)
+            spline_val_more, quad_x, quad_w, spline_pp,
+            xmin, Lx)
 
   end
     
@@ -97,10 +103,10 @@ Add charge of one particle
 """
 function add_charge_pp!(rho_dofs :: Vector{Float64}, 
                         p        :: ParticleMeshCoupling, 
-                        position, 
+                        position :: Float64, 
                         marker_charge)
     
-    xi    = (position[1] - p.domain[1])/p.delta_x
+    xi    = (position - p.xmin)/p.delta_x
     index = trunc(Int, xi)+1
     xi    = xi    - (index-1)
     index = index - p.spline_degree
@@ -139,12 +145,12 @@ function add_current_update_v_pp!( j_dofs        :: AbstractArray,
     # Compute index_old, the index of the last DoF on the grid the particle
     # contributes to, and r_old, its position (normalized to cell size one).
 
-    xi = (position_old[1] - p.domain[1]) / p.delta_x[1]
+    xi = (position_old[1] - p.xmin) / p.delta_x[1]
     index_old = trunc(Int, xi)
     r_old = xi - index_old
 
     # Compute the new box index index_new and normalized position r_old.
-    xi = (position_new[1] - p.domain[1]) / p.delta_x[1]
+    xi = (position_new[1] - p.xmin) / p.delta_x[1]
     index_new = trunc(Int, xi)
     r_new = xi - index_new
  
@@ -237,7 +243,7 @@ function evaluate_pp(p             :: ParticleMeshCoupling,
                      position      :: Float64, 
                      field_dofs_pp :: Array{Float64,2})
 
-    xi = (position - p.domain[1])/p.delta_x
+    xi = (position - p.xmin)/p.delta_x
     index = trunc(Int, xi)+1
     xi = xi - (index-1)
    
@@ -260,7 +266,7 @@ function add_charge!( rho_dofs      :: Vector{Float64},
                       position      :: Float64, 
                       marker_charge :: Float64) 
 
-    xi = (position - p.domain[1])/p.delta_x
+    xi = (position - p.xmin)/p.delta_x
     index = trunc(Int, xi)
     xi = xi - index
     index = index - p.spline_degree
@@ -301,13 +307,13 @@ function add_current_update_v!( j_dofs        :: AbstractArray,
                                 vi            :: Float64) 
 
 
-    xi = (position_old[1] - p.domain[1]) / p.delta_x[1]
+    xi = (position_old - p.xmin) / p.delta_x
     index_old = trunc(Int,xi)
     r_old = xi - index_old
 
     # Compute the new box index index_new and normalized position r_old.
 
-    xi = (position_new[1] - p.domain[1]) / p.delta_x[1]
+    xi = (position_new - p.xmin) / p.delta_x
     index_new = trunc(Int, xi)
     r_new = xi - index_new
  
@@ -405,20 +411,22 @@ end
     evaluate(p, position, field_dofs)
 
 Evaluate field at `position`
+
 - `p` : Kernel smoother object 
 - `position` : Position of the particle
 - `field_dofs` : Coefficient vector for the field DoFs
 - `field_value` : Value(s) of the electric fields at given position
+
 """
 function evaluate(p          :: ParticleMeshCoupling, 
                   position   :: Float64, 
                   field_dofs :: Vector{Float64})
 
-    xi = (position - p.domain[1]) / p.delta_x
+    xi = (position - p.xmin) / p.delta_x
     index = trunc(Int, xi)
-    xi = xi - index
+    dxi = xi - index
     index = index - p.spline_degree
-    uniform_bsplines_eval_basis!( p.spline_val, p.spline_degree, xi)
+    uniform_bsplines_eval_basis!( p.spline_val, p.spline_degree, dxi)
 
     nx = p.n_grid[1]
     field_value = 0.0

@@ -34,8 +34,8 @@ function run( steps :: Int64)
    σ, μ = 0.02, 0.0
    kx, α = 1.004355, 0.001
    xmin, xmax = 0, 2π/kx
-   nx = 32 
-   n_particles = 1000
+   nx = 1024 
+   n_particles = 100000
    mesh = Mesh( xmin, xmax, nx)
    spline_degree = 3
    
@@ -140,7 +140,7 @@ function run( steps :: Int64)
 
 end
 # +
-results = run(1000) # choose number of steps
+results = run(10000) # choose number of steps
 
 CSV.write("thdiag-$(now()).csv", results)
 # -

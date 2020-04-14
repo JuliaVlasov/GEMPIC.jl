@@ -263,8 +263,8 @@ function operatorHB(h :: HamiltonianSplittingSpin, dt :: Float64)
         end
     end
 
-    h.a_dofs[1] .-= dt*h.e_dofs[2]
-    h.a_dofs[2] .-= dt*h.e_dofs[3]
+    h.a_dofs[1] .-= dt * h.e_dofs[2]
+    h.a_dofs[2] .-= dt * h.e_dofs[3]
     
 end
 
@@ -302,9 +302,11 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
         vi = h.particle_group.particle_array[2, i_part]
          
         # Evaluate efields at particle position
-        fill!.(h.j_dofs, 0.0)
+        fill!(h.j_dofs[1], 0.0)
+        fill!(h.j_dofs[2], 0.0)
 
         add_charge!( h.j_dofs[2], h.kernel_smoother_1, xi, 1.0)
+
         compute_rderivatives_from_basis!(h.j_dofs[1], h.maxwell_solver, h.j_dofs[2])
 
         Y  = h.a_dofs[1]'h.j_dofs[1]

@@ -1,36 +1,23 @@
-using BenchmarkTools
+using GEMPIC
 
 import Base.Threads: @sync, @spawn, nthreads, threadid
 
-include("../src/mesh.jl")
-include("../src/low_level_bsplines.jl")
-include("../src/splinepp.jl")
-include("../src/distributions.jl")
-include("../src/maxwell_1d_fem.jl")
-include("../src/particle_group.jl")
-include("../src/particle_mesh_coupling.jl")
-include("../src/particle_sampling.jl")
-include("../src/landau_damping.jl")
-include("../src/hamiltonian_splitting.jl")
-include("../src/hamiltonian_splitting_boris.jl")
-include("../src/diagnostics.jl")
-
-const β = 0.0001
-const k = 1.25
-const α = 0.0
-const σ = [0.2,  0.005773502691896]
-const μ = [0.0, 0.0]
-
-const nx   = 64
-const xmin = 0.0
-const xmax = 2π / k
-const n_particles    = 100000
-const sampling_case  = :sobol
-const symmetric      = true
-const splitting_case = :symplectic
-const spline_degree  = 3
-
 function setup( )
+
+    β = 0.0001
+    k = 1.25
+    α = 0.0
+    σ = [0.2,  0.005773502691896]
+    μ = [0.0, 0.0]
+    
+    nx   = 32
+    xmin = 0.0
+    xmax = 2π / k
+    n_particles    = 100000
+    sampling_case  = :sobol
+    symmetric      = true
+    splitting_case = :symplectic
+    spline_degree  = 3
 
     mesh   = Mesh( xmin, xmax, nx)
     

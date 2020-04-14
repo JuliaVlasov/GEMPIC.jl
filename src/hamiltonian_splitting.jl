@@ -191,6 +191,7 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
 
        # Get charge for accumulation of j
        wi     = get_charge(h.particle_group, i_part)
+
        qoverm = h.particle_group.q_over_m
 
        v2_new = add_current_update_v!( h.j_dofs[1], 
@@ -262,7 +263,10 @@ function operatorHp2(h :: HamiltonianSplitting, dt :: Float64)
 
         # Scale vi by weight to combine both factors 
         #for accumulation of integral over j
-	    w  = get_charge(h.particle_group, i_part) * v2
+	    w  = h.particle_group.particle_array[4, i_part] 
+        w  = w * h.particle_group.charge
+        w  = w * h.particle_group.common_weight[]
+        w  = w * v2
 
         add_charge!( h.j_dofs[2], h.kernel_smoother_0, x1, w)
 
@@ -297,15 +301,14 @@ function operatorHE(h :: HamiltonianSplitting, dt :: Float64)
 
     # V_new = V_old + dt * E
 
-    @sync for i_chunk = Iterators.partition(1:np, nthreads())
+    for i_part = 1:np
 
+    #@sync for i_chunk = Iterators.partition(1:np, nthreads())
+    #    @spawn begin
+    #        for i_part in i_chunk
 
-        @spawn begin
-
-            for i_part in i_chunk
-
-                v_new1 = h.particle_group.particle_array[2, i_part]
-                v_new2 = h.particle_group.particle_array[3, i_part]
+                v_old1 = h.particle_group.particle_array[2, i_part]
+                v_old2 = h.particle_group.particle_array[3, i_part]
 
                 # Evaluate efields at particle position
 
@@ -314,15 +317,15 @@ function operatorHE(h :: HamiltonianSplitting, dt :: Float64)
                 e1 = evaluate(h.kernel_smoother_1, xi, h.e_dofs[1])
                 e2 = evaluate(h.kernel_smoother_0, xi, h.e_dofs[2])
 
-                v_new1 = v_new1 + dt * qm * e1
-                v_new2 = v_new2 + dt * qm * e2
+                v_new1 = v_old1 + dt * qm * e1
+                v_new2 = v_old2 + dt * qm * e2
 
                 h.particle_group.particle_array[2, i_part] = v_new1
                 h.particle_group.particle_array[3, i_part] = v_new2
 
-            end
+            #end
 
-        end
+        #end
 
     end
     
@@ -345,5 +348,7 @@ Push ``H_B``: Equations to be solved ``V_{new} = V_{old}``
 ```
 """
 function operatorHB(h :: HamiltonianSplitting, dt :: Float64)
+
     compute_e_from_b!( h.e_dofs[2], h.maxwell_solver, dt, h.b_dofs)
+
 end

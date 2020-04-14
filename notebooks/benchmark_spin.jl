@@ -32,8 +32,8 @@ function setup( )
    σ, μ = 0.02, 0.0
    kx, α = 1.004355, 0.001
    xmin, xmax = 0, 2π/kx
-   nx = 512 
-   n_particles = 100000
+   nx = 32 
+   n_particles = 1000
    mesh = Mesh( xmin, xmax, nx)
    spline_degree = 3
    
