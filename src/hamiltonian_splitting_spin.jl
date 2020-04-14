@@ -206,15 +206,20 @@ function operatorHp2(h :: HamiltonianSplittingSpin, dt :: Float64)
         
         # below we solve electric field
         # first define part1 and part2 to be 0 vector
-        h.part[1] .+= dt .* wi .* p12 .* h.j_dofs[2]
-        h.part[2] .+= dt .* wi .* p22 .* h.j_dofs[2]
+
+        @. h.j_dofs[1]  = h.j_dofs[2]
+        @. h.j_dofs[1] *= dt * wi * p12 
+        @. h.part[1]   -= h.j_dofs[1]
+
+        @. h.j_dofs[2] *= dt * wi * p22 
+        @. h.part[2]   -= h.j_dofs[2]
         
     end
 
     # Update the electric field. Also, we still need to scale with 1/Lx 
 
-    compute_e_from_j!( h.e_dofs[2], h.maxwell_solver, -h.part[1], 2)
-    compute_e_from_j!( h.e_dofs[3], h.maxwell_solver, -h.part[2], 2)
+    compute_e_from_j!( h.e_dofs[2], h.maxwell_solver, h.part[1], 2)
+    compute_e_from_j!( h.e_dofs[3], h.maxwell_solver, h.part[2], 2)
 
     # define part3 and part4
     compute_lderivatives_from_basis!(h.part[3], h.maxwell_solver, h.a_dofs[1])
@@ -288,6 +293,7 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
 
     S  = zeros(Float64,3)
     St = zeros(Float64,3)
+    V  = zeros(Float64,3)
     aa = zeros(Float64,n_cells)
     
     @inbounds for i_part=1:h.particle_group.n_particles
@@ -301,9 +307,9 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
         add_charge!( h.j_dofs[2], h.kernel_smoother_1, xi, 1.0)
         compute_rderivatives_from_basis!(h.j_dofs[1], h.maxwell_solver, h.j_dofs[2])
 
-        Y = h.a_dofs[1]'h.j_dofs[1]
-        Z = h.a_dofs[2]'h.j_dofs[1]
-        V = [0, Z, -Y]
+        Y  = h.a_dofs[1]'h.j_dofs[1]
+        Z  = h.a_dofs[2]'h.j_dofs[1]
+        V .= [0, Z, -Y]
 
         hat_v[1,2] =   Y
         hat_v[1,3] =   Z
