@@ -80,15 +80,19 @@ Compute ``\\sum_{particles} ( w_p v_1, p b(x_p) v_2, p )``
 function pic_diagnostics_vvb( particle_group, kernel_smoother_1, bfield_dofs )
 
     vvb = 0.0
+
     for i_part = 1:particle_group.n_particles
 
-       xi = get_x( particle_group, i_part )
-       wi = get_charge( particle_group, i_part )
-       vi = get_v( particle_group, i_part )
+       xi = particle_group.particle_array[1, i_part]
+       v1 = particle_group.particle_array[2, i_part]
+       v2 = particle_group.particle_array[3, i_part]
+       wi = particle_group.particle_array[4, i_part]
+       wi *= particle_group.charge
+       wi *= particle_group.common_weight
 
        bfield = evaluate(kernel_smoother_1, xi[1], bfield_dofs )
 
-       vvb += wi * vi[1] * vi[2] * bfield
+       vvb += wi * v1 * v2 * bfield
      
     end
 
@@ -141,6 +145,8 @@ mutable struct TimeHistoryDiagnostics
     kernel_smoother_0 :: ParticleMeshCoupling
     kernel_smoother_1 :: ParticleMeshCoupling
     data              :: DataFrame
+    diagnostics       :: Vector{Float64}
+    potential_energy  :: Vector{Float64}
 
     function TimeHistoryDiagnostics( particle_group    :: ParticleGroup,
                                      maxwell_solver    :: Maxwell1DFEM,
@@ -160,9 +166,11 @@ mutable struct TimeHistoryDiagnostics
                          Poynting = Float64[],
                          ErrorPoisson = Float64[])
 
+        diagnostics = zeros(Float64, 3)
+        potential_energy = zeros(Float64, 3)
 
         new( particle_group, maxwell_solver, kernel_smoother_0,
-             kernel_smoother_1, data )
+             kernel_smoother_1, data, diagnostics, potential_energy )
     end
 end
 
@@ -185,19 +193,21 @@ function write_step!( thdiag :: TimeHistoryDiagnostics,
                       bfield_dofs, efield_dofs_n, 
                       efield_poisson)
 
-    diagnostics = zeros(Float64, 3)
-    potential_energy = zeros(Float64, 3)
 
     for i_part=1:thdiag.particle_group.n_particles
 
-       vi = get_v(   thdiag.particle_group, i_part)
-       wi = get_mass(thdiag.particle_group, i_part)
+       v1 = thdiag.particle_group.particle_array[2, i_part]
+       v2 = thdiag.particle_group.particle_array[3, i_part]
+       wi = thdiag.particle_group.particle_array[4, i_part]
+       wi *= thdiag.particle_group.charge
+       wi *= thdiag.particle_group.common_weight
+
        # Kinetic energy
-       diagnostics[1] += (vi[1]^2+vi[2]^2) * wi[1]
+       thdiag.diagnostics[1] += (v1^2+v2^2) * wi
        # Momentum 1
-       diagnostics[2] += vi[1] * wi[1]
+       thdiag.diagnostics[2] += v1 * wi
        # Momentum 2
-       diagnostics[3] += vi[2] * wi[1]
+       thdiag.diagnostics[3] += v2 * wi
 
     end
 
@@ -211,22 +221,25 @@ function write_step!( thdiag :: TimeHistoryDiagnostics,
     poynting = pic_diagnostics_poynting( thdiag.maxwell_solver, degree, 
                                          efield_dofs[2], bfield_dofs )
   
-    potential_energy[1] = inner_product(thdiag.maxwell_solver, 
+    thdiag.potential_energy[1] = inner_product(thdiag.maxwell_solver, 
         efield_dofs[1], efield_dofs_n[1], degree-1 )
 
-    potential_energy[2] = inner_product( thdiag.maxwell_solver, 
+    thdiag.potential_energy[2] = inner_product( thdiag.maxwell_solver, 
         efield_dofs[2], efield_dofs_n[2], degree )
 
-    potential_energy[3] = l2norm_squared( thdiag.maxwell_solver, 
+    thdiag.potential_energy[3] = l2norm_squared( thdiag.maxwell_solver, 
         bfield_dofs, degree-1 )
 
+    efield_poisson .-= efield_dofs[1]
+    efield_poisson .= abs.(efield_poisson)
+
     push!(thdiag.data, ( time,  
-                         diagnostics...,
-                         potential_energy..., 
+                         thdiag.diagnostics...,
+                         thdiag.potential_energy..., 
                          transfer,
                          vvb,
                          poynting,
-                         maximum(abs.(efield_dofs[1] .- efield_poisson))))
+                         maximum(efield_poisson)))
 end 
 
     
