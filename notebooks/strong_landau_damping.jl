@@ -32,9 +32,8 @@ using GEMPIC
 σ, μ = 1.0, 0.0
 kx, α = 0.5, 0.5
 xmin, xmax = 0, 2π/kx
-domain = [xmin, xmax, xmax - xmin]
 ∆t = 0.05
-nx = 64 
+nx = 32 
 n_particles = 100000
 mesh = Mesh( xmin, xmax, nx)
 spline_degree = 3
@@ -42,7 +41,7 @@ spline_degree = 3
 df = CosSumGaussian{1,2}([[kx]], [α], [[σ,σ]], [[μ,μ]] )
 
 mass, charge = 1.0, 1.0
-particle_group = ParticleGroup{1,2}( n_particles, mass, charge, 1)   
+particle_group = ParticleGroup{1,2}(n_particles)   
 sampler = ParticleSampler{1,2}( :sobol, true, n_particles)
 
 sample!(particle_group, sampler, df, mesh)
@@ -62,8 +61,8 @@ plot!(p[3,1], v-> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
 savefig("histograms.png")
 
 
-kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-1, :galerkin)    
-kernel_smoother0 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree, :galerkin)
+kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :galerkin)    
+kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree, :galerkin)
 rho = zeros(Float64, nx)
 xg = LinRange(xmin, xmax, nx)
 sval = eval_uniform_periodic_spline_curve(spline_degree-1, rho)
@@ -72,7 +71,7 @@ savefig("charge_density.png")
 
 efield_poisson = zeros(Float64, nx)
 # Initialize the field solver
-maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
+maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
 # efield by Poisson
 solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
 sval = eval_uniform_periodic_spline_curve(spline_degree-1, efield_poisson)
@@ -84,9 +83,30 @@ savefig("electric_field.png")
 # +
 function run( steps)
 
+    σ, μ = 1.0, 0.0
+    kx, α = 0.5, 0.5
+    xmin, xmax = 0, 2π/kx
+    ∆t = 0.05
+    nx = 32 
+    n_particles = 100000
+    mesh = Mesh( xmin, xmax, nx)
+    spline_degree = 3
+    
+    df = CosSumGaussian{1,2}([[kx]], [α], [[σ,σ]], [[μ,μ]] )
+    
+    mass, charge = 1.0, 1.0
+    particle_group = ParticleGroup{1,2}(n_particles)   
+    sampler = ParticleSampler{1,2}( :sobol, true, n_particles)
+    
+    sample!(particle_group, sampler, df, mesh)
+    
+    kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :galerkin)    
+    kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree, :galerkin)
+    
+    rho = zeros(Float64, nx)
     efield_poisson = zeros(Float64, nx)
     # Initialize the field solver
-    maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
+    maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
     # efield by Poisson
     solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
     
@@ -98,15 +118,14 @@ function run( steps)
                                        kernel_smoother1, 
                                        particle_group,
                                        efield_dofs,
-                                       bfield_dofs,
-                                       domain)
+                                       bfield_dofs)
     
     efield_dofs_n = propagator.e_dofs
     
     thdiag = TimeHistoryDiagnostics( particle_group, maxwell_solver, 
                             kernel_smoother0, kernel_smoother1 )
     
-    Δt = 0.05
+    Δt = 0.01
     
     @showprogress 1 for j = 1:steps # loop over time
     
@@ -126,13 +145,12 @@ function run( steps)
     return thdiag.data
     
 end
+# -
 
-# +
-
-@time results = run(10) # change number of steps
+@time results = run(5000) # change number of steps
 
 plot(results[!,:Time], log.(results[!,:PotentialEnergyE1]))
+
 savefig("potential_energy.png")
-# -
 
 

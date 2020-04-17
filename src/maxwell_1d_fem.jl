@@ -7,7 +7,7 @@ abstract type AbstractMaxwellSolver end
 export Maxwell1DFEM
 
 """
-    maxwell_solver = MaxwellFEM1D( domain, ncells, degree )
+    maxwell_solver = MaxwellFEM1D( mesh, degree )
 
 1D Maxwell spline finite element solver on a periodic grid
 
@@ -28,6 +28,7 @@ export Maxwell1DFEM
 """
 mutable struct Maxwell1DFEM <: AbstractMaxwellSolver
 
+    xmin             :: Float64
     Lx               :: Float64  
     delta_x          :: Float64     
     n_dofs           :: Int32   
@@ -44,11 +45,13 @@ mutable struct Maxwell1DFEM <: AbstractMaxwellSolver
     plan_bw :: FFTW.FFTWPlan
     work    :: Vector{Float64}
     wsave   :: Vector{Float64}
+    eigvals :: Vector{Float64}
 
-    function Maxwell1DFEM( domain, ncells :: Int, degree :: Int )
+    function Maxwell1DFEM( mesh :: Mesh, degree :: Int )
 
-        n_dofs  = ncells
-        Lx      = domain[2] - domain[1]
+        xmin    = mesh.xmin[1]
+        n_dofs  = mesh.nx[1]
+        Lx      = mesh.xmax[1] - mesh.xmin[1]
         delta_x = Lx / n_dofs
         s_deg_0 = degree
         s_deg_1 = degree - 1
@@ -140,7 +143,7 @@ mutable struct Maxwell1DFEM <: AbstractMaxwellSolver
         # N/2 mode
         coef0 = mass_0[1]
         coef1 = mass_1[1]
-        for j=1:s_deg_0 - 1
+        for j in 1:s_deg_0-1
            coef0 = coef0 + 2 * mass_0[j+1]*cos(pi*j)
            coef1 = coef1 + 2 * mass_1[j+1]*cos(pi*j)
         end
@@ -155,9 +158,11 @@ mutable struct Maxwell1DFEM <: AbstractMaxwellSolver
         eig_weak_ampere[n_dofs÷2+1] = 2.0 * (coef1 / coef0)
         eig_weak_poisson[n_dofs÷2+1] = 1.0 / (coef1 * 4.0) 
 
-        new( Lx, delta_x, n_dofs, s_deg_0, s_deg_1, mass_0, mass_1,
+        eigvals = zeros(Float64, n_dofs)
+
+        new( xmin, Lx, delta_x, n_dofs, s_deg_0, s_deg_1, mass_0, mass_1,
              eig_mass0, eig_mass1, eig_weak_ampere, eig_weak_poisson,
-             plan_fw, plan_bw, work, wsave )
+             plan_fw, plan_bw, work, wsave, eigvals )
 
 
     end
@@ -260,27 +265,28 @@ function compute_e_from_j!(e         :: Vector{Float64},
                            component :: Int64)
 
      n = self.n_dofs
-     eigvals = zeros(Float64, n)
+     fill!(self.eigvals, 0.0)
 
      # Multiply by inverse mass matrix  using the eigenvalues of the circulant 
      # inverse matrix
 
      if (component == 1)
          for i=1:n÷2+1
-            eigvals[i] = 1.0 / self.eig_mass1[i]
+            self.eigvals[i] = 1.0 / self.eig_mass1[i]
          end
-         solve_circulant!(self, eigvals, current)
+         solve_circulant!(self, self.eigvals, current)
      elseif (component == 2)
          for i=1:n÷2+1
-            eigvals[i] = 1.0 / self.eig_mass0[i]
+            self.eigvals[i] = 1.0 / self.eig_mass0[i]
          end
-         solve_circulant!(self, eigvals, current)
+         solve_circulant!(self, self.eigvals, current)
      else
          throw(ArgumentError("Component $component not implemented "))
      end
      
      # Update the electric field and scale
-     e .= e - self.work ./ self.delta_x
+     self.work ./= self.delta_x
+     e .-= self.work 
 
 end
 
@@ -341,9 +347,6 @@ function l2norm_squared2(self, coefs_dofs, degree)
     r .* self.delta_x
 
 end 
-
-
-
 
 export l2projection!
 
@@ -432,34 +435,32 @@ function compute_b_from_e!( field_out :: Vector{Float64},
 end
 
 
+export compute_rderivatives_from_basis!
 
-
-export compute_derivatives_from_basis!
-
-function compute_derivatives_from_basis!( field_out :: Vector{Float64},
+function compute_rderivatives_from_basis!( field_out :: Vector{Float64},
                             self      :: Maxwell1DFEM, 
                             field_in  :: Vector{Float64}) 
 
     coef = 1/self.delta_x
     # relation betwen spline coefficients for strong Ampere
     for i=1:(self.n_dofs-1)
-       field_out[i] =  coef * ( field_in[i] - field_in[i+1] )
+       @inbounds field_out[i] =  coef * ( field_in[i] - field_in[i+1] )
     end
     # treat Periodic point
     field_out[end] =  coef * ( field_in[end] - field_in[1] )
 
 end
 
-export compute_derivatives_from_basis2!
+export compute_lderivatives_from_basis!
 
-function compute_derivatives_from_basis2!( field_out :: Vector{Float64},
+function compute_lderivatives_from_basis!( field_out :: Vector{Float64},
                             self      :: Maxwell1DFEM, 
                             field_in  :: Vector{Float64}) 
 
     coef = 1/self.delta_x
     # relation betwen spline coefficients for strong Ampere
     for i=2:(self.n_dofs)
-       field_out[i] =  coef * ( field_in[i] - field_in[i-1] )
+       @inbounds field_out[i] =  coef * ( field_in[i] - field_in[i-1] )
     end
     # treat Periodic point
     field_out[1] =  coef * ( field_in[1] - field_in[end] )

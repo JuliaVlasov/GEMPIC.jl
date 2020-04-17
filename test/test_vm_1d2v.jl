@@ -44,15 +44,15 @@ FEM with splines, degree 3 for B and 2 for E
     sampler = ParticleSampler{1,2}( sampling_case, symmetric, n_particles)
     
     # Initialize the particles : mass and charge set to 1.0 with one weight
-    particle_group = ParticleGroup{1,2}( n_particles, 1.0, 1.0, 1)
+    particle_group = ParticleGroup{1,2}( n_particles )
     
     # Initialize the field solver
-    maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
+    maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
     
-    kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, 
+    kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, 
                  spline_degree, :galerkin)
     
-    kernel_smoother0 = ParticleMeshCoupling( domain, [nx], n_particles, 
+    kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, 
                  spline_degree, :galerkin)
     
     # Initialize the arrays for the spline coefficients of the fields
@@ -68,8 +68,7 @@ FEM with splines, degree 3 for B and 2 for E
                                        kernel_smoother1, 
                                        particle_group,
                                        efield_dofs, 
-                                       bfield_dofs,
-                                       domain )
+                                       bfield_dofs )
 
     efield_dofs_n = propagator.e_dofs
 
@@ -112,7 +111,7 @@ FEM with splines, degree 3 for B and 2 for E
     # Compute final rho
     fill!(rho, 0.0)
     for i_part = 1:particle_group.n_particles
-       xi = get_x(particle_group, i_part)
+       xi = get_x(particle_group, i_part)[1]
        wi = get_charge( particle_group, i_part)
        add_charge!(rho, kernel_smoother0, xi, wi)
     end

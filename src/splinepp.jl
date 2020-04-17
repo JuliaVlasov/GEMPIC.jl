@@ -27,85 +27,81 @@ const  inv_720 = 1. / 720.
 - `scratch_b` : scratch data for `b_to_pp-converting`
 - `scratch_p` : scratch data for `b_to_pp-converting`
 """
-struct SplinePP
+struct SplinePP{N}
 
-    degree         :: Int64
-    poly_coeffs    :: Array{Float64,2}
-    poly_coeffs_fp :: Array{Float64,2}
-    ncells         :: Int64
-    scratch_b      :: Vector{Float64}
-    scratch_p      :: Vector{Float64}
+    degree         :: Int
+    poly_coeffs    :: SMatrix{N,N,Float64}
+    poly_coeffs_fp :: SMatrix{N,N,Float64}
+    ncells         :: Int
 
-    function SplinePP( degree, ncells)
+    function SplinePP(degree, ncells) 
     
-         @assert (ncells >= degree )
-         poly_coeffs    = zeros(Float64, (degree+1,degree+1))
-         poly_coeffs_fp = zeros(Float64, (degree+1,degree+1))
-         scratch_b      = zeros(Float64, (degree+1))
-         scratch_p      = zeros(Float64, (degree+1))
+        @assert (ncells >= degree )
     
-    if degree == 1
+        if degree == 1
 
-         poly_coeffs    = SMatrix{2,2}( -1., 1., 1., 0. ) 
-         poly_coeffs_fp = SMatrix{2,2}( -inv_2, 1., inv_2, 0. )
-       
-    elseif degree == 2
+             poly_coeffs    = SMatrix{2,2}( -1., 1., 1., 0. ) 
+             poly_coeffs_fp = SMatrix{2,2}( -inv_2, 1., inv_2, 0. )
+           
+        elseif degree == 2
 
-         poly_coeffs    = SMatrix{3,3}(inv_2, -1., inv_2 , -1., 1., 
-                                   inv_2, inv_2, 0., 0.)
-         poly_coeffs_fp = SMatrix{3,3}(inv_6, -inv_2, inv_2 , -inv_3, 
-                                   inv_2, inv_2, inv_6, 0., 0)
+             poly_coeffs    = SMatrix{3,3}(inv_2, -1., inv_2 , -1., 1., 
+                                       inv_2, inv_2, 0., 0.)
+             poly_coeffs_fp = SMatrix{3,3}(inv_6, -inv_2, inv_2 , -inv_3, 
+                                       inv_2, inv_2, inv_6, 0., 0)
 
-    elseif degree == 3
+        elseif degree == 3
 
-        poly_coeffs = SMatrix{4,4}( -inv_6, inv_2, -inv_2, inv_6
-                              ,  inv_2,   -1.,     0., 4*inv_6
-                              , -inv_2, inv_2,  inv_2, inv_6
-                              ,  inv_6,    0.,     0., 0.)
-       
-        poly_coeffs_fp = SMatrix{4,4}(- inv_24, inv_6, -inv_4, inv_6
-                                 ,  inv_8, -inv_3,     0., 4*inv_6
-                                 , -inv_8,  inv_6,  inv_4, inv_6
-                                 ,  inv_24,    0.,     0., 0.)
+            poly_coeffs = SMatrix{4,4}( -inv_6, inv_2, -inv_2, inv_6
+                                  ,  inv_2,   -1.,     0., 4*inv_6
+                                  , -inv_2, inv_2,  inv_2, inv_6
+                                  ,  inv_6,    0.,     0., 0.)
+           
+            poly_coeffs_fp = SMatrix{4,4}(- inv_24, inv_6, -inv_4, inv_6
+                                     ,  inv_8, -inv_3,     0., 4*inv_6
+                                     , -inv_8,  inv_6,  inv_4, inv_6
+                                     ,  inv_24,    0.,     0., 0.)
 
-    elseif degree == 4
+        elseif degree == 4
 
-        poly_coeffs = SMatrix{5,5}(inv_24,-inv_6, inv_4,-inv_6, inv_24
-                             ,- inv_6, inv_2,-inv_4,-inv_2, 11*inv_24
-                             ,  inv_4,-inv_2,-inv_4, inv_2, 11*inv_24
-                             ,- inv_6, inv_6, inv_4, inv_6, inv_24
-                             , inv_24,    0.,    0.,    0., 0.   )
+            poly_coeffs = SMatrix{5,5}(inv_24,-inv_6, inv_4,-inv_6, inv_24
+                                 ,- inv_6, inv_2,-inv_4,-inv_2, 11*inv_24
+                                 ,  inv_4,-inv_2,-inv_4, inv_2, 11*inv_24
+                                 ,- inv_6, inv_6, inv_4, inv_6, inv_24
+                                 , inv_24,    0.,    0.,    0., 0.   )
 
-        poly_coeffs_fp = SMatrix{5,5}( inv_120,- inv_24, inv_12,-inv_12, inv_24
-                                , - inv_30,  inv_8,-inv_12,-inv_2, 11*inv_24
-                                ,   inv_20,- inv_8,-inv_12,inv_4,11*inv_24
-                                , - inv_30,  inv_24,inv_12,inv_12,inv_24
-                                ,   inv_120,     0.,    0.,    0., 0.)
+            poly_coeffs_fp = SMatrix{5,5}( inv_120,- inv_24, inv_12,-inv_12, inv_24
+                                    , - inv_30,  inv_8,-inv_12,-inv_2, 11*inv_24
+                                    ,   inv_20,- inv_8,-inv_12,inv_4,11*inv_24
+                                    , - inv_30,  inv_24,inv_12,inv_12,inv_24
+                                    ,   inv_120,     0.,    0.,    0., 0.)
 
-    elseif degree == 5
+        elseif degree == 5
 
-        poly_coeffs = SMatrix{6,6}(-inv_120,inv_24,-inv_12,inv_12,-inv_24,inv_120
-                               ,inv_24,-inv_6,inv_6,inv_6,-5*inv_12, 26*inv_120 
-                               ,-inv_12,inv_4,0.,-inv_2,0.,11*inv_20
-                               ,inv_12,-inv_6,-inv_6,inv_6,5*inv_12,26*inv_120 
-                               ,-inv_24,inv_24,inv_12,inv_12,inv_24,inv_120
-                               ,inv_120,0.,0.,0.,0.,0.)
+            poly_coeffs = SMatrix{6,6}(-inv_120,inv_24,-inv_12,inv_12,-inv_24,inv_120
+                                   ,inv_24,-inv_6,inv_6,inv_6,-5*inv_12, 26*inv_120 
+                                   ,-inv_12,inv_4,0.,-inv_2,0.,11*inv_20
+                                   ,inv_12,-inv_6,-inv_6,inv_6,5*inv_12,26*inv_120 
+                                   ,-inv_24,inv_24,inv_12,inv_12,inv_24,inv_120
+                                   ,inv_120,0.,0.,0.,0.,0.)
 
-        poly_coeffs_fp = SMatrix{6,6}(-inv_720,inv_120,-inv_48,inv_36,-inv_48,inv_120
-                                  , inv_144,-inv_30,inv_24,inv_18,-5*inv_24, 26*inv_120
-                                  ,-inv_72,inv_20,0.,-inv_6,0.,11*inv_20
-                                  ,inv_72,-inv_30,-inv_24,inv_18,5*inv_24,26*inv_120
-                                  ,-inv_144,inv_120,inv_48,inv_36,inv_48,inv_120
-                                  ,inv_720,0.,0.,0.,0.,0.) 
-    else
+            poly_coeffs_fp = SMatrix{6,6}(-inv_720,inv_120,-inv_48,inv_36,-inv_48,inv_120
+                                      , inv_144,-inv_30,inv_24,inv_18,-5*inv_24, 26*inv_120
+                                      ,-inv_72,inv_20,0.,-inv_6,0.,11*inv_20
+                                      ,inv_72,-inv_30,-inv_24,inv_18,5*inv_24,26*inv_120
+                                      ,-inv_144,inv_120,inv_48,inv_36,inv_48,inv_120
+                                      ,inv_720,0.,0.,0.,0.,0.) 
+        else
 
-       throw(ArgumentError(" degree $degree not implemented"))
+           throw(ArgumentError(" degree $degree not implemented"))
 
-    end
+        end
 
-    new( degree, poly_coeffs, poly_coeffs_fp, ncells, scratch_b, scratch_p)
+        N = degree+1
 
-  end 
+        new{N}( degree, poly_coeffs, poly_coeffs_fp, ncells)
+
+    end 
      
 end 
 
@@ -115,7 +111,7 @@ end
 Convert 1d spline in B form to spline in pp form with 
 periodic boundary conditions
 """
-function b_to_pp( self :: SplinePP, ncells :: Int64, b_coeffs :: Vector{Float64})
+function b_to_pp( self :: SplinePP, ncells :: Int, b_coeffs :: Vector{Float64})
 
     degp1     = self.degree+1
     pp_coeffs = zeros(Float64, (degp1,ncells)) 
@@ -142,7 +138,7 @@ end
 """
     horner_1d(degree, pp_coeffs, x, index)
 
-Perform a 1d hornerschema on the `pp_coeffs` at index
+Perform a 1d Horner schema on the `pp_coeffs` at index
 """
 function horner_1d(degree :: Int, pp_coeffs, x :: Float64, index :: Int)
     
@@ -157,7 +153,7 @@ end
 """
     horner_primitive_1d(val, degree, pp_coeffs, x)
 
-Perform a 1d hornerschema on the `pp_coeffs` evaluate at x
+Perform a 1d Horner schema on the `pp_coeffs` evaluate at x
 """
 function horner_primitive_1d(val :: Vector{Float64}, degree, pp_coeffs, x)
 

@@ -1,4 +1,4 @@
-import GEMPIC: set_x, set_v, set_weights, set_common_weight
+import GEMPIC: set_x, set_v, set_weights
 import GEMPIC: get_charge, add_charge!
 import GEMPIC: push_x_accumulate_j!
 
@@ -11,11 +11,10 @@ import GEMPIC: push_x_accumulate_j!
     delta_t         = 0.1
     degree_smoother = 3
 
-    domain = [eta_min, eta_max, eta_max - eta_min]
+    mesh = Mesh( eta_min, eta_max, num_cells)
 
-    pg = ParticleGroup{1,2}(n_particles, 1.0, 1.0, 1)
+    pg = ParticleGroup{1,2}(n_particles; common_weight=1.0)
 
-    set_common_weight(pg, 1.0)
 
     particle_info_ref = reshape( [11.780972450961723, 
                                  -1.5341205443525459,
@@ -39,18 +38,15 @@ import GEMPIC: push_x_accumulate_j!
 
     end
     
-    set_common_weight(pg, 1.0)
-
     # Initialize kernel smoother    
 
-    kernel_smoother_1 = ParticleMeshCoupling( domain[1:2], [num_cells],
+    kernel_smoother_1 = ParticleMeshCoupling( mesh,
          n_particles, degree_smoother-1, :galerkin) 
-    kernel_smoother_0 = ParticleMeshCoupling( domain[1:2], [num_cells],
+    kernel_smoother_0 = ParticleMeshCoupling( mesh,
          n_particles, degree_smoother, :galerkin) 
     
     # Initialize Maxwell solver
-    maxwell_solver = Maxwell1DFEM( [eta_min, eta_max], num_cells,
-                                    degree_smoother)
+    maxwell_solver = Maxwell1DFEM( mesh, degree_smoother)
     
     efield  = [ ones(Float64, (kernel_smoother_0.n_dofs)),
                 ones(Float64, (kernel_smoother_0.n_dofs))]
@@ -61,7 +57,7 @@ import GEMPIC: push_x_accumulate_j!
 
     for i_part = 1:n_particles
 
-       xi = get_x( pg, i_part)
+       xi = get_x( pg, i_part)[1]
 
        wi = get_charge(pg, i_part)
 
@@ -73,7 +69,7 @@ import GEMPIC: push_x_accumulate_j!
 
     propagator = HamiltonianSplittingBoris( maxwell_solver,
          kernel_smoother_0, kernel_smoother_1, pg,
-         efield, bfield, domain)
+         efield, bfield)
 
     staggering!( propagator, 0.5*delta_t )
 

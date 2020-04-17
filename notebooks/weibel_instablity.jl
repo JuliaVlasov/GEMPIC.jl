@@ -95,10 +95,10 @@ splitting_case = :symplectic
 spline_degree  = 3
 
 mesh   = Mesh( xmin, xmax, nx)
-domain = [xmin, xmax, xmax - xmin ]
+Lx = xmax - xmin
 xg = LinRange(xmin, xmax, nx)
 
-beta_sin_k(x) = beta * sin(2π * x / domain[3]) 
+beta_sin_k(x) = beta * sin(2π * x / Lx) 
 
 df = CosSumGaussian{1,2}([[k]], [α], [σ], [μ] )
 # -
@@ -116,7 +116,7 @@ contourf(v1, v2, f)
 
  # Initialize the particles   (mass and charge set to 1.0 with one weight)
 mass, charge = 1.0, 1.0
-particle_group = ParticleGroup{1,2}( n_particles, mass, charge, 1)   
+particle_group = ParticleGroup{1,2}( n_particles)   
 
 
 sampler = ParticleSampler{1,2}( sampling_case, symmetric, n_particles)
@@ -132,12 +132,12 @@ histogram(vp[1,:], weights=wp, normalize=true, bins=100)
 histogram(vp[2,:], weights=wp, normalize=true, bins=100)
 
 
-kernel_smoother1 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree-1, :galerkin)    
-kernel_smoother0 = ParticleMeshCoupling( domain, [nx], n_particles, spline_degree, :galerkin)
+kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :galerkin)    
+kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree, :galerkin)
 rho = zeros(Float64, nx);
 efield_poisson = zeros(Float64, nx)
 # Init!ialize the field solver
-maxwell_solver = Maxwell1DFEM(domain, nx, spline_degree)
+maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
 # efield by Poisson
 solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )    
 
@@ -151,13 +151,12 @@ propagator = HamiltonianSplitting( maxwell_solver,
                                    kernel_smoother1, 
                                    particle_group,
                                    efield_dofs,
-                                   bfield_dofs,
-                                   domain);
+                                   bfield_dofs)
 
 efield_dofs_n = propagator.e_dofs
 # -
 # bfield = beta*cos(kx): Use b = M{-1}(N_i,beta*cos(kx))
-beta_cos_k(x) = β * cos(2π * x / domain[3]) 
+beta_cos_k(x) = β * cos(2π * x / Lx) 
 l2projection!( bfield_dofs, maxwell_solver, beta_cos_k, spline_degree-1)
 plot( xg, bfield_dofs ) 
 

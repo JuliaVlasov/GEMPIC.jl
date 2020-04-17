@@ -4,7 +4,7 @@ os:
   - osx
   - linux
 
-julia: 1.2
+julia: 1.4
 
 notifications:
   email: true
@@ -15,7 +15,7 @@ after_success:
 jobs:
   include:
     - stage: "Documentation"
-      julia: 1.0
+      julia: 1.4
       os: osx
       script:
         - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'

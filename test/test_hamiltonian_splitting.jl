@@ -1,6 +1,6 @@
 @testset "Hamiltonian splitting" begin
 
-    import GEMPIC: set_common_weight, set_x, set_v
+    import GEMPIC: set_x, set_v
     import GEMPIC: set_weights, get_charge, add_charge!
     import GEMPIC: operatorHp1, operatorHp2, operatorHE, operatorHB
 
@@ -16,11 +16,9 @@
     degree_smoother = 3
     rnd_seed        = 10
 
-    domain = [eta_min, eta_max, eta_max - eta_min]
+    mesh = Mesh(eta_min, eta_max, num_cells)
 
-    pg = ParticleGroup{1,2}(n_particles, 1.0, 1.0, 1)
-
-    set_common_weight( pg, 1.0)
+    pg = ParticleGroup{1,2}(n_particles; common_weight = 1.0)
 
     particle_info_ref = reshape([ 11.780972450961723, 
                                    5.4977871437821380,
@@ -42,18 +40,15 @@
        set_weights(pg, i_part, xi[1])
     end
 
-    set_common_weight(pg, 1.0)
-
     # Initialize kernel smoothers
-    kernel_smoother_1 = ParticleMeshCoupling( domain[1:2], [num_cells],
+    kernel_smoother_1 = ParticleMeshCoupling( mesh,
          n_particles, degree_smoother-1, :galerkin) 
 
-    kernel_smoother_0 = ParticleMeshCoupling( domain[1:2], [num_cells],
+    kernel_smoother_0 = ParticleMeshCoupling( mesh,
          n_particles, degree_smoother, :galerkin) 
     
     # Initialize Maxwell solver
-    maxwell_solver = Maxwell1DFEM( [eta_min, eta_max], num_cells,
-                                    degree_smoother)
+    maxwell_solver = Maxwell1DFEM( mesh, degree_smoother)
     
     n_dofs = kernel_smoother_0.n_dofs
 
@@ -65,10 +60,9 @@
     bfield_ref = zeros(Float64, (n_dofs))
     rho        = zeros(Float64, (n_dofs))
 
-    wi = zeros(1)
     for i_part = 1:n_particles
-       xi = get_x(pg, i_part)
-       wi = get_charge( pg, i_part)
+       xi = get_x(pg, i_part)[1]
+       wi = get_charge( pg, i_part)[1]
        add_charge!( rho, kernel_smoother_0, xi, wi[1])
     end
 
@@ -77,7 +71,7 @@
 
     propagator = HamiltonianSplitting( maxwell_solver,
          kernel_smoother_0, kernel_smoother_1, pg,
-         [efield_1, efield_2], bfield, domain )
+         [efield_1, efield_2], bfield )
 
     operatorHp1(propagator, delta_t)
 
@@ -95,18 +89,18 @@
     # Compare computed values to reference values
     for i_part=1:n_particles
 
-       xi = get_x(pg, i_part)
+       xi = get_x(pg, i_part)[1]
  
-       @test xi[1] ≈ particle_info_ref[i_part,1]
+       @test xi ≈ particle_info_ref[i_part,1]
 
-       xi = get_v(pg, i_part)
+       vi = get_v(pg, i_part)
       
-       @test xi[1] ≈ particle_info_ref[i_part,2]
-       @test xi[2] ≈ particle_info_ref[i_part,3]
+       @test vi[1] ≈ particle_info_ref[i_part,2]
+       @test vi[2] ≈ particle_info_ref[i_part,3]
 
-       xi = get_charge(pg, i_part)
+       wi = get_charge(pg, i_part)
        
-       @test xi[1] ≈ particle_info_ref[i_part,4]
+       @test wi[1] ≈ particle_info_ref[i_part,4]
 
     end
     

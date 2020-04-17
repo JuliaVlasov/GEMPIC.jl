@@ -1,5 +1,7 @@
 @testset "Sampling" begin
 
+import GEMPIC: get_x, get_v
+
 function test_sampling( sampling_type :: Symbol, 
                         symmetric     :: Bool, 
                         pg            :: ParticleGroup{D,V}, 
@@ -47,7 +49,7 @@ nx          = 64
 
 mesh = Mesh( xmax, xmin, nx)
 
-pg = ParticleGroup{1,2}(n_particles, 1.0, 1.0, 1)
+pg = ParticleGroup{1,2}(n_particles)
 
 params = ( k = [[0.5]],
            α = [0.01],

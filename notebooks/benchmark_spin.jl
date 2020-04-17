@@ -24,12 +24,13 @@
 # $$
 #
 
-using ProgressMeter, Plots
-using CSV, Dates, FFTW
 using GEMPIC
+using TimerOutputs
+
+const to = TimerOutput()
 
 # +
-function run( steps :: Int64) 
+function run( nstep :: Int ) 
    
    σ, μ = 0.02, 0.0
    kx, α = 1.004355, 0.001
@@ -47,7 +48,6 @@ function run( steps :: Int64)
    sample!(particle_group2, sampler, df, mesh)
    
    particle_group = ParticleGroup{1,1}( n_particles, n_spin=3)   
-   GEMPIC.set_common_weight(particle_group, (1.0/n_particles))
 
    for  i_part = 1:n_particles
 
@@ -118,29 +118,20 @@ function run( steps :: Int64)
    
    Δt = 0.002
 
-   @showprogress 1 for jstep = 1:steps # loop over time
-   
-       # Strang splitting
-       strang_splitting!(propagator, Δt, 1)
-   
-       solve_poisson!( efield_poisson, particle_group, 
-                       kernel_smoother0, maxwell_solver, rho)
-       
-       write_step!(thdiag, jstep * Δt, spline_degree, 
-                       efield_dofs,  afield_dofs,
-                       efield_dofs_n, efield_poisson, propagator)
+   for istep in 1:nstep
 
-       if (jstep % 1000 == 0)
-           GEMPIC.save( "particles", jstep, particle_group)
-       end
-       
+       @timeit to "Operator HB"  GEMPIC.operatorHB(  propagator, 0.5Δt)
+       @timeit to "Operator HE"  GEMPIC.operatorHE(  propagator, 0.5Δt)
+       @timeit to "Operator Hp2" GEMPIC.operatorHp2( propagator, 0.5Δt)
+       @timeit to "Operator Hp1" GEMPIC.operatorHp1( propagator, 1.0Δt)
+       @timeit to "Operator Hp2" GEMPIC.operatorHp2( propagator, 0.5Δt)
+       @timeit to "Operator HE"  GEMPIC.operatorHE(  propagator, 0.5Δt)
+       @timeit to "Operator HB"  GEMPIC.operatorHB(  propagator, 0.5Δt)
+
    end
 
-   thdiag.data
-
 end
-# +
-results = run(10000) # choose number of steps
 
-CSV.write("thdiag-$(now()).csv", results)
-# -
+run(10)
+
+println(to)

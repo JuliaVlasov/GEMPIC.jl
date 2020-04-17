@@ -14,15 +14,15 @@ Particle initializer class with various functions to initialize a particle.
 struct ParticleSampler{D,V}
 
     sampling_type :: Symbol
-    dims          :: Tuple{Int64, Int64}
+    dims          :: Tuple{Int, Int}
     n_particles   :: Int
     symmetric     :: Bool
-    seed          :: Int64
+    seed          :: Int
 
     function ParticleSampler{D,V}( sampling_type :: Symbol, 
                                    symmetric     :: Bool, 
-                                   n_particles   :: Int64,
-                                   seed          :: Int64 = 1234) where {D,V}
+                                   n_particles   :: Int,
+                                   seed          :: Int = 1234) where {D,V}
 
         if !(sampling_type in [:random, :sobol])
             throw(ArgumentError("Sampling type $sampling_type 
@@ -42,7 +42,22 @@ struct ParticleSampler{D,V}
         else
             ncopies = 1
         end
+        
+        new( sampling_type, dims, n_particles, symmetric, seed)
 
+    end
+
+    function ParticleSampler{D,V}( sampling_type :: Symbol, 
+                                   n_particles   :: Int,
+                                   seed          :: Int = 1234) where {D,V}
+
+        if !(sampling_type in [:random, :sobol])
+            throw(ArgumentError("Sampling type $sampling_type 
+                      not implemented"))
+        end
+
+        dims = (D, V)
+        symmetric = false
 
         new( sampling_type, dims, n_particles, symmetric, seed)
 
@@ -102,9 +117,6 @@ function sample_all( ps, pg, df :: AbstractCosGaussian, mesh )
     n_rnds += ndx + ndv
     rdn = zeros(ndx + ndv + 1)
     
-    # 1/Np in common weight
-    set_common_weight(pg, (1.0/pg.n_particles))
-
     if ps.sampling_type == :sobol
        rng_sobol  = SobolSeq(ndx)
     else
@@ -168,9 +180,6 @@ function sample_sym( ps, pg, df, mesh )
     n_rnds = n_rnds + ndx + ndv
     rdn    = zeros( ndx + ndv + 1 )
     
-    # 1/Np in common weight
-    set_common_weight(pg, 1.0/pg.n_particles)
-
     if ps.sampling_type == :sobol
        rng_sobol  = SobolSeq(ndx + ndv + 1)
     else
@@ -179,7 +188,7 @@ function sample_sym( ps, pg, df, mesh )
 
     dnormal = Normal()
 
-    i_gauss = 1   :: Int64
+    i_gauss = 1   :: Int
     wi      = 0.0 :: Float64
     
     for i_part = 1:pg.n_particles
