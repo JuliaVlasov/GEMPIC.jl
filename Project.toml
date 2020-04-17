@@ -20,6 +20,7 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 [compat]
 DataFrames = "^0"
 Distributions = "^0"
+Documenter = "0.24"
 FFTW = "^1"
 FastGaussQuadrature = "^0"
 Sobol = "^1"
