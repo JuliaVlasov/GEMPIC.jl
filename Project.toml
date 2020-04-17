@@ -1,7 +1,7 @@
 name = "GEMPIC"
 uuid = "b6d65c3a-4a4e-11e9-25d0-d309dc85ddeb"
 authors = ["Pierre Navaro <pierre.navaro@math.cnrs.fr>"]
-version = "0.3.1"
+version = "0.3.2"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
