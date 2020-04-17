@@ -1,6 +1,8 @@
+using TimerOutputs
 using GEMPIC
-
 using ProgressMeter
+
+const to = TimerOutput()
 
 function run( steps )
 
@@ -65,13 +67,24 @@ function run( steps )
     @showprogress 1 for j = 1:steps # loop over time
     
         # Strang splitting
-        strang_splitting!(propagator, Δt, 1)
+        @timeit to "splitting"  begin
+
+            @timeit to "HB"  GEMPIC.operatorHB(   propagator, 0.5Δt)
+            @timeit to "HE"  GEMPIC.operatorHE(   propagator, 0.5Δt)
+            @timeit to "Hp2" GEMPIC.operatorHp2(  propagator, 0.5Δt)
+            @timeit to "Hp1" GEMPIC.operatorHp1(  propagator, 1.0Δt)
+            @timeit to "Hp2" GEMPIC.operatorHp2(  propagator, 0.5Δt)
+            @timeit to "HE"  GEMPIC.operatorHE(   propagator, 0.5Δt)
+            @timeit to "HB"  GEMPIC.operatorHB(   propagator, 0.5Δt)
+
+        end
+
     
         # Diagnostics
-        solve_poisson!( efield_poisson, particle_group, 
+        @timeit to "poisson" solve_poisson!( efield_poisson, particle_group, 
                         kernel_smoother0, maxwell_solver, rho)
         
-        write_step!(thdiag, j * Δt, spline_degree, 
+        @timeit to "diagnostic" write_step!(thdiag, j * Δt, spline_degree, 
                         efield_dofs,  bfield_dofs,
                         efield_dofs_n, efield_poisson)
     
@@ -79,5 +92,6 @@ function run( steps )
 
 end
 
-run(1)
-@time run(10)
+run(1000)
+
+println(to)

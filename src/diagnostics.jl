@@ -48,7 +48,7 @@ function pic_diagnostics_transfer( particle_group :: ParticleGroup{1,2},
                                    kernel_smoother_0, kernel_smoother_1, 
                                    efield_dofs )
 
-    transfer :: Float64 = 0.0
+    transfer = 0.0 :: Float64
 
     for i_part = 1:particle_group.n_particles
 
@@ -80,9 +80,9 @@ Compute ``\\sum_{particles} ( w_p v_1, p b(x_p) v_2, p )``
 """
 function pic_diagnostics_vvb( particle_group, kernel_smoother_1, bfield_dofs )
 
-    vvb :: Float64 = 0.0
+    vvb = 0.0 :: Float64
 
-    for i_part = 1:particle_group.n_particles
+    for i_part in 1:particle_group.n_particles
 
        xi = particle_group.particle_array[1, i_part]
        v1 = particle_group.particle_array[2, i_part]
@@ -139,7 +139,7 @@ Context to save and plot diagnostics
 - `kernel_smoother_1` : Mesh coupling operator
 - `data` : DataFrame containing time history values
 """
-mutable struct TimeHistoryDiagnostics
+struct TimeHistoryDiagnostics
 
     particle_group    :: ParticleGroup
     maxwell_solver    :: Maxwell1DFEM

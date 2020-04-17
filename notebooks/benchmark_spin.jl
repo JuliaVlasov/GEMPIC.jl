@@ -25,15 +25,18 @@
 #
 
 using GEMPIC
+using TimerOutputs
+
+const to = TimerOutput()
 
 # +
-function setup( ) 
+function run( nstep :: Int ) 
    
    σ, μ = 0.02, 0.0
    kx, α = 1.004355, 0.001
    xmin, xmax = 0, 2π/kx
-   nx = 32 
-   n_particles = 1000
+   nx = 1024 
+   n_particles = 100000
    mesh = Mesh( xmin, xmax, nx)
    spline_degree = 3
    
@@ -45,7 +48,6 @@ function setup( )
    sample!(particle_group2, sampler, df, mesh)
    
    particle_group = ParticleGroup{1,1}( n_particles, n_spin=3)   
-   GEMPIC.set_common_weight(particle_group, (1.0/n_particles))
 
    for  i_part = 1:n_particles
 
@@ -114,14 +116,22 @@ function setup( )
    thdiag = TimeHistoryDiagnosticsSpin( particle_group, maxwell_solver, 
                            kernel_smoother0, kernel_smoother1 );
    
-   
-   propagator
+   Δt = 0.002
+
+   for istep in 1:nstep
+
+       @timeit to "Operator HB"  GEMPIC.operatorHB(  propagator, 0.5Δt)
+       @timeit to "Operator HE"  GEMPIC.operatorHE(  propagator, 0.5Δt)
+       @timeit to "Operator Hp2" GEMPIC.operatorHp2( propagator, 0.5Δt)
+       @timeit to "Operator Hp1" GEMPIC.operatorHp1( propagator, 1.0Δt)
+       @timeit to "Operator Hp2" GEMPIC.operatorHp2( propagator, 0.5Δt)
+       @timeit to "Operator HE"  GEMPIC.operatorHE(  propagator, 0.5Δt)
+       @timeit to "Operator HB"  GEMPIC.operatorHB(  propagator, 0.5Δt)
+
+   end
 
 end
 
-propagator = setup()
+run(10)
 
-Δt = 0.002
-
-strang_splitting!(propagator, Δt, 1)
-@time strang_splitting!(propagator, Δt, 10)
+println(to)
