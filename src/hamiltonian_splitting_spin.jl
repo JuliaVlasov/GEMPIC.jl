@@ -83,11 +83,11 @@ function strang_splitting!( h           :: HamiltonianSplittingSpin,
     for i_step = 1:number_steps
 
         operatorHB(  h, 0.5dt)
-        operatorHE(  h, 0.5dt)
+        operatorHp1( h, 0.5dt)
         operatorHp2( h, 0.5dt)
-        operatorHp1( h, 1.0dt)
+        operatorHE(  h, dt)
         operatorHp2( h, 0.5dt)
-        operatorHE(  h, 0.5dt)
+        operatorHp1( h, 0.5dt)
         operatorHB(  h, 0.5dt)
 
     end

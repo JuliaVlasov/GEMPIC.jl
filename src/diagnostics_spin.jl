@@ -17,10 +17,9 @@ function pic_diagnostics_transfer( particle_group :: ParticleGroup{1,1},
 
     @inbounds for i_part = 1:particle_group.n_particles
 
-       xi = get_x( particle_group,i_part )[1]
-       wi = get_charge(particle_group, i_part)[1]
-       vi = get_v( particle_group, i_part)[1]
-
+       xi = particle_group.particle_array[1,i_part]
+       vi = particle_group.particle_array[2,i_part]
+       wi = particle_group.particle_array[3,i_part] * particle_group.charge * particle_group.common_weight
        efield = evaluate( kernel_smoother, xi, efield_dofs )
 
        transfer += (vi * efield) * wi
@@ -45,13 +44,15 @@ Context to save and plot diagnostics
 - `kernel_smoother_1` : Mesh coupling operator
 - `data` : DataFrame containing time history values
 """
-mutable struct TimeHistoryDiagnosticsSpin
+struct TimeHistoryDiagnosticsSpin
 
     particle_group    :: ParticleGroup
     maxwell_solver    :: Maxwell1DFEM
     kernel_smoother_0 :: ParticleMeshCoupling
     kernel_smoother_1 :: ParticleMeshCoupling
     data              :: DataFrame
+    diagnostics       :: Vector{Float64}
+    potential_energy  :: Vector{Float64}
 
     function TimeHistoryDiagnosticsSpin( particle_group :: ParticleGroup,
         maxwell_solver    :: Maxwell1DFEM,
@@ -68,6 +69,9 @@ mutable struct TimeHistoryDiagnosticsSpin
                          Momentum5 = Float64[],
                          Momentum6 = Float64[],
                          Momentum7 = Float64[],
+                         Momentum8 = Float64[],
+                         Momentum9 = Float64[],
+                         Momentum10 = Float64[],
                          PotentialEnergyE1 = Float64[],
                          PotentialEnergyE2 = Float64[],
                          PotentialEnergyE3 = Float64[],
@@ -76,9 +80,12 @@ mutable struct TimeHistoryDiagnosticsSpin
                          Transfer = Float64[],
                          ErrorPoisson = Float64[])
 
+        diagnostics = zeros(Float64, 12)
+        potential_energy = zeros(Float64, 5)
+
 
         new( particle_group, maxwell_solver, kernel_smoother_0,
-             kernel_smoother_1, data )
+             kernel_smoother_1, data, diagnostics, potential_energy )
     end
 end
 
@@ -101,13 +108,10 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
                       afield_dofs, efield_dofs_n, 
                       efield_poisson, propagator)
 
-    diagnostics = zeros(Float64, 9)
-    potential_energy = zeros(Float64, 5)
     HH = 0.00022980575
 
     nn =  thdiag.kernel_smoother_0.n_dofs
-    aa = zeros(Float64,nn)
-    bb = zeros(Float64,nn)
+    tmp = zeros(Float64,nn)
 
     for i_part=1:thdiag.particle_group.n_particles
         fill!(propagator.j_dofs[1], 0.0)
@@ -121,38 +125,41 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
         # Kinetic energy
         v2 = evaluate(thdiag.kernel_smoother_0, xi[1], afield_dofs[1])
         v3 = evaluate(thdiag.kernel_smoother_0, xi[1], afield_dofs[2])
-        diagnostics[1] += 0.5*(vi[1]^2 + v2[1]^2 + v3[1]^2) * wi[1] 
+        thdiag.diagnostics[1] += 0.5*(vi[1]^2 + v2[1]^2 + v3[1]^2) * wi[1] 
         add_charge!( propagator.j_dofs[2], propagator.kernel_smoother_1, xi, 1.0)
         compute_rderivatives_from_basis!(propagator.j_dofs[1], propagator.maxwell_solver, propagator.j_dofs[2])
-        diagnostics[2] += HH * (afield_dofs[2]'*propagator.j_dofs[1]*wi*s2 -  afield_dofs[1]'*propagator.j_dofs[1]*wi*s3)
+        thdiag.diagnostics[2] += HH * (afield_dofs[2]'*propagator.j_dofs[1]*wi*s2 -  afield_dofs[1]'*propagator.j_dofs[1]*wi*s3)
         # Momentum 1
-        diagnostics[3] += xi[1] * wi[1]
-        diagnostics[4] += xi[1] * wi[1] * s1
-        diagnostics[5] += xi[1] * wi[1] * s2
-        diagnostics[6] += xi[1] * wi[1] * s3
-        diagnostics[7] += wi[1] * s1
-        diagnostics[8] += wi[1] * s2
-        diagnostics[9] += wi[1] * s3
+        thdiag.diagnostics[3]  += xi[1] * wi[1]
+        thdiag.diagnostics[4]  += xi[1] * wi[1] * s1
+        thdiag.diagnostics[5]  += xi[1] * wi[1] * s2
+        thdiag.diagnostics[6]  += xi[1] * wi[1] * s3
+        thdiag.diagnostics[7]  += wi[1] * s1
+        thdiag.diagnostics[8]  += wi[1] * s2
+        thdiag.diagnostics[9]  += wi[1] * s3
+        thdiag.diagnostics[10] += (afield_dofs[1]'*propagator.j_dofs[1]*wi*s2)
+        thdiag.diagnostics[11] += afield_dofs[1]'*propagator.j_dofs[1]*wi*s1*(-1.0)
+        thdiag.diagnostics[12] += 0.0
 
     end
 
     transfer = pic_diagnostics_transfer( thdiag.particle_group, thdiag.kernel_smoother_0, efield_dofs[1] )
 
-    potential_energy[1] = 0.5*inner_product( thdiag.maxwell_solver, efield_dofs[1], efield_dofs[1], degree-1 )
-    potential_energy[2] = 0.5*inner_product( thdiag.maxwell_solver, efield_dofs[2], efield_dofs[2], degree )
-    potential_energy[3] = 0.5*inner_product( thdiag.maxwell_solver, efield_dofs[3], efield_dofs[3], degree )
+    thdiag.potential_energy[1] = 0.5*inner_product( thdiag.maxwell_solver, efield_dofs[1], efield_dofs[1], degree-1 )
+    thdiag.potential_energy[2] = 0.5*inner_product( thdiag.maxwell_solver, efield_dofs[2], efield_dofs[2], degree )
+    thdiag.potential_energy[3] = 0.5*inner_product( thdiag.maxwell_solver, efield_dofs[3], efield_dofs[3], degree )
 
-    compute_lderivatives_from_basis!(aa, thdiag.maxwell_solver, afield_dofs[1])
+    compute_lderivatives_from_basis!(tmp, thdiag.maxwell_solver, afield_dofs[1])
 
-    potential_energy[4] = 0.5*l2norm_squared( thdiag.maxwell_solver, aa, degree-1 )
+    thdiag.potential_energy[4] = 0.5*l2norm_squared( thdiag.maxwell_solver, tmp, degree-1 )
 
-    compute_lderivatives_from_basis!(bb, thdiag.maxwell_solver, afield_dofs[2])
+    compute_lderivatives_from_basis!(tmp, thdiag.maxwell_solver, afield_dofs[2])
 
-    potential_energy[5] = 0.5*l2norm_squared( thdiag.maxwell_solver, bb, degree-1 )
+    thdiag.potential_energy[5] = 0.5*l2norm_squared( thdiag.maxwell_solver, tmp, degree-1 )
 
     push!(thdiag.data, ( time,  
-                         diagnostics...,
-                         potential_energy..., 
+                         thdiag.diagnostics...,
+                         thdiag.potential_energy..., 
                          transfer,
                          maximum(abs.(efield_dofs[1] .- efield_poisson))))
 end 
