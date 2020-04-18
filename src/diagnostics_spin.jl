@@ -17,9 +17,9 @@ function pic_diagnostics_transfer( particle_group :: ParticleGroup{1,1},
 
     @inbounds for i_part = 1:particle_group.n_particles
 
-       xi = particle_group.particle_array[1,i_part]
-       vi = particle_group.particle_array[2,i_part]
-       wi = particle_group.particle_array[3,i_part] * particle_group.charge * particle_group.common_weight
+       xi = particle_group.array[1,i_part]
+       vi = particle_group.array[2,i_part]
+       wi = particle_group.array[3,i_part] * particle_group.charge * particle_group.common_weight
        efield = evaluate( kernel_smoother, xi, efield_dofs )
 
        transfer += (vi * efield) * wi
@@ -114,14 +114,16 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
     tmp = zeros(Float64,nn)
 
     for i_part=1:thdiag.particle_group.n_particles
+
         fill!(propagator.j_dofs[1], 0.0)
         fill!(propagator.j_dofs[2], 0.0)
-        xi = get_x( thdiag.particle_group, i_part)[1]
-        vi = get_v( thdiag.particle_group, i_part)[1]
-        s1 = get_spin( thdiag.particle_group, i_part, 1)
-        s2 = get_spin( thdiag.particle_group, i_part, 2)
-        s3 = get_spin( thdiag.particle_group, i_part, 3) 
-        wi = get_mass(thdiag.particle_group, i_part)
+
+        xi = thdiag.particle_group.array[1,i_part]
+        vi = thdiag.particle_group.array[2,i_part]
+        wi = thdiag.particle_group.array[3,i_part] * thdiag.particle_group.mass * thdiag.particle_group.common_weight
+        s1 = thdiag.particle_group.array[4,i_part]
+        s2 = thdiag.particle_group.array[5,i_part]
+        s3 = thdiag.particle_group.array[6,i_part] 
         # Kinetic energy
         v2 = evaluate(thdiag.kernel_smoother_0, xi[1], afield_dofs[1])
         v3 = evaluate(thdiag.kernel_smoother_0, xi[1], afield_dofs[2])

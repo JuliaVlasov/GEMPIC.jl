@@ -46,9 +46,9 @@ sampler = ParticleSampler{1,2}( :sobol, true, n_particles)
 
 sample!(particle_group, sampler, df, mesh)
 
-xp = view(particle_group.particle_array, 1, :)
-vp = view(particle_group.particle_array, 2:3, :)
-wp = view(particle_group.particle_array, 4, :);
+xp = view(particle_group.array, 1, :)
+vp = view(particle_group.array, 2:3, :)
+wp = view(particle_group.array, 4, :);
 # -
 
 p = plot(layout=(3,1))

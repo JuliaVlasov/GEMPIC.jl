@@ -22,7 +22,7 @@ function solve_poisson!( efield_dofs       :: Vector{Float64},
     fill!(rho, 0.0)
 
     for i_part = 1:particle_group.n_particles
-       xi = particle_group.particle_array[1, i_part]
+       xi = particle_group.array[1, i_part]
        wi = get_charge(particle_group, i_part)
        add_charge!(rho, kernel_smoother_0, xi, wi)
     end
@@ -52,10 +52,10 @@ function pic_diagnostics_transfer( particle_group :: ParticleGroup{1,2},
 
     for i_part = 1:particle_group.n_particles
 
-       xi = particle_group.particle_array[1,i_part]
+       xi = particle_group.array[1,i_part]
        wi = get_charge(particle_group, i_part)
-       v1 = particle_group.particle_array[2, i_part]
-       v2 = particle_group.particle_array[3, i_part]
+       v1 = particle_group.array[2, i_part]
+       v2 = particle_group.array[3, i_part]
 
        efield_1 = evaluate( kernel_smoother_1, xi, efield_dofs[1] )
        efield_2 = evaluate( kernel_smoother_0, xi, efield_dofs[2] )
@@ -84,10 +84,10 @@ function pic_diagnostics_vvb( particle_group, kernel_smoother_1, bfield_dofs )
 
     for i_part in 1:particle_group.n_particles
 
-       xi = particle_group.particle_array[1, i_part]
-       v1 = particle_group.particle_array[2, i_part]
-       v2 = particle_group.particle_array[3, i_part]
-       wi = particle_group.particle_array[4, i_part]
+       xi = particle_group.array[1, i_part]
+       v1 = particle_group.array[2, i_part]
+       v2 = particle_group.array[3, i_part]
+       wi = particle_group.array[4, i_part]
        wi *= particle_group.charge
        wi *= particle_group.common_weight
 
@@ -197,9 +197,9 @@ function write_step!( thdiag :: TimeHistoryDiagnostics,
 
     for i_part=1:thdiag.particle_group.n_particles
 
-       v1 = thdiag.particle_group.particle_array[2, i_part]
-       v2 = thdiag.particle_group.particle_array[3, i_part]
-       wi = thdiag.particle_group.particle_array[4, i_part]
+       v1 = thdiag.particle_group.array[2, i_part]
+       v2 = thdiag.particle_group.array[3, i_part]
+       wi = thdiag.particle_group.array[4, i_part]
        wi *= thdiag.particle_group.charge
        wi *= thdiag.particle_group.common_weight
 

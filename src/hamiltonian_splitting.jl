@@ -182,15 +182,15 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
     @inbounds for i_part = 1:h.particle_group.n_particles  
 
        # Read out particle position and velocity
-       x_old  = h.particle_group.particle_array[1, i_part]
-       v1_old = h.particle_group.particle_array[2, i_part]
-       v2_old = h.particle_group.particle_array[3, i_part]
+       x_old  = h.particle_group.array[1, i_part]
+       v1_old = h.particle_group.array[2, i_part]
+       v2_old = h.particle_group.array[3, i_part]
 
        # Then update particle position:  X_new = X_old + dt * V
        x_new = x_old + dt * v1_old
 
        # Get charge for accumulation of j
-       wi     = h.particle_group.particle_array[4, i_part]
+       wi     = h.particle_group.array[4, i_part]
        wi     = wi * h.particle_group.charge
        wi     = wi * h.particle_group.common_weight
 
@@ -213,8 +213,8 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
       
        x_new = mod(x_new, h.Lx)
 
-       h.particle_group.particle_array[1, i_part] = x_new
-       h.particle_group.particle_array[3, i_part] = v2_new
+       h.particle_group.array[1, i_part] = x_new
+       h.particle_group.array[3, i_part] = v2_new
 
     end
 
@@ -254,18 +254,18 @@ function operatorHp2(h :: HamiltonianSplitting, dt :: Float64)
     for i_part in 1:np
 
         # Evaluate b at particle position (splines of order p)
-        x1    = h.particle_group.particle_array[1, i_part]
-        v1    = h.particle_group.particle_array[2, i_part]
-        v2    = h.particle_group.particle_array[3, i_part]
+        x1    = h.particle_group.array[1, i_part]
+        v1    = h.particle_group.array[2, i_part]
+        v2    = h.particle_group.array[3, i_part]
 
         b     = evaluate(h.kernel_smoother_1, x1, h.b_dofs)
         v1    = v1 + dt * qm * v2 * b
 
-        h.particle_group.particle_array[2, i_part] = v1
+        h.particle_group.array[2, i_part] = v1
 
         # Scale vi by weight to combine both factors 
         #for accumulation of integral over j
-	    w  = h.particle_group.particle_array[4, i_part] 
+	    w  = h.particle_group.array[4, i_part] 
         w  = w * h.particle_group.charge
         w  = w * h.particle_group.common_weight
         w  = w * v2
@@ -309,12 +309,12 @@ function operatorHE(h :: HamiltonianSplitting, dt :: Float64)
     #    @spawn begin
     #        for i_part in i_chunk
 
-                v_old1 = h.particle_group.particle_array[2, i_part]
-                v_old2 = h.particle_group.particle_array[3, i_part]
+                v_old1 = h.particle_group.array[2, i_part]
+                v_old2 = h.particle_group.array[3, i_part]
 
                 # Evaluate efields at particle position
 
-                xi = h.particle_group.particle_array[1, i_part]
+                xi = h.particle_group.array[1, i_part]
 
                 e1 = evaluate(h.kernel_smoother_1, xi, h.e_dofs[1])
                 e2 = evaluate(h.kernel_smoother_0, xi, h.e_dofs[2])
@@ -322,8 +322,8 @@ function operatorHE(h :: HamiltonianSplitting, dt :: Float64)
                 v_new1 = v_old1 + dt * qm * e1
                 v_new2 = v_old2 + dt * qm * e2
 
-                h.particle_group.particle_array[2, i_part] = v_new1
-                h.particle_group.particle_array[3, i_part] = v_new2
+                h.particle_group.array[2, i_part] = v_new1
+                h.particle_group.array[3, i_part] = v_new2
 
             #end
 

@@ -25,7 +25,7 @@
            1.0                  1.0] 
 
 
-   @test particle_group2.particle_array ≈ ref
+   @test particle_group2.array ≈ ref
    
    particle_group = ParticleGroup{1,1}( n_particles, n_spin=3)   
 
@@ -124,7 +124,7 @@
    @test efield_poisson ≈ [-0.572, -0.848, -2.759, 1.417, -1.420, 2.761, 0.848, 0.573] atol=1e-2
 
    ref = [3.117 4.702; -0.125 0.124; 6.249 6.255; -6.256e-5 6.112e-5; 3.774e-9 3.532e-9; 1.000 1.000] 
-   @test propagator.particle_group.particle_array ≈ ref atol=1e-2
+   @test propagator.particle_group.array ≈ ref atol=1e-2
 
    write_step!(thdiag, Δt, spline_degree, 
                        efield_dofs,  afield_dofs,
