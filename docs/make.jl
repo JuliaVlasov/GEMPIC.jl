@@ -44,7 +44,7 @@ makedocs(
                                  "hamiltonian_splitting_boris.md",
                                  "diagnostics.md"],
              "Strong Landau damping" => "generated/strong_landau_damping.md",
-             "Scalar Spin Vlasov-Maxwell" => "scalar_spin_vlasov_maxwell.md",
+             # "Scalar Spin Vlasov-Maxwell" => "scalar_spin_vlasov_maxwell.md",
              "Contents"      => "contents.md"]
 )
 
