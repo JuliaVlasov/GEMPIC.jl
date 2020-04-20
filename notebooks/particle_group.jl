@@ -105,8 +105,8 @@ mean, sigma = test_sampling( :random, true,  pg, df1)
 @show abs.(sigma .- sigma_ref)
 @test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e-12
 
-xp = view(pg.particle_array,1,:)
-wp = view(pg.particle_array,4,:);
+xp = view(pg.array,1,:)
+wp = view(pg.array,4,:);
 
 histogram(xp, weights=wp, normalize=true, bins=200)
 

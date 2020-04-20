@@ -1,34 +1,19 @@
-# -*- coding: utf-8 -*-
-# ---
-# jupyter:
-#   jupytext:
-#     formats: ipynb,jl:light
-#     text_representation:
-#       extension: .jl
-#       format_name: light
-#       format_version: '1.5'
-#       jupytext_version: 1.4.2
-#   kernelspec:
-#     display_name: Julia 1.4.0
-#     language: julia
-#     name: julia-1.4
-# ---
+# # Strong Landau Damping
+
+# If we only use the subsystems $H_p$ and $H_E$, we are solving Vlasov--Poisson system.
+# In this test, initial condition is as follows:
+# ```math
+# f_0(x,v) = \frac{1}{\sqrt{2\pi} \sigma}e^{-\frac{v^2}{2\sigma^2}}(1+\alpha \cos(kx)), \quad E_{10} (x) = \frac{\alpha}{k}\sin(kx), \ x \in [0,2\pi/k ),  \ v \in \mathbb{R}^2.
+# ```
 
 using ProgressMeter, Plots
 using GEMPIC
 
-# # Strong Landau Damping
-#
-# Electrostatic example of strong Landau damping
-# $$
-# f(x,v) =\frac{1}{2\pi\sigma^2}  \exp 
-# \Big( - \frac{v_1^2 + v_2^2}{2\sigma^2} \Big)
-# ( 1+\alpha \cos(k x)􏰁),
-# $$
-#
-# The physical parameters 
+# The physical parameters are chosen as ``\sigma = 1``, ``k = 0.5``, 
+# ``\alpha = 0.5``, and the numerical parameters as ``\Delta t = 0.05``, 
+# ``n_x = 32`` and ``2 \times 10^5`` particles. We use second order Strang 
+# splitting method in time. See numerical results in Fig.~\ref{fig:Landau}.
 
-# +
 σ, μ = 1.0, 0.0
 kx, α = 0.5, 0.5
 xmin, xmax = 0, 2π/kx
@@ -49,7 +34,6 @@ sample!(particle_group, sampler, df, mesh)
 xp = view(particle_group.array, 1, :)
 vp = view(particle_group.array, 2:3, :)
 wp = view(particle_group.array, 4, :);
-# -
 
 p = plot(layout=(3,1))
 histogram!(p[1,1], xp, weights=wp, normalize=true, bins = 100, lab = "")
@@ -60,7 +44,6 @@ histogram!(p[3,1], vp[2,:], weights=wp, normalize=true, bins = 100, lab = "")
 plot!(p[3,1], v-> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
 savefig("histograms.png")
 
-
 kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :galerkin)    
 kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree, :galerkin)
 rho = zeros(Float64, nx)
@@ -70,9 +53,13 @@ plot( xg, sval )
 savefig("charge_density.png")
 
 efield_poisson = zeros(Float64, nx)
+
 # Initialize the field solver
+
 maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
+
 # efield by Poisson
+
 solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
 sval = eval_uniform_periodic_spline_curve(spline_degree-1, efield_poisson)
 plot( xg, sval )       
@@ -80,7 +67,6 @@ savefig("electric_field.png")
 
 # Initialize the arrays for the spline coefficients of the fields
 
-# +
 function run( steps)
 
     σ, μ = 1.0, 0.0
@@ -105,9 +91,9 @@ function run( steps)
     
     rho = zeros(Float64, nx)
     efield_poisson = zeros(Float64, nx)
-    # Initialize the field solver
+
     maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
-    # efield by Poisson
+
     solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
     
     efield_dofs = [efield_poisson, zeros(Float64, nx)]
@@ -129,10 +115,8 @@ function run( steps)
     
     @showprogress 1 for j = 1:steps # loop over time
     
-        # Strang splitting
         strang_splitting!(propagator, Δt, 1)
     
-        # Diagnostics
         solve_poisson!( efield_poisson, particle_group, 
                         kernel_smoother0, maxwell_solver, rho)
         
@@ -145,7 +129,7 @@ function run( steps)
     return thdiag.data
     
 end
-# -
+
 
 @time results = run(5000) # change number of steps
 
@@ -153,4 +137,4 @@ plot(results[!,:Time], log.(results[!,:PotentialEnergyE1]))
 
 savefig("potential_energy.png")
 
-
+# Time evolution of electric energy (semi-$\log_{10}$ scale); (b)  Time evolution of relative energy error.}\label{fig:Landau}

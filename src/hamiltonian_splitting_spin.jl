@@ -83,11 +83,11 @@ function strang_splitting!( h           :: HamiltonianSplittingSpin,
     for i_step = 1:number_steps
 
         operatorHB(  h, 0.5dt)
-        operatorHE(  h, 0.5dt)
+        operatorHp1( h, 0.5dt)
         operatorHp2( h, 0.5dt)
-        operatorHp1( h, 1.0dt)
+        operatorHE(  h, dt)
         operatorHp2( h, 0.5dt)
-        operatorHE(  h, 0.5dt)
+        operatorHp1( h, 0.5dt)
         operatorHB(  h, 0.5dt)
 
     end
@@ -115,8 +115,8 @@ function operatorHp1(h :: HamiltonianSplittingSpin, dt :: Float64)
     for i_part = 1:h.particle_group.n_particles  
 
        # Read out particle position and velocity
-       x_old = h.particle_group.particle_array[1, i_part]
-       v_old = h.particle_group.particle_array[2, i_part]
+       x_old = h.particle_group.array[1, i_part]
+       v_old = h.particle_group.array[2, i_part]
         
        # Then update particle position:  X_new = X_old + dt * V
        x_new = x_old + dt * v_old
@@ -131,7 +131,7 @@ function operatorHp1(h :: HamiltonianSplittingSpin, dt :: Float64)
                               w)
 
        x_new = mod(x_new, h.Lx)
-       h.particle_group.particle_array[1, i_part] = x_new
+       h.particle_group.array[1, i_part] = x_new
        
     end
 
@@ -165,8 +165,8 @@ function operatorHp2(h :: HamiltonianSplittingSpin, dt :: Float64)
         fill!(h.j_dofs[1], 0.0)
         fill!(h.j_dofs[2], 0.0)
         # Evaluate b at particle position (splines of order p)
-        xi = h.particle_group.particle_array[1, i_part]
-        vi = h.particle_group.particle_array[2, i_part]
+        xi = h.particle_group.array[1, i_part]
+        vi = h.particle_group.array[2, i_part]
         wi = get_charge(h.particle_group, i_part) 
 
         add_charge!( h.j_dofs[2], h.kernel_smoother_0, xi, 1.0)# R0 
@@ -184,7 +184,7 @@ function operatorHp2(h :: HamiltonianSplittingSpin, dt :: Float64)
 
         vi = vi - dt * ( p11 * p12 + p22 * p21 )
         
-        h.particle_group.particle_array[2, i_part] = vi
+        h.particle_group.array[2, i_part] = vi
         
         # below we solve electric field
         # first define part1 and part2 to be 0 vector
@@ -233,12 +233,12 @@ function operatorHB(h :: HamiltonianSplittingSpin, dt :: Float64)
         @spawn begin
             for i_part in i_chunk
 
-                xi = h.particle_group.particle_array[1, i_part]
-                vi = h.particle_group.particle_array[2, i_part]
+                xi = h.particle_group.array[1, i_part]
+                vi = h.particle_group.array[2, i_part]
 
                 e1 = evaluate(h.kernel_smoother_1, xi, h.e_dofs[1])
 
-                h.particle_group.particle_array[2, i_part] = vi + dt * e1
+                h.particle_group.array[2, i_part] = vi + dt * e1
             end
         end
     end
@@ -278,8 +278,8 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
     
     @inbounds for i_part=1:h.particle_group.n_particles
 
-        xi = h.particle_group.particle_array[1, i_part]
-        vi = h.particle_group.particle_array[2, i_part]
+        xi = h.particle_group.array[1, i_part]
+        vi = h.particle_group.array[2, i_part]
          
         # Evaluate efields at particle position
         fill!(h.j_dofs[1], 0.0)
@@ -298,9 +298,9 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
         hat_v[2,1] = - Y
         hat_v[3,1] = - Z
 
-        s1 = h.particle_group.particle_array[4, i_part]
-        s2 = h.particle_group.particle_array[5, i_part]
-        s3 = h.particle_group.particle_array[6, i_part]
+        s1 = h.particle_group.array[4, i_part]
+        s2 = h.particle_group.array[5, i_part]
+        s3 = h.particle_group.array[6, i_part]
 
         vnorm = norm(V)
 
@@ -311,9 +311,9 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
             S .= [s1, s2, s3]
         end
 
-        h.particle_group.particle_array[4, i_part] = S[1]
-        h.particle_group.particle_array[5, i_part] = S[2]
-        h.particle_group.particle_array[6, i_part] = S[3]
+        h.particle_group.array[4, i_part] = S[1]
+        h.particle_group.array[5, i_part] = S[2]
+        h.particle_group.array[6, i_part] = S[3]
 
         if vnorm > 1e-14
             St .= (dt .* [s1, s2, s3] + ( 2*(sin(dt*vnorm/2)/vnorm)^2*hat_v 
