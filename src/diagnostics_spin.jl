@@ -108,7 +108,7 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
                       afield_dofs, efield_dofs_n, 
                       efield_poisson, propagator)
 
-    HH = 0.00022980575
+#    HH = 0.00022980575
 
     nn =  thdiag.kernel_smoother_0.n_dofs
     tmp = zeros(Float64,nn)
@@ -130,7 +130,7 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
         thdiag.diagnostics[1] += 0.5*(vi[1]^2 + v2[1]^2 + v3[1]^2) * wi[1] 
         add_charge!( propagator.j_dofs[2], propagator.kernel_smoother_1, xi, 1.0)
         compute_rderivatives_from_basis!(propagator.j_dofs[1], propagator.maxwell_solver, propagator.j_dofs[2])
-        thdiag.diagnostics[2] += HH * (afield_dofs[2]'*propagator.j_dofs[1]*wi*s2 -  afield_dofs[1]'*propagator.j_dofs[1]*wi*s3)
+        thdiag.diagnostics[2] += propagator.HH * (afield_dofs[2]'*propagator.j_dofs[1]*wi*s2 -  afield_dofs[1]'*propagator.j_dofs[1]*wi*s3)
         # Momentum 1
         thdiag.diagnostics[3]  += xi[1] * wi[1]
         thdiag.diagnostics[4]  += xi[1] * wi[1] * s1

@@ -34,13 +34,16 @@ struct HamiltonianSplittingSpin
     j_dofs :: Array{Array{Float64,1}}
     part   :: Array{Array{Float64,1}}
 
+    HH :: Float64
+
     function HamiltonianSplittingSpin( maxwell_solver,
                                    kernel_smoother_0,
                                    kernel_smoother_1,
                                    kernel_smoother_2,
                                    particle_group,
                                    e_dofs,
-                                   a_dofs) 
+                                   a_dofs,
+				   HH=0.00022980575) 
 
         # Check that n_dofs is the same for both kernel smoothers.
         @assert kernel_smoother_0.n_dofs == kernel_smoother_1.n_dofs
@@ -60,7 +63,7 @@ struct HamiltonianSplittingSpin
         new( maxwell_solver, kernel_smoother_0, kernel_smoother_1, kernel_smoother_2, 
              particle_group, spline_degree, Lx, x_min, delta_x,
              cell_integrals_0, cell_integrals_1, e_dofs, a_dofs, j_dofs,
-             part)
+             part,HH)
 
     end
 
@@ -264,7 +267,7 @@ Push H_E: Equations to be solved
 """
 function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
 
-    HH = 0.00022980575
+#    HH = 0.00022980575
     n_cells = h.kernel_smoother_0.n_dofs
 
     fill!.(h.part, 0.0)
@@ -334,7 +337,7 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
         compute_rderivatives_from_basis!(h.j_dofs[1], h.maxwell_solver, h.j_dofs[2])
         compute_rderivatives_from_basis!(aa, h.maxwell_solver, h.j_dofs[1])
         h.j_dofs[1] .= aa
-        vi = vi - HH  * (h.a_dofs[2]'*h.j_dofs[1] * St[2] + h.a_dofs[1]'*h.j_dofs[1] * St[3])
+        vi = vi - h.HH  * (h.a_dofs[2]'*h.j_dofs[1] * St[2] + h.a_dofs[1]'*h.j_dofs[1] * St[3])
 
         set_v(h.particle_group, i_part, vi)
 
@@ -344,8 +347,8 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
     compute_rderivatives_from_basis!(h.j_dofs[1], h.maxwell_solver,  h.part[1])
     compute_rderivatives_from_basis!(h.j_dofs[2], h.maxwell_solver, -h.part[2])
 
-    h.j_dofs[1] .*= HH
-    h.j_dofs[2] .*= HH
+    h.j_dofs[1] .*= h.HH
+    h.j_dofs[2] .*= h.HH
     
     compute_e_from_j!( h.e_dofs[2], h.maxwell_solver, h.j_dofs[1], 2) 
     compute_e_from_j!( h.e_dofs[3], h.maxwell_solver, h.j_dofs[2], 2)
