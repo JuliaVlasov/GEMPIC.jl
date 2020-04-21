@@ -112,6 +112,8 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
 
     nn =  thdiag.kernel_smoother_0.n_dofs
     tmp = zeros(Float64,nn)
+    fill!(thdiag.diagnostics, 0.0)
+    fill!(thdiag.potential_energy, 0.0)
 
     mode = zeros(ComplexF64,nn,nx)
     elec_tmp = zeros(Float64,nx)
