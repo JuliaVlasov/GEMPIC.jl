@@ -195,12 +195,15 @@ function write_step!( thdiag :: TimeHistoryDiagnostics,
                       efield_poisson)
 
 
+    fill!(thdiag.diagnostics, 0.0)
+    fill!(thdiag.potential_energy, 0.0)
+
     for i_part=1:thdiag.particle_group.n_particles
 
        v1 = thdiag.particle_group.array[2, i_part]
        v2 = thdiag.particle_group.array[3, i_part]
        wi = thdiag.particle_group.array[4, i_part]
-       wi *= thdiag.particle_group.charge
+       wi *= thdiag.particle_group.mass
        wi *= thdiag.particle_group.common_weight
 
        # Kinetic energy
@@ -231,16 +234,13 @@ function write_step!( thdiag :: TimeHistoryDiagnostics,
     thdiag.potential_energy[3] = l2norm_squared( thdiag.maxwell_solver, 
         bfield_dofs, degree-1 )
 
-    efield_poisson .-= efield_dofs[1]
-    efield_poisson .= abs.(efield_poisson)
-
     push!(thdiag.data, ( time,  
                          thdiag.diagnostics...,
                          thdiag.potential_energy..., 
                          transfer,
                          vvb,
                          poynting,
-                         maximum(efield_poisson)))
+                         maximum(abs.(efield_dofs[1] .- efield_poisson))))
 end 
 
     
