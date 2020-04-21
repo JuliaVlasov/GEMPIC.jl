@@ -42,8 +42,8 @@ plot!(p[2,1], v-> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
 histogram!(p[3,1], vp[2,:], weights=wp, normalize=true, bins = 100, lab = "")
 plot!(p[3,1], v-> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
 
-# md savefig("histograms.svg"); nothing #hide
-# md # ![](histograms.svg)
+#md savefig("histograms.svg"); nothing #hide
+#md # ![](histograms.svg)
 
 # Initialize the arrays for the spline coefficients of the fields
 
@@ -51,8 +51,6 @@ kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :ga
 kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree, :galerkin)
 
 # Initialize field solver
-
-
 
 p = plot(layout=(1,2))
 rho = zeros(Float64, nx)
@@ -69,7 +67,7 @@ plot!(p[1,2], xg, sval, title=:ex, label=nothing )
 
 # Simulation function
 
-# You get better performance if your simulation is inside a function:
+# You will get better performance if your simulation is inside a function:
 
 # +
 function run( steps)
@@ -77,7 +75,7 @@ function run( steps)
     σ, μ = 1.0, 0.0
     kx, α = 0.5, 0.5
     xmin, xmax = 0, 2π/kx
-    dt = 0.01
+    dt = 0.02
     nx = 32 
     n_particles = 100000
     mesh = Mesh( xmin, xmax, nx)
@@ -131,13 +129,12 @@ function run( steps)
     return thdiag.data
 
 end
-# -
 
-@time results = run(5000) # change number of steps
+@time results = run(2000) # change number of steps
 
 plot(results[!,:Time], log.(results[!,:PotentialEnergyE1]))
 
-# md savefig("potential_energy.svg"); nothing # hide
-# md # ![](potential_energy.svg)
+#md savefig("potential_energy.svg"); nothing #hide
+#md # ![](potential_energy.svg)
 
 # *Time evolution of electric energy (semi-$\log_{10}$ scale).*
