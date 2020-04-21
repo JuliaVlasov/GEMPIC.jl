@@ -112,6 +112,8 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
 
     nn =  thdiag.kernel_smoother_0.n_dofs
     tmp = zeros(Float64,nn)
+    fill!(thdiag.diagnostics, 0.0)
+    fill!(thdiag.potential_energy, 0.0)
 
     for i_part=1:thdiag.particle_group.n_particles
 
