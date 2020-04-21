@@ -36,7 +36,7 @@ using FileIO
 
 function main_sample!( pg   :: ParticleGroup{1,1}, 
                   ps   :: ParticleSampler, 
-                  df   :: CosSumGaussianSpin, 
+                  df   :: GEMPIC.CosSumGaussianSpin, 
                   mesh :: Mesh )
 
     s = zeros( pg.n_spin )
@@ -125,7 +125,7 @@ function run( steps :: Int64)
    mesh = Mesh( xmin, xmax, nx)
    spline_degree = 3
    
-   df = CosSumGaussianSpin([[kx]], [α], [[σ]], [[μ]] )
+   df = GEMPIC.CosSumGaussianSpin([[kx]], [α], [[σ]], [[μ]] )
    
    particle_group2 = ParticleGroup{1,1}( n_particles, n_spin=3)   
    sampler = ParticleSampler{1,1}( :sobol, n_particles)
