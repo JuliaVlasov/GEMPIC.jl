@@ -12,14 +12,14 @@ using GEMPIC
 # The physical parameters are chosen as ``\sigma = 1``, ``k = 0.5``, 
 # ``\alpha = 0.5``, and the numerical parameters as ``\Delta t = 0.05``, 
 # ``n_x = 32`` and ``2 \times 10^5`` particles. We use second order Strang 
-# splitting method in time. See numerical results in Fig.~\ref{fig:Landau}.
+# splitting method in time. 
 
 σ, μ = 1.0, 0.0
 kx, α = 0.5, 0.5
 xmin, xmax = 0, 2π/kx
 ∆t = 0.05
 nx = 32 
-n_particles = 100000
+n_particles = 200000
 mesh = Mesh( xmin, xmax, nx)
 spline_degree = 3
 

@@ -47,7 +47,10 @@ function run( steps :: Int64)
    sample!(particle_group2, sampler, df, mesh)
    
    particle_group = ParticleGroup{1,1}( n_particles, n_spin=3)   
+<<<<<<< HEAD
 #   GEMPIC.set_common_weight(particle_group, (1.0/n_particles))
+=======
+>>>>>>> origin/master
 
    for  i_part = 1:n_particles
 
