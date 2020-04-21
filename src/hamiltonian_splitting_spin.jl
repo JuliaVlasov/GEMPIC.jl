@@ -43,7 +43,7 @@ struct HamiltonianSplittingSpin
                                    particle_group,
                                    e_dofs,
                                    a_dofs,
-				   HH=0.00022980575) 
+				   HH=0.0) #0.00022980575) 
 
         # Check that n_dofs is the same for both kernel smoothers.
         @assert kernel_smoother_0.n_dofs == kernel_smoother_1.n_dofs

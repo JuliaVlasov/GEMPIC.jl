@@ -120,8 +120,8 @@ function run( steps :: Int64)
    σ, μ = 0.02, 0.0
    kx, α = 1.004355, 0.001
    xmin, xmax = 0, 2π/kx
-   nx = 16 #NC 1024 
-   n_particles = 100 #NC 100000
+   nx = 32 #NC 1024 
+   n_particles = 1000 #NC 100000
    mesh = Mesh( xmin, xmax, nx)
    spline_degree = 3
    
@@ -134,8 +134,6 @@ function run( steps :: Int64)
    
    particle_group = ParticleGroup{1,1}( n_particles, n_spin=3)
    
-#   GEMPIC.set_common_weight(particle_group, (1.0/n_particles))
-
    for  i_part = 1:n_particles
 
        x = zeros( 1 )
@@ -177,10 +175,11 @@ function run( steps :: Int64)
    E0 = 10
    ww = 12.104827940833333
 
+   #Test 1 with only Ey and Ay (and with HH=0)
    Ey(x) = E0*cos(k0*x)
-   Ez(x) = E0*sin(k0*x)
+   Ez(x) = 0.0*E0*sin(k0*x)
    Ay(x) = -E0/ww*sin(k0*x)
-   Az(x) = E0/ww*cos(k0*x)
+   Az(x) = 0.0*E0/ww*cos(k0*x)
    
    efield_dofs = [efield_poisson, zeros(Float64, nx), zeros(Float64, nx)]
    afield_dofs = [zeros(Float64, nx), zeros(Float64, nx)]
@@ -224,11 +223,8 @@ function run( steps :: Int64)
        #diagnostics
 
        #store particles at some specific times 
-       if (jstep % 7 == 0)
-           GEMPIC.save( "particles", jstep, particle_group)
-       end
        if (jstep % 1000 == 0)
-           GEMPIC.save( "particles", jstep, particle_group)
+           GEMPIC.save( "save_particles", jstep, particle_group)
        end
 
        #Fourier modes of the longitudinal electric field
@@ -244,7 +240,7 @@ function run( steps :: Int64)
 
 end
 # +
-thdiag, th_modes = run(10) # choose number of steps
+thdiag, th_modes = run(100) # choose number of steps
 
 CSV.write("thdiag-$(now()).csv", thdiag)
 
