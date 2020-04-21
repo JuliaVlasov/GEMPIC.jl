@@ -3,7 +3,7 @@ using DataFrames
 """
     pic_diagnostics_transfer( particle_group, kernel_smoother, efield_dofs)
 
-Compute ``\\sum_{particles} w ( v, p e(x_p) ``
+Compute ``\\sum_{particles} w  p e(x_p) ``
 
 - `particle_group`   
 - `kernel_smoother` : Kernel smoother
@@ -82,8 +82,8 @@ struct TimeHistoryDiagnosticsSpin
 
         diagnostics = zeros(Float64, 12)
         potential_energy = zeros(Float64, 5)
-
-
+	
+ 
         new( particle_group, maxwell_solver, kernel_smoother_0,
              kernel_smoother_1, data, diagnostics, potential_energy )
     end
@@ -97,10 +97,12 @@ export write_step!
 
 write diagnostics for PIC
 - `time` : Time
-- `efield_dofs` : Electric field
-- `efield_dofs_n` : Electric field at half step
+- `afield_dofs[1]` : Magnetic Potential Ay
+- `afield_dofs[2]` : Magnetic Potential Az
+- `efield_dofs[1]` : Longitudinal Electric field Ex
 - `efield_poisson` : Electric field compute from Poisson equation
-- `bfield_dofs` : Magnetic field
+- `efield_dofs[2]` : Ey
+- `efield_dofs[3]` : Ez
 - `degree` : Spline degree
 """
 function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
@@ -110,6 +112,9 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
 
     nn =  thdiag.kernel_smoother_0.n_dofs
     tmp = zeros(Float64,nn)
+
+    mode = zeros(ComplexF64,nn,nx)
+    elec_tmp = zeros(Float64,nx)
 
     for i_part=1:thdiag.particle_group.n_particles
 
@@ -129,17 +134,21 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
         add_charge!( propagator.j_dofs[2], propagator.kernel_smoother_1, xi, 1.0)
         compute_rderivatives_from_basis!(propagator.j_dofs[1], propagator.maxwell_solver, propagator.j_dofs[2])
         thdiag.diagnostics[2] += propagator.HH * (afield_dofs[2]'*propagator.j_dofs[1]*wi*s2 -  afield_dofs[1]'*propagator.j_dofs[1]*wi*s3)
-        # Momentum 1
+	
+        # \int (x f) dx dp ds 
         thdiag.diagnostics[3]  += xi[1] * wi[1]
+        # \int (x s f) dx dp ds 
         thdiag.diagnostics[4]  += xi[1] * wi[1] * s1
         thdiag.diagnostics[5]  += xi[1] * wi[1] * s2
         thdiag.diagnostics[6]  += xi[1] * wi[1] * s3
+	# \int (s f) dx dp ds
         thdiag.diagnostics[7]  += wi[1] * s1
         thdiag.diagnostics[8]  += wi[1] * s2
         thdiag.diagnostics[9]  += wi[1] * s3
-        thdiag.diagnostics[10] += (afield_dofs[1]'*propagator.j_dofs[1]*wi*s2)
+	# \int (s x B) dx dp ds 
+        thdiag.diagnostics[10] += (afield_dofs[1]'*propagator.j_dofs[1]*wi*s2+afield_dofs[2]'*propagator.j_dofs[1]*wi*s3)
         thdiag.diagnostics[11] += afield_dofs[1]'*propagator.j_dofs[1]*wi*s1*(-1.0)
-        thdiag.diagnostics[12] += 0.0
+        thdiag.diagnostics[12] += afield_dofs[2]'*propagator.j_dofs[1]*wi*s2*(-1.0)
 
     end
 
@@ -162,4 +171,12 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
                          thdiag.potential_energy..., 
                          transfer,
                          maximum(abs.(efield_dofs[1] .- efield_poisson))))
+
+
+    #Fourier modes of the longitudinal electric field
+    for i = 1:nx
+        elec_tmp[i] = evaluate(thdiag.kernel_smoother_1, (i-1)*propagator.delta_x[1], efield_dofs[1])
+    end
+    mode[jstep,:] .= fft(elec_tmp)
+#    push!(mode,fft(elec_tmp))
 end 

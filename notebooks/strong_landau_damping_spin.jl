@@ -46,11 +46,9 @@ function run( steps :: Int64)
    
    sample!(particle_group2, sampler, df, mesh)
    
-   particle_group = ParticleGroup{1,1}( n_particles, n_spin=3)   
-<<<<<<< HEAD
+   particle_group = ParticleGroup{1,1}( n_particles, n_spin=3)
+   
 #   GEMPIC.set_common_weight(particle_group, (1.0/n_particles))
-=======
->>>>>>> origin/master
 
    for  i_part = 1:n_particles
 
@@ -118,6 +116,10 @@ function run( steps :: Int64)
    
    thdiag = TimeHistoryDiagnosticsSpin( particle_group, maxwell_solver, 
                            kernel_smoother0, kernel_smoother1 );
+
+   #store = zeros(ComplexF64,nx)		     
+   #electric = zeros(ComplexF64, steps, nx)
+   #elec_tmp = zeros(Float64,nx)
    
    Δt = 0.002
 
@@ -133,9 +135,16 @@ function run( steps :: Int64)
                        efield_dofs,  afield_dofs,
                        efield_dofs_n, efield_poisson, propagator)
 
+       #diagnostics
+
+       #store particles at some specific times 
+       if (jstep % 7 == 0)
+           GEMPIC.save( "particles", jstep, particle_group)
+       end
        if (jstep % 1000 == 0)
            GEMPIC.save( "particles", jstep, particle_group)
        end
+
        
    end
 
@@ -147,3 +156,6 @@ results = run(10) # choose number of steps
 
 CSV.write("thdiag-$(now()).csv", results)
 # -
+
+
+
