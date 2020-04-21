@@ -108,8 +108,6 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
                       afield_dofs, efield_dofs_n, 
                       efield_poisson, propagator)
 
-#    HH = 0.00022980575
-
     nn =  thdiag.kernel_smoother_0.n_dofs
     tmp = zeros(Float64,nn)
 

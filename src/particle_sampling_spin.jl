@@ -58,7 +58,7 @@ function sample!( pg   :: ParticleGroup{1,1},
        end
        v = v * df.params.σ[i_gauss] + df.params.μ[i_gauss]
 
-	   s = [0, 0, 1]
+       s = [0, 0, 1]
 
        # Set weight according to value of perturbation
        w  = eval_x_density(df, x) * prod(mesh.Lx) 

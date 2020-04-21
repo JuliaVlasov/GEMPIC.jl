@@ -34,8 +34,8 @@ function run( steps :: Int64)
    σ, μ = 0.02, 0.0
    kx, α = 1.004355, 0.001
    xmin, xmax = 0, 2π/kx
-   nx = 1024 
-   n_particles = 100000
+   nx = 16 #NC 1024 
+   n_particles = 100 #NC 100000
    mesh = Mesh( xmin, xmax, nx)
    spline_degree = 3
    
@@ -47,7 +47,7 @@ function run( steps :: Int64)
    sample!(particle_group2, sampler, df, mesh)
    
    particle_group = ParticleGroup{1,1}( n_particles, n_spin=3)   
-   GEMPIC.set_common_weight(particle_group, (1.0/n_particles))
+#   GEMPIC.set_common_weight(particle_group, (1.0/n_particles))
 
    for  i_part = 1:n_particles
 
@@ -140,7 +140,7 @@ function run( steps :: Int64)
 
 end
 # +
-results = run(10000) # choose number of steps
+results = run(10) # choose number of steps
 
 CSV.write("thdiag-$(now()).csv", results)
 # -

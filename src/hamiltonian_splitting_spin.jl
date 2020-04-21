@@ -85,13 +85,13 @@ function strang_splitting!( h           :: HamiltonianSplittingSpin,
 
     for i_step = 1:number_steps
 
-        operatorHB(  h, 0.5dt)
-        operatorHp1( h, 0.5dt)
-        operatorHp2( h, 0.5dt)
-        operatorHE(  h, dt)
-        operatorHp2( h, 0.5dt)
-        operatorHp1( h, 0.5dt)
-        operatorHB(  h, 0.5dt)
+        operatorHE(  h, 0.5dt)
+        operatorHp( h, 0.5dt)
+        operatorHA( h, 0.5dt)
+        operatorHs(  h, dt)
+        operatorHA( h, 0.5dt)
+        operatorHp( h, 0.5dt)
+        operatorHE(  h, 0.5dt)
 
     end
 
@@ -99,16 +99,16 @@ end
 
 """
 
-    operatorHp1(h, dt)
+    operatorHp(h, dt)
 
 ```math
 \\begin{aligned}
 \\dot{x} & =p \\\\
-\\dot{E}_x & = -int (p f ) dp ds
+\\dot{E}_x & = - \int (p f ) dp ds
 \\end{aligned}
 ```
 """
-function operatorHp1(h :: HamiltonianSplittingSpin, dt :: Float64)
+function operatorHp(h :: HamiltonianSplittingSpin, dt :: Float64)
 
     n_cells = h.kernel_smoother_0.n_dofs
 
@@ -144,24 +144,24 @@ function operatorHp1(h :: HamiltonianSplittingSpin, dt :: Float64)
 end
 
 """
-    operatorHp2(h, dt)
+    operatorHA(h, dt)
 
 ```math
 \\begin{aligned}
-\\dot{p} = (Ay, Az) . ∂_x (Ay, Az)   \\\\
-\\dot{Ey} = -∂_x^2 Ay + Ay rho \\\\
-\\dot{Ez} = -∂_x^2 Az + Az rho \\\\
+\\dot{p} = (A_y, A_z) \cdot \partial_x (A_y, A_z)   \\\\
+\\dot{Ey} = -\partial_x^2 A_y + A_y \rho \\\\
+\\dot{Ez} = -\partial_x^2 A_z + A_z \rho \\\\
 \\end{aligned}
 ```
 """
-function operatorHp2(h :: HamiltonianSplittingSpin, dt :: Float64)
+function operatorHA(h :: HamiltonianSplittingSpin, dt :: Float64)
     
     n_cells = h.kernel_smoother_0.n_dofs
 
     fill!.(h.part, 0.0)
     
     qm = h.particle_group.q_over_m
-    # Update v_1
+    # Update velocities
     aa = zeros(Float64,n_cells)
     for i_part=1:h.particle_group.n_particles
 
@@ -172,8 +172,8 @@ function operatorHp2(h :: HamiltonianSplittingSpin, dt :: Float64)
         vi = h.particle_group.array[2, i_part]
         wi = get_charge(h.particle_group, i_part) 
 
-        add_charge!( h.j_dofs[2], h.kernel_smoother_0, xi, 1.0)# R0 
-        add_charge!( h.j_dofs[1], h.kernel_smoother_1, xi, 1.0)# R1
+        add_charge!( h.j_dofs[2], h.kernel_smoother_0, xi, 1.0)
+        add_charge!( h.j_dofs[1], h.kernel_smoother_1, xi, 1.0)
 
         # values of the derivatives of basis function
         compute_rderivatives_from_basis!(aa, h.maxwell_solver, h.j_dofs[1])
@@ -218,17 +218,17 @@ end
 
 
 """
-    operatorHB(h, dt)
+    operatorHE(h, dt)
 
 ```math
 \\begin{aligned}
-\\dot{v}  &=Ex \\\\
-\\dot{Ay}   &= -Ey \\\\
-\\dot{Az}   &= -Ez
+\\dot{v}  &=E_x \\\\
+\\dot{A}_y   &= -E_y \\\\
+\\dot{A}_z   &= -E_z
 \\end{aligned}
 ```
 """
-function operatorHB(h :: HamiltonianSplittingSpin, dt :: Float64)
+function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
 
     np = h.particle_group.n_particles
 
@@ -253,21 +253,20 @@ end
 
   
 """
-    operatorHE(h, dt)
+    operatorHs(h, dt)
 
-Push H_E: Equations to be solved
+Push H_s: Equations to be solved
 ```math
 \\begin{aligned}
-\\dot{s} &= s x B = (s2 ∂x Ay +s3 ∂x Az, -s1 ∂x Ay, -s1 ∂x Az)  \\\\
-\\dot{p} &= s . ∂_x B = -s2 ∂xx Az + s3 ∂xx Ay \\\\
-\\dot{Ey} &=   int (s3 ∂x f) dp ds \\\\
-\\dot{Ez} &= - int (s2 ∂x f) dp ds 
+\\dot{s} &= s x B = (s_y \partial_x A_y +s_z \partial_x Az, -s_x \partial_x A_y, -s_x \partial_x A_z)  \\\\
+\\dot{p} &= s \cdot \partial_x B = -s_y \partial^2_{x} A_z + s_z \partial^2_{x} A_y \\\\
+\\dot{E}_y &=   \int (s_z \partial_x f) dp ds \\\\
+\\dot{E}_z &= - \int (s_y \partial_x f) dp ds 
 \\end{aligned}
 ```
 """
-function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
+function operatorHs(h :: HamiltonianSplittingSpin, dt :: Float64)
 
-#    HH = 0.00022980575
     n_cells = h.kernel_smoother_0.n_dofs
 
     fill!.(h.part, 0.0)
