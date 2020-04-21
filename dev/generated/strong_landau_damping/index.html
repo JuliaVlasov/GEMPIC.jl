@@ -28,25 +28,24 @@ histogram!(p[2,1], vp[1,:], weights=wp, normalize=true, bins = 100, lab = &quot;
 plot!(p[2,1], v-&gt; exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab=&quot;&quot;)
 histogram!(p[3,1], vp[2,:], weights=wp, normalize=true, bins = 100, lab = &quot;&quot;)
 plot!(p[3,1], v-&gt; exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab=&quot;&quot;)
-savefig(&quot;histograms.png&quot;)
-
-kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :galerkin)
-kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree, :galerkin)
-rho = zeros(Float64, nx)
+savefig(&quot;histograms.png&quot;)</code></pre><p>Initialize the arrays for the spline coefficients of the fields</p><pre><code class="language-julia">kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :galerkin)
+kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree, :galerkin)</code></pre><p>Initialize field solver</p><pre><code class="language-julia">rho = zeros(Float64, nx)
+efield_poisson = zeros(Float64, nx)
 xg = LinRange(xmin, xmax, nx)
-sval = eval_uniform_periodic_spline_curve(spline_degree-1, rho)
-plot( xg, sval )
-savefig(&quot;charge_density.png&quot;)
+maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
+solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
 
-efield_poisson = zeros(Float64, nx)</code></pre><p>Initialize the field solver</p><pre><code class="language-julia">maxwell_solver = Maxwell1DFEM(mesh, spline_degree)</code></pre><p>efield by Poisson</p><pre><code class="language-julia">solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
+p = ploy(layout(1,2))
+sval = eval_uniform_periodic_spline_curve(spline_degree-1, rho)
+plot(p[1,1],  xg, sval )
 sval = eval_uniform_periodic_spline_curve(spline_degree-1, efield_poisson)
-plot( xg, sval )
-savefig(&quot;electric_field.png&quot;)</code></pre><p>Initialize the arrays for the spline coefficients of the fields</p><pre><code class="language-julia">function run( steps)
+plot!( p[1,2], xg, sval )
+savefig(&quot;fields.png&quot;)</code></pre><p>Simulation function</p><p>You get better performance if your simulation is inside a function:</p><pre><code class="language-julia">function run( steps)
 
     σ, μ = 1.0, 0.0
     kx, α = 0.5, 0.5
     xmin, xmax = 0, 2π/kx
-    ∆t = 0.05
+    dt = 0.01
     nx = 32
     n_particles = 100000
     mesh = Mesh( xmin, xmax, nx)
@@ -85,28 +84,24 @@ savefig(&quot;electric_field.png&quot;)</code></pre><p>Initialize the arrays for
     thdiag = TimeHistoryDiagnostics( particle_group, maxwell_solver,
                             kernel_smoother0, kernel_smoother1 )
 
-    Δt = 0.01
-
     @showprogress 1 for j = 1:steps # loop over time
 
-        strang_splitting!(propagator, Δt, 1)
+        strang_splitting!(propagator, dt, 1)
 
         solve_poisson!( efield_poisson, particle_group,
                         kernel_smoother0, maxwell_solver, rho)
 
-        write_step!(thdiag, j * Δt, spline_degree,
+        write_step!(thdiag, j * dt, spline_degree,
                         efield_dofs,  bfield_dofs,
                         efield_dofs_n, efield_poisson)
-
     end
 
     return thdiag.data
 
 end
 
-
 @time results = run(5000) # change number of steps
 
 plot(results[!,:Time], log.(results[!,:PotentialEnergyE1]))
 
-savefig(&quot;potential_energy.png&quot;)</code></pre><p>Time evolution of electric energy (semi-<span>$\log_{10}$</span> scale); (b)  Time evolution of relative energy error.}\label{fig:Landau}</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../diagnostics/">« Diagnostics</a><a class="docs-footer-nextpage" href="../../contents/">Contents »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 21 April 2020 09:01">Tuesday 21 April 2020</span>. Using Julia version 1.4.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+savefig(&quot;potential_energy.png&quot;)</code></pre><p>Time evolution of electric energy (semi-<span>$\log_{10}$</span> scale); (b)  Time evolution of relative energy error.}\label{fig:Landau}</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../diagnostics/">« Diagnostics</a><a class="docs-footer-nextpage" href="../../contents/">Contents »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 21 April 2020 12:14">Tuesday 21 April 2020</span>. Using Julia version 1.4.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
