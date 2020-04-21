@@ -112,11 +112,7 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
 
     nn =  thdiag.kernel_smoother_0.n_dofs
     tmp = zeros(Float64,nn)
-    fill!(thdiag.diagnostics, 0.0)
-    fill!(thdiag.potential_energy, 0.0)
 
-    mode = zeros(ComplexF64,nn,nx)
-    elec_tmp = zeros(Float64,nx)
 
     for i_part=1:thdiag.particle_group.n_particles
 
@@ -175,10 +171,4 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
                          maximum(abs.(efield_dofs[1] .- efield_poisson))))
 
 
-    #Fourier modes of the longitudinal electric field
-    for i = 1:nx
-        elec_tmp[i] = evaluate(thdiag.kernel_smoother_1, (i-1)*propagator.delta_x[1], efield_dofs[1])
-    end
-    mode[jstep,:] .= fft(elec_tmp)
-#    push!(mode,fft(elec_tmp))
 end 

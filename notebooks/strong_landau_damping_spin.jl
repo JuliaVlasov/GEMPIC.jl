@@ -27,6 +27,92 @@
 using ProgressMeter, Plots
 using CSV, Dates, FFTW
 using GEMPIC
+using Sobol
+using Random
+using Distributions
+using JLD2
+using FileIO
+
+
+function main_sample!( pg   :: ParticleGroup{1,1}, 
+                  ps   :: ParticleSampler, 
+                  df   :: CosSumGaussianSpin, 
+                  mesh :: Mesh )
+
+    s = zeros( pg.n_spin )
+
+    theta = 0.0
+    phi = 0.0
+    n_rnds = 0
+    if df.params.n_gaussians > 1
+       n_rnds = 1
+    end
+
+    δ = zeros(df.params.n_gaussians)
+    for i_v=1:df.params.n_gaussians
+       δ[i_v] = sum(df.params.δ[1:i_v])
+    end
+    
+    n_rnds += 2
+    rdn = zeros(3)
+    
+    if ps.sampling_type == :sobol
+       rng_sobol  = SobolSeq(1)
+    end 
+
+    rng_random = MersenneTwister(ps.seed)
+
+    d = Normal()
+
+    for i_part = 1:(pg.n_particles)  
+       
+       if ps.sampling_type == :sobol
+           x = mesh.xmin[1] + Sobol.next!(rng_sobol)[1] * mesh.Lx[1]
+       else
+           x = mesh.xmin[1] + rand(rng_random) * mesh.Lx[1]
+       end
+
+       v = rand(rng_random, d)
+
+       # For multiple Gaussian, draw which one to take
+       rnd_no = rdn[3]
+        
+       i_gauss = 1
+       while( rnd_no > δ[i_gauss] )
+          i_gauss += 1
+       end
+       v = v * df.params.σ[i_gauss] + df.params.μ[i_gauss]
+
+#for a peaked initial condition in the s direction 
+       s = [0, 0, 1]
+#for a uniformly distributed initial condition on the sphere
+#       for tt = 1:10
+#            s[1] = randn()
+#            s[2] = randn()
+#            s[3] = randn()
+#            if norm(s) > 10^(-4)
+#                break
+#            end
+#        end
+#        s .= s./norm(s)
+
+       # Set weight according to value of perturbation
+       w  = GEMPIC.eval_x_density(df, x) * prod(mesh.Lx) 
+        
+       # Copy the generated numbers to the particle
+       GEMPIC.set_x(pg, i_part, x[1])
+       GEMPIC.set_v(pg, i_part, v)
+       GEMPIC.set_spin(pg, i_part, 1, s[1])
+       GEMPIC.set_spin(pg, i_part, 2, s[2])
+       GEMPIC.set_spin(pg, i_part, 3, s[3])
+       # Set weights.
+       GEMPIC.set_weights(pg, i_part, w)
+        
+    end
+       
+end
+
+
 
 # +
 function run( steps :: Int64) 
@@ -44,7 +130,7 @@ function run( steps :: Int64)
    particle_group2 = ParticleGroup{1,1}( n_particles, n_spin=3)   
    sampler = ParticleSampler{1,1}( :sobol, n_particles)
    
-   sample!(particle_group2, sampler, df, mesh)
+   main_sample!(particle_group2, sampler, df, mesh)
    
    particle_group = ParticleGroup{1,1}( n_particles, n_spin=3)
    
@@ -117,9 +203,9 @@ function run( steps :: Int64)
    thdiag = TimeHistoryDiagnosticsSpin( particle_group, maxwell_solver, 
                            kernel_smoother0, kernel_smoother1 );
 
-   #store = zeros(ComplexF64,nx)		     
-   #electric = zeros(ComplexF64, steps, nx)
-   #elec_tmp = zeros(Float64,nx)
+#    mode = zeros(ComplexF64,steps,nx)
+     th_modes = Vector{ComplexF64}[]
+    elec_tmp = zeros(Float64,nx)
    
    Δt = 0.002
 
@@ -145,16 +231,29 @@ function run( steps :: Int64)
            GEMPIC.save( "particles", jstep, particle_group)
        end
 
-       
+       #Fourier modes of the longitudinal electric field
+       for i = 1:nx
+           elec_tmp[i] = GEMPIC.evaluate(thdiag.kernel_smoother_1, (i-1)*propagator.delta_x[1], efield_dofs[1])
+       end
+       push!(th_modes,fft(elec_tmp))
+
+
    end
 
-   thdiag.data
+   thdiag.data, th_modes
 
 end
 # +
-results = run(10) # choose number of steps
+thdiag, th_modes = run(10) # choose number of steps
 
-CSV.write("thdiag-$(now()).csv", results)
+CSV.write("thdiag-$(now()).csv", thdiag)
+
+file="th_modes"
+#datafile = @sprintf("%s.jld2", file)
+
+FileIO.save("th_modes.jld2", Dict("modes" => th_modes))
+
+
 # -
 
 
