@@ -104,7 +104,7 @@ end
 ```math
 \\begin{aligned}
 \\dot{x} & =p \\\\
-\\dot{E}_x & = - \int (p f ) dp ds
+\\dot{E}_x & = - \\int (p f ) dp ds
 \\end{aligned}
 ```
 """
@@ -148,9 +148,9 @@ end
 
 ```math
 \\begin{aligned}
-\\dot{p} = (A_y, A_z) \cdot \partial_x (A_y, A_z)   \\\\
-\\dot{Ey} = -\partial_x^2 A_y + A_y \rho \\\\
-\\dot{Ez} = -\partial_x^2 A_z + A_z \rho \\\\
+\\dot{p} = (A_y, A_z) \\cdot \\partial_x (A_y, A_z)   \\\\
+\\dot{Ey} = -\\partial_x^2 A_y + A_y \\rho \\\\
+\\dot{Ez} = -\\partial_x^2 A_z + A_z \\rho \\\\
 \\end{aligned}
 ```
 """
@@ -258,10 +258,10 @@ end
 Push H_s: Equations to be solved
 ```math
 \\begin{aligned}
-\\dot{s} &= s x B = (s_y \partial_x A_y +s_z \partial_x Az, -s_x \partial_x A_y, -s_x \partial_x A_z)  \\\\
-\\dot{p} &= s \cdot \partial_x B = -s_y \partial^2_{x} A_z + s_z \partial^2_{x} A_y \\\\
-\\dot{E}_y &=   \int (s_z \partial_x f) dp ds \\\\
-\\dot{E}_z &= - \int (s_y \partial_x f) dp ds 
+\\dot{s} &= s x B = (s_y \\partial_x A_y +s_z \\partial_x Az, -s_x \\partial_x A_y, -s_x \\partial_x A_z)  \\\\
+\\dot{p} &= s \\cdot \\partial_x B = -s_y \\partial^2_{x} A_z + s_z \\partial^2_{x} A_y \\\\
+\\dot{E}_y &=   \\int (s_z \\partial_x f) dp ds \\\\
+\\dot{E}_z &= - \\int (s_y \\partial_x f) dp ds 
 \\end{aligned}
 ```
 """
