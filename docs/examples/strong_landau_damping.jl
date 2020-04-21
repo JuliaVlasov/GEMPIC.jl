@@ -44,35 +44,36 @@ histogram!(p[3,1], vp[2,:], weights=wp, normalize=true, bins = 100, lab = "")
 plot!(p[3,1], v-> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
 savefig("histograms.png")
 
+# Initialize the arrays for the spline coefficients of the fields
+
 kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :galerkin)    
 kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree, :galerkin)
+
+# Initialize field solver
+
 rho = zeros(Float64, nx)
-xg = LinRange(xmin, xmax, nx)
-sval = eval_uniform_periodic_spline_curve(spline_degree-1, rho)
-plot( xg, sval )
-savefig("charge_density.png")
-
 efield_poisson = zeros(Float64, nx)
-
-# Initialize the field solver
-
+xg = LinRange(xmin, xmax, nx)
 maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
-
-# efield by Poisson
-
 solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
-sval = eval_uniform_periodic_spline_curve(spline_degree-1, efield_poisson)
-plot( xg, sval )       
-savefig("electric_field.png")
 
-# Initialize the arrays for the spline coefficients of the fields
+p = ploy(layout(1,2))
+sval = eval_uniform_periodic_spline_curve(spline_degree-1, rho)
+plot(p[1,1],  xg, sval )
+sval = eval_uniform_periodic_spline_curve(spline_degree-1, efield_poisson)
+plot!( p[1,2], xg, sval )       
+savefig("fields.png")
+
+# Simulation function
+
+# You get better performance if your simulation is inside a function:
 
 function run( steps)
 
     σ, μ = 1.0, 0.0
     kx, α = 0.5, 0.5
     xmin, xmax = 0, 2π/kx
-    ∆t = 0.05
+    dt = 0.01
     nx = 32 
     n_particles = 100000
     mesh = Mesh( xmin, xmax, nx)
@@ -111,25 +112,21 @@ function run( steps)
     thdiag = TimeHistoryDiagnostics( particle_group, maxwell_solver, 
                             kernel_smoother0, kernel_smoother1 )
     
-    Δt = 0.01
-    
     @showprogress 1 for j = 1:steps # loop over time
     
-        strang_splitting!(propagator, Δt, 1)
+        strang_splitting!(propagator, dt, 1)
     
         solve_poisson!( efield_poisson, particle_group, 
                         kernel_smoother0, maxwell_solver, rho)
         
-        write_step!(thdiag, j * Δt, spline_degree, 
+        write_step!(thdiag, j * dt, spline_degree, 
                         efield_dofs,  bfield_dofs,
                         efield_dofs_n, efield_poisson)
-    
     end
     
     return thdiag.data
     
 end
-
 
 @time results = run(5000) # change number of steps
 
