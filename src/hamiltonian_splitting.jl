@@ -38,6 +38,7 @@ struct HamiltonianSplitting
     j_dofs :: Array{Array{Float64,1}}
 
     buffer :: Array{Array{Float64,1}}
+    chunks :: Iterators.PartitionIterator
 
     function HamiltonianSplitting( maxwell_solver,
                                    kernel_smoother_0,
@@ -59,12 +60,19 @@ struct HamiltonianSplitting
         cell_integrals_1 = SVector{3}([0.5, 2.0, 0.5] ./ 3.0)
         cell_integrals_0 = SVector{4}([1.0,11.0,11.0,1.0] ./ 24.0)
 
-        buffer = [zeros(Float64,kernel_smoother_0.n_dofs) for i in 1:nthreads()]
+        np = particle_group.n_particles
+        n_jobs = nthreads()
+
+        @assert np % n_jobs == 0
+
+        buffer = [zeros(Float64,kernel_smoother_0.n_dofs) for i in 1:n_jobs]
+
+        chunks = Iterators.partition(1:np, np ÷ n_jobs)
 
         new( maxwell_solver, kernel_smoother_0, kernel_smoother_1, 
              particle_group, spline_degree, Lx, x_min, delta_x,
              cell_integrals_0, cell_integrals_1, e_dofs, b_dofs, 
-             j_dofs, buffer)
+             j_dofs, buffer, chunks)
 
     end
 
@@ -185,7 +193,7 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
     fill!(h.j_dofs[1], 0.0)
     fill!(h.j_dofs[2], 0.0)
 
-    @sync for i_chunk in Iterators.partition(1:np, np÷nthreads())
+    @sync for i_chunk in h.chunks
         @spawn begin
             fill!(h.buffer[threadid()], 0.0)
             for i_part in i_chunk
@@ -205,7 +213,7 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
 
                 qoverm = h.particle_group.q_over_m
 
-                v2_new = add_current_update_v!( h.buffer[threadid()], #h.j_dofs[1], 
+                v2_new = add_current_update_v!( h.buffer[threadid()], 
                                        h.kernel_smoother_1,
                                        x_old, 
                                        x_new, 
@@ -225,7 +233,7 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
 
     h.j_dofs[1] .= reduce(+, h.buffer)
 
-    @sync for i_chunk in Iterators.partition(1:np, np÷nthreads())
+    @sync for i_chunk in h.chunks
         @spawn begin
             fill!(h.buffer[threadid()], 0.0)
             for i_part in i_chunk
@@ -280,7 +288,7 @@ function operatorHp2(h :: HamiltonianSplitting, dt :: Float64)
 
     # Update v_1
 
-    @sync for i_chunk in Iterators.partition(1:np, np÷nthreads())
+    @sync for i_chunk in h.chunks
         @spawn begin
             fill!(h.buffer[threadid()], 0.0)
             for i_part in i_chunk
@@ -339,7 +347,7 @@ function operatorHE(h :: HamiltonianSplitting, dt :: Float64)
 
     # V_new = V_old + dt * E
 
-    @sync for i_chunk in Iterators.partition(1:np, np÷nthreads())
+    @sync for i_chunk in h.chunks
         @spawn begin
             for i_part in i_chunk
 
