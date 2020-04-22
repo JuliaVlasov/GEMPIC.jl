@@ -60,6 +60,8 @@ histogram!(p[3,1], vp[2,:], weights=wp, normalize=true, bins = 100, lab = "")
 plot!(p[3,1], v-> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
 savefig("histograms.png")
 
+# Initialize the arrays for the spline coefficients of the fields
+
 kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :galerkin)    
 kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree, :galerkin)
 
@@ -71,13 +73,10 @@ maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
 solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
 xg = LinRange(xmin, xmax, nx)
 sval = eval_uniform_periodic_spline_curve(spline_degree-1, rho)
-plot( xg, sval )
-savefig("charge_density.png")
+p = plot(layout=(1,2))
+plot!(p[1,1], xg, sval )
 sval = eval_uniform_periodic_spline_curve(spline_degree-1, efield_poisson)
-plot( xg, sval )       
-savefig("electric_field.png")
-
-# Initialize the arrays for the spline coefficients of the fields
+plot!(p[1,2], xg, sval )       
 
 # +
 function run( steps)
@@ -85,7 +84,7 @@ function run( steps)
     σ, μ = 1.0, 0.0
     kx, α = 0.5, 0.5
     xmin, xmax = 0, 2π/kx
-    dt = 0.01
+    dt = 0.02
     nx = 32 
     n_particles = 200000
     mesh = Mesh( xmin, xmax, nx)
@@ -144,7 +143,7 @@ function run( steps)
 end
 # -
 
-@time results = run(5000) # change number of steps
+@time results = run(2500) # change number of steps
 
 plot(results[!,:Time], log.(results[!,:PotentialEnergyE1]))
 
