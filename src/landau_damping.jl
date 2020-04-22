@@ -1,7 +1,12 @@
 using Sobol
 
-export LandauDamping, sample!
+"""
+    Landau( α, kx)
 
+Test structure to initialize a particles distribtion for
+Landau damping test case in 1D1V and 1D2V
+
+"""
 struct LandauDamping 
 
     alpha :: Float64
@@ -10,10 +15,10 @@ struct LandauDamping
 end
 
 """
-    sample!( d, pg)
+    sample!(d, pg)
 
-Sampling from a probability distribution to initialize
-a Landau damping
+Sampling from a probability distribution to initialize a Landau damping in
+1D2V space.
 
 ```math
 f_0(x,v,t) = \\frac{n_0}{2π v_{th}^2} ( 1 + \\alpha cos(k_x x))
@@ -21,13 +26,12 @@ f_0(x,v,t) = \\frac{n_0}{2π v_{th}^2} ( 1 + \\alpha cos(k_x x))
 ```
 The newton function solves the equation ``P(x)-r=0`` with Newton’s method
 ```math
-    x^{n+1} = x^n – (P(x)-(2\\pi r / k)/f(x) 
+x^{n+1} = x^n – (P(x)-(2\\pi r / k)/f(x) 
 ```
 with 
 ```math
 P(x) = \\int_0^x (1 + \\alpha cos(k_x y)) dy = x + \\frac{\\alpha}{k_x} sin(k_x x)
 ```
-
 """
 function sample!( d :: LandauDamping, pg :: ParticleGroup{1,2} )
 

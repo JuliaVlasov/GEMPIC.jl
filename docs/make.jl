@@ -12,7 +12,7 @@ push!(examples, "strong_landau_damping.jl")
 
 for example in examples
     jl_file = joinpath(@__DIR__, "examples", example)
-    Literate.markdown(jl_file, output, documenter=false)
+    Literate.markdown(jl_file, output, documenter=true)
     #Literate.notebook(EXAMPLE, OUTPUT)
     #Literate.script(EXAMPLE, OUTPUT)
 end

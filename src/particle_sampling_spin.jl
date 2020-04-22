@@ -58,7 +58,18 @@ function sample!( pg   :: ParticleGroup{1,1},
        end
        v = v * df.params.σ[i_gauss] + df.params.μ[i_gauss]
 
-	   s = [0, 0, 1]
+#for a peaked initial condition in the s direction 
+       s = [0, 0, 1]
+#for a uniformly distributed initial condition on the sphere
+#       for tt = 1:10
+#            s[1] = randn()
+#            s[2] = randn()
+#            s[3] = randn()
+#            if norm(s) > 10^(-4)
+#                break
+#            end
+#        end
+#        s .= s./norm(s)
 
        # Set weight according to value of perturbation
        w  = eval_x_density(df, x) * prod(mesh.Lx) 
