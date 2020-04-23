@@ -11,7 +11,7 @@ include("test_sampling.jl")
 include("test_sampling_spin.jl")
 include("test_particle_mesh_coupling_spline_1d.jl")
 
-if Threads.nthreads() == 1 
+if Threads.nthreads() <= 2 
     include("test_hamiltonian_splitting.jl")
 end
 
