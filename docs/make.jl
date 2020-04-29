@@ -40,10 +40,12 @@ makedocs(
                                  "particle_group.md",
                                  "particle_sampling.md",
                                  "maxwell_solver.md",
+                                 "Splitting" => [
                                  "hamiltonian_splitting.md",
-                                 "hamiltonian_splitting_boris.md",
+                                 "hamiltonian_splitting_spin.md",
+                                 "hamiltonian_splitting_boris.md"],
                                  "diagnostics.md"],
-             "Strong Landau damping" => "generated/strong_landau_damping.md",
+              "Examples" => [ "generated/strong_landau_damping.md" ],
              # "Scalar Spin Vlasov-Maxwell" => "scalar_spin_vlasov_maxwell.md",
              "Contents"      => "contents.md"]
 )
