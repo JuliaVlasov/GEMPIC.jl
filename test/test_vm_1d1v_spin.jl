@@ -53,9 +53,9 @@
 
    end
    
-   kernel_smoother2 = ParticleMeshCoupling( mesh, n_particles, spline_degree-2, :galerkin) 
+   kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree,   :galerkin)
    kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :galerkin)    
-   kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree, :galerkin)
+   kernel_smoother2 = ParticleMeshCoupling( mesh, n_particles, spline_degree-2, :galerkin) 
    
    rho = zeros(Float64, nx)
    efield_poisson = zeros(Float64, nx)
