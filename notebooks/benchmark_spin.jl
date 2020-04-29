@@ -36,7 +36,7 @@ function run( nstep :: Int )
    kx, α = 1.004355, 0.001
    xmin, xmax = 0, 2π/kx
    nx = 1024 
-   n_particles = 100000
+   n_particles = 200000
    mesh = Mesh( xmin, xmax, nx)
    spline_degree = 3
    
@@ -120,13 +120,13 @@ function run( nstep :: Int )
 
    for istep in 1:nstep
 
-       @timeit to "Operator HB"  GEMPIC.operatorHB(  propagator, 0.5Δt)
-       @timeit to "Operator HE"  GEMPIC.operatorHE(  propagator, 0.5Δt)
-       @timeit to "Operator Hp2" GEMPIC.operatorHp2( propagator, 0.5Δt)
-       @timeit to "Operator Hp1" GEMPIC.operatorHp1( propagator, 1.0Δt)
-       @timeit to "Operator Hp2" GEMPIC.operatorHp2( propagator, 0.5Δt)
-       @timeit to "Operator HE"  GEMPIC.operatorHE(  propagator, 0.5Δt)
-       @timeit to "Operator HB"  GEMPIC.operatorHB(  propagator, 0.5Δt)
+       @timeit to "Operator HE" GEMPIC.operatorHE( propagator, 0.5Δt)
+       @timeit to "Operator Hp" GEMPIC.operatorHp( propagator, 0.5Δt)
+       @timeit to "Operator HA" GEMPIC.operatorHA( propagator, 0.5Δt)
+       @timeit to "Operator Hs" GEMPIC.operatorHs( propagator, 1.0Δt)
+       @timeit to "Operator HA" GEMPIC.operatorHA( propagator, 0.5Δt)
+       @timeit to "Operator Hp" GEMPIC.operatorHp( propagator, 0.5Δt)
+       @timeit to "Operator HB" GEMPIC.operatorHE( propagator, 0.5Δt)
 
    end
 
