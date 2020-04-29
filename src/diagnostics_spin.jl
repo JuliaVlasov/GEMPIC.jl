@@ -113,6 +113,8 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
     nn =  thdiag.kernel_smoother_0.n_dofs
     tmp = zeros(Float64,nn)
 
+    fill!(thdiag.diagnostics, 0.0)
+    fill!(thdiag.potential_energy, 0.0)
 
     for i_part=1:thdiag.particle_group.n_particles
 
@@ -146,7 +148,7 @@ function write_step!( thdiag :: TimeHistoryDiagnosticsSpin,
 	# \int (s x B) dx dp ds 
         thdiag.diagnostics[10] += (afield_dofs[1]'*propagator.j_dofs[1]*wi*s2+afield_dofs[2]'*propagator.j_dofs[1]*wi*s3)
         thdiag.diagnostics[11] += afield_dofs[1]'*propagator.j_dofs[1]*wi*s1*(-1.0)
-        thdiag.diagnostics[12] += afield_dofs[2]'*propagator.j_dofs[1]*wi*s2*(-1.0)
+        thdiag.diagnostics[12] += afield_dofs[2]'*propagator.j_dofs[1]*wi*s1*(-1.0)
 
     end
 
