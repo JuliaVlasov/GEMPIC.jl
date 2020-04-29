@@ -163,27 +163,64 @@ function operatorHA(h :: HamiltonianSplittingSpin, dt :: Float64)
     qm = h.particle_group.q_over_m
     # Update velocities
     aa = zeros(Float64,n_cells)
+
+    tmp_jdofs2 = zeros(h.kernel_smoother_0.n_span)
+
     for i_part=1:h.particle_group.n_particles
 
         fill!(h.j_dofs[1], 0.0)
         fill!(h.j_dofs[2], 0.0)
+
         # Evaluate b at particle position (splines of order p)
         xi = h.particle_group.array[1, i_part]
         vi = h.particle_group.array[2, i_part]
         wi = get_charge(h.particle_group, i_part) 
 
-        add_charge!( h.j_dofs[2], h.kernel_smoother_0, xi, 1.0)
+        xn = (xi - h.kernel_smoother_0.xmin)/h.kernel_smoother_0.delta_x
+        index = trunc(Int, xn)
+        xn = xn - index
+        index = index - h.kernel_smoother_0.spline_degree
+
+        uniform_bsplines_eval_basis!(h.kernel_smoother_0.spline_val,
+            h.kernel_smoother_0.spline_degree, xn)
+
+        for i = 1:h.kernel_smoother_0.n_span
+            #index1d = mod1(index+i,n_cells)
+            tmp_jdofs2[i] = h.kernel_smoother_0.spline_val[i] * h.kernel_smoother_0.scaling
+        end
+
+        # add_charge!( h.j_dofs[2], h.kernel_smoother_0, xi, 1.0)
+
         add_charge!( h.j_dofs[1], h.kernel_smoother_1, xi, 1.0)
 
         # values of the derivatives of basis function
         compute_rderivatives_from_basis!(aa, h.maxwell_solver, h.j_dofs[1])
 
+        # coef = 1/self.delta_x
+        # # relation betwen spline coefficients for strong Ampere
+        # for i=1:(self.n_dofs-1)
+        #    @inbounds field_out[i] =  coef * ( field_in[i] - field_in[i+1] )
+        # end
+        # # treat Periodic point
+        # field_out[end] =  coef * ( field_in[end] - field_in[1] )
+
+
+
         h.j_dofs[1] .= aa
 
         p11 = h.a_dofs[1]'h.j_dofs[1]
-        p12 = h.a_dofs[1]'h.j_dofs[2]
         p21 = h.a_dofs[2]'h.j_dofs[1]
-        p22 = h.a_dofs[2]'h.j_dofs[2]
+
+        #p12 = h.a_dofs[1]'h.j_dofs[2]
+        #p22 = h.a_dofs[2]'h.j_dofs[2]
+
+        p12 = 0.0
+        p22 = 0.0
+        for i = 1:h.kernel_smoother_0.n_span
+            index1d = mod1(index+i,n_cells)
+            p12 += h.a_dofs[1][index1d] * tmp_jdofs2[i]
+            p22 += h.a_dofs[2][index1d] * tmp_jdofs2[i]
+        end
 
         vi = vi - dt * ( p11 * p12 + p22 * p21 )
         
@@ -191,13 +228,13 @@ function operatorHA(h :: HamiltonianSplittingSpin, dt :: Float64)
         
         # below we solve electric field
         # first define part1 and part2 to be 0 vector
+        for i = 1:h.kernel_smoother_0.n_span
+            index1d = mod1(index+i,n_cells)
+            h.part[1][index1d] = h.part[1][index1d] - tmp_jdofs2[i] * dt * wi * p12
+            h.part[2][index1d] = h.part[2][index1d] - tmp_jdofs2[i] * dt * wi * p22
+        end
 
-        @. h.j_dofs[1]  = h.j_dofs[2]
-        @. h.j_dofs[1] *= dt * wi * p12 
-        @. h.part[1]   -= h.j_dofs[1]
 
-        @. h.j_dofs[2] *= dt * wi * p22 
-        @. h.part[2]   -= h.j_dofs[2]
         
     end
 
@@ -222,9 +259,9 @@ end
 
 ```math
 \\begin{aligned}
-\\dot{v}  &=E_x \\\\
-\\dot{A}_y   &= -E_y \\\\
-\\dot{A}_z   &= -E_z
+\\dot{v}   & =  E_x \\\\
+\\dot{A}_y & = -E_y \\\\
+\\dot{A}_z & = -E_z
 \\end{aligned}
 ```
 """
@@ -232,7 +269,13 @@ function operatorHE(h :: HamiltonianSplittingSpin, dt :: Float64)
 
     np = h.particle_group.n_particles
 
-    @sync for i_chunk in Iterators.partition(1:np, nthreads())
+    if np > 2
+        chunks = Iterators.partition(1:np, np ÷ nthreads())
+    else
+        chunks = Iterators.partition(1:np, nthreads())
+    end
+
+    @sync for i_chunk in chunks
         @spawn begin
             for i_part in i_chunk
 
