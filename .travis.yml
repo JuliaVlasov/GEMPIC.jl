@@ -4,7 +4,7 @@ os:
   - osx
   - linux
 
-julia: 1.4
+julia: 1.5
 
 notifications:
   email: true
