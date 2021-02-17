@@ -1,6 +1,6 @@
 name = "GEMPIC"
 uuid = "b6d65c3a-4a4e-11e9-25d0-d309dc85ddeb"
-authors = ["Pierre Navaro <pierre.navaro@math.cnrs.fr>"]
+authors = "JuliaVlasov"
 version = "0.2.3"
 
 [deps]
