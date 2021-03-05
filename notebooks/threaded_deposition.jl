@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ---
 # jupyter:
 #   jupytext:
@@ -20,6 +21,7 @@ using Test
 const nx = 64
 const np = 1000000
 
+# +
 function serial_deposition( steps )
 
     xmin, xmax = -6, 6
@@ -44,9 +46,10 @@ function serial_deposition( steps )
     end
 
     rho
-    
+
 end
 
+# +
 function parallel_deposition( steps )
 
     xmin, xmax = -6, 6
@@ -81,6 +84,7 @@ function parallel_deposition( steps )
      rho
 
 end
+# -
 
 @show nthreads()
 
