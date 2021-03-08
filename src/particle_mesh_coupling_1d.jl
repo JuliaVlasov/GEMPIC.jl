@@ -598,6 +598,7 @@ function evaluate(p::ParticleMeshCoupling1D, position::Float64, field_dofs::Vect
     index = trunc(Int, xi)
     dxi = xi - index
     index = index - p.spline_degree
+    uniform_bsplines_eval_basis!(p.spline_val, p.spline_degree, dxi)
 
     nx = p.n_grid[1]
     field_value = 0.0
