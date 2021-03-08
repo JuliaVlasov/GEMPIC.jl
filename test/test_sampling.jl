@@ -47,7 +47,7 @@ xmax        = 4π + 1.0
 Lx          = xmax - xmin  
 nx          = 64
 
-mesh = Mesh( xmax, xmin, nx)
+mesh = OneDGrid( xmax, xmin, nx)
 
 pg = ParticleGroup{1,2}(n_particles)
 

@@ -29,12 +29,10 @@ FEM with splines, degree 3 for B and 2 for E
     splitting_case = :symplectic
     spline_degree  = 3
     
-    # TODO mesh and domain contain same information
-    mesh   = Mesh( xmin, xmax, nx)
-    domain = [xmin, xmax, xmax - xmin ]
+    mesh   = OneDGrid( xmin, xmax, nx)
 
-    beta_cos_k(x) = beta * cos(2π * x / domain[3]) 
-    beta_sin_k(x) = beta * sin(2π * x / domain[3]) 
+    beta_cos_k(x) = beta * cos(2π * x / (xmax - xmin)) 
+    beta_sin_k(x) = beta * sin(2π * x / (xmax - xmin)) 
     
     degree_smoother = spline_degree
 
@@ -49,10 +47,10 @@ FEM with splines, degree 3 for B and 2 for E
     # Initialize the field solver
     maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
     
-    kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, 
+    kernel_smoother1 = ParticleMeshCoupling1D( mesh, n_particles, 
                  spline_degree, :galerkin)
     
-    kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, 
+    kernel_smoother0 = ParticleMeshCoupling1D( mesh, n_particles, 
                  spline_degree, :galerkin)
     
     # Initialize the arrays for the spline coefficients of the fields

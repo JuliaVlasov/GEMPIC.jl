@@ -1,4 +1,4 @@
-import GEMPIC: set_x, set_v, set_weights
+import GEMPIC: set_x!, set_v!, set_weights!
 import GEMPIC: get_charge, add_charge!
 import GEMPIC: push_x_accumulate_j!
 
@@ -11,7 +11,7 @@ import GEMPIC: push_x_accumulate_j!
     delta_t         = 0.1
     degree_smoother = 3
 
-    mesh = Mesh( eta_min, eta_max, num_cells)
+    mesh = OneDGrid( eta_min, eta_max, num_cells)
 
     pg = ParticleGroup{1,2}(n_particles; common_weight=1.0)
 
@@ -30,19 +30,19 @@ import GEMPIC: push_x_accumulate_j!
     for i_part = 1:n_particles
 
        xi = particle_info_ref[1, i_part]
-       set_x(pg, i_part, xi)
+       set_x!(pg, i_part, xi)
        xi = particle_info_ref[2:3, i_part]
-       set_v(pg, i_part, xi)
+       set_v!(pg, i_part, xi)
        xi = particle_info_ref[4, i_part]
-       set_weights(pg, i_part, xi[1])
+       set_weights!(pg, i_part, xi[1])
 
     end
     
     # Initialize kernel smoother    
 
-    kernel_smoother_1 = ParticleMeshCoupling( mesh,
+    kernel_smoother_1 = ParticleMeshCoupling1D( mesh,
          n_particles, degree_smoother-1, :galerkin) 
-    kernel_smoother_0 = ParticleMeshCoupling( mesh,
+    kernel_smoother_0 = ParticleMeshCoupling1D( mesh,
          n_particles, degree_smoother, :galerkin) 
     
     # Initialize Maxwell solver

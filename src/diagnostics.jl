@@ -143,16 +143,16 @@ struct TimeHistoryDiagnostics
 
     particle_group    :: ParticleGroup
     maxwell_solver    :: Maxwell1DFEM
-    kernel_smoother_0 :: ParticleMeshCoupling
-    kernel_smoother_1 :: ParticleMeshCoupling
+    kernel_smoother_0 :: ParticleMeshCoupling1D
+    kernel_smoother_1 :: ParticleMeshCoupling1D
     data              :: DataFrame
     diagnostics       :: Vector{Float64}
     potential_energy  :: Vector{Float64}
 
     function TimeHistoryDiagnostics( particle_group    :: ParticleGroup,
                                      maxwell_solver    :: Maxwell1DFEM,
-                                     kernel_smoother_0 :: ParticleMeshCoupling,
-                                     kernel_smoother_1 :: ParticleMeshCoupling)
+                                     kernel_smoother_0 :: ParticleMeshCoupling1D,
+                                     kernel_smoother_1 :: ParticleMeshCoupling1D)
 
 
         data = DataFrame(Time = Float64[],
@@ -252,7 +252,7 @@ Evaluate the field at points xi
 - `field_dofs` : field value on dofs
 - `xi` : positions where the field is evaluated
 """
-function evaluate( kernel_smoother :: ParticleMeshCoupling, 
+function evaluate( kernel_smoother :: ParticleMeshCoupling1D, 
                    field_dofs :: AbstractArray,  x :: AbstractArray )
 
     field_grid = similar(x)

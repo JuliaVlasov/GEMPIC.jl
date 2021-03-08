@@ -23,8 +23,8 @@ Boris pusher in GEMPIC framework (spline finite elements)
 struct HamiltonianSplittingBoris <: AbstractSplitting
 
      maxwell_solver    :: AbstractMaxwellSolver
-     kernel_smoother_0 :: ParticleMeshCoupling #(order p+1)
-     kernel_smoother_1 :: ParticleMeshCoupling #(order p)
+     kernel_smoother_0 :: ParticleMeshCoupling1D #(order p+1)
+     kernel_smoother_1 :: ParticleMeshCoupling1D #(order p)
      particle_group    :: ParticleGroup
      spline_degree     :: Int64
      Lx                :: Float64
@@ -42,8 +42,8 @@ struct HamiltonianSplittingBoris <: AbstractSplitting
 
      function HamiltonianSplittingBoris( 
          maxwell_solver :: Maxwell1DFEM,
-         kernel_smoother_0 :: ParticleMeshCoupling,
-         kernel_smoother_1 :: ParticleMeshCoupling,
+         kernel_smoother_0 :: ParticleMeshCoupling1D,
+         kernel_smoother_1 :: ParticleMeshCoupling1D,
          particle_group :: ParticleGroup,
          e_dofs :: Array{Vector{Float64},1},
          b_dofs :: Vector{Float64},
@@ -196,7 +196,7 @@ function push_v_epart!(splitting, dt)
         v_new  = get_v(splitting.particle_group, i_part)
         v_new .= v_new .+ dt * qm .* [efield_1, efield_2]
 
-        set_v(splitting.particle_group, i_part, v_new)
+        set_v!(splitting.particle_group, i_part, v_new)
 
     end
     
@@ -232,7 +232,7 @@ function push_v_bpart!(splitting :: HamiltonianSplittingBoris,
         v_new[2] = - M12 * vi[1] + M11 * vi[2]
         v_new[3] = 0.0
 
-        set_v(splitting.particle_group, i_part, v_new)
+        set_v!(splitting.particle_group, i_part, v_new)
 
     end
 
@@ -282,7 +282,7 @@ function push_x_accumulate_j!(splitting, dt)
                 (x_old[1]+x_new[1])*0.5, wi[1]*vi[2])
       
        x_new[1] = mod(x_new[1], splitting.Lx)
-       set_x(splitting.particle_group, i_part, x_new)
+       set_x!(splitting.particle_group, i_part, x_new)
 
     end
 

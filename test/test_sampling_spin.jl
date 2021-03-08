@@ -43,7 +43,7 @@ xmax        = 2π / kx
 Lx          = xmax - xmin  
 nx          = 512
 
-mesh = Mesh( xmax, xmin, nx)
+mesh = OneDGrid( xmax, xmin, nx)
 
 pg = ParticleGroup{1,1}(n_particles, n_spin=3)
 

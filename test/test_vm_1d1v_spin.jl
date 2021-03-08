@@ -5,9 +5,9 @@
    xmin, xmax = 0, 2π/kx
    domain = [xmin, xmax, xmax - xmin]
    nx = 8 
-   mesh = Mesh( xmin, xmax, nx)
+   mesh = OneDGrid( xmin, xmax, nx)
    n_particles = 2
-   mesh = Mesh( xmin, xmax, nx)
+   mesh = OneDGrid( xmin, xmax, nx)
    spline_degree = 3
    
    df = CosSumGaussianSpin([[kx]], [α], [[σ]], [[μ]] )
@@ -44,18 +44,18 @@
 
        w = GEMPIC.get_weights(particle_group2, i_part)
 
-       GEMPIC.set_x(particle_group, i_part, x[1])
-       GEMPIC.set_v(particle_group, i_part, v[1])
-       GEMPIC.set_spin(particle_group, i_part, 1, s1)
-       GEMPIC.set_spin(particle_group, i_part, 2, s2)
-       GEMPIC.set_spin(particle_group, i_part, 3, s3)
-       GEMPIC.set_weights(particle_group, i_part, w[1])
+       GEMPIC.set_x!(particle_group, i_part, x[1])
+       GEMPIC.set_v!(particle_group, i_part, v[1])
+       GEMPIC.set_spin!(particle_group, i_part, 1, s1)
+       GEMPIC.set_spin!(particle_group, i_part, 2, s2)
+       GEMPIC.set_spin!(particle_group, i_part, 3, s3)
+       GEMPIC.set_weights!(particle_group, i_part, w[1])
 
    end
    
-   kernel_smoother0 = ParticleMeshCoupling( mesh, n_particles, spline_degree,   :galerkin)
-   kernel_smoother1 = ParticleMeshCoupling( mesh, n_particles, spline_degree-1, :galerkin)    
-   kernel_smoother2 = ParticleMeshCoupling( mesh, n_particles, spline_degree-2, :galerkin) 
+   kernel_smoother0 = ParticleMeshCoupling1D( mesh, n_particles, spline_degree,   :galerkin)
+   kernel_smoother1 = ParticleMeshCoupling1D( mesh, n_particles, spline_degree-1, :galerkin)    
+   kernel_smoother2 = ParticleMeshCoupling1D( mesh, n_particles, spline_degree-2, :galerkin) 
    
    rho = zeros(Float64, nx)
    efield_poisson = zeros(Float64, nx)

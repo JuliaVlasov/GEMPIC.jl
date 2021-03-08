@@ -55,9 +55,9 @@ function sample!( d :: LandauDamping, pg :: ParticleGroup{1,2} )
         v = sqrt(-2 * log( (i-0.5)/nbpart))
         r1, r2 = Sobol.next!(s)
         θ = r1 * 2π
-        set_x(pg,  i, newton(r2))
-        set_v(pg,  i, [v * cos(θ), v * sin(θ)])
-        set_weights( pg, i, 2*pi/kx/nbpart)
+        set_x!(pg,  i, newton(r2))
+        set_v!(pg,  i, [v * cos(θ), v * sin(θ)])
+        set_weights!( pg, i, 2*pi/kx/nbpart)
     end
 
 

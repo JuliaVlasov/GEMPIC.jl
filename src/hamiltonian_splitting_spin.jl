@@ -16,9 +16,9 @@ Hamiltonian splitting type for Vlasov-Maxwell
 struct HamiltonianSplittingSpin
 
     maxwell_solver    :: AbstractMaxwellSolver
-    kernel_smoother_0 :: ParticleMeshCoupling
-    kernel_smoother_1 :: ParticleMeshCoupling
-    kernel_smoother_2 :: ParticleMeshCoupling
+    kernel_smoother_0 :: ParticleMeshCoupling1D
+    kernel_smoother_1 :: ParticleMeshCoupling1D
+    kernel_smoother_2 :: ParticleMeshCoupling1D
     particle_group    :: ParticleGroup
 
     spline_degree     :: Int64
@@ -400,7 +400,7 @@ function operatorHs(h :: HamiltonianSplittingSpin, dt :: Float64)
         h.j_dofs[1] .= aa
         vi = vi - h.HH  * (h.a_dofs[2]'*h.j_dofs[1] * St[2] + h.a_dofs[1]'*h.j_dofs[1] * St[3])
 
-        set_v(h.particle_group, i_part, vi)
+        set_v!(h.particle_group, i_part, vi)
 
     end
     

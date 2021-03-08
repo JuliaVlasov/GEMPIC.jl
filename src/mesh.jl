@@ -1,61 +1,78 @@
-export Mesh
+abstract type AbstractGrid end
+
+export OneDGrid, TwoDGrid
 
 """
-    Mesh( xmin, xmax,nx )
+    TwoDGrid( dimx, nx, dimy, ny)
 
-Simple structure to store mesh data from 1 to 3 dimensions
+Generate a cartesians mesh on rectangle `dimx`x `dimy` with `nx` x `ny` points
+
+- `nx` : indices are in [1:nx]
+- `ny` : indices are in [1:ny]
+- `dimx = xmax - xmin`
+- `dimy = ymax - ymin`
+- `x, y` : node positions
+- `dx, dy` : step size
 """
-struct Mesh 
+struct TwoDGrid <: AbstractGrid
 
-    nx    :: Vector{Int}
-    xmin  :: Vector{Real}
-    xmax  :: Vector{Real}
-    Lx    :: Vector{Real} 
-    dx    :: Vector{Real}
+    nx::Int
+    ny::Int
+    xmin::Float64
+    xmax::Float64
+    ymin::Float64
+    ymax::Float64
+    dimx::Float64
+    dimy::Float64
+    x::Vector{Float64}
+    y::Vector{Float64}
+    dx::Float64
+    dy::Float64
 
-    function Mesh( nx, xmin, xmax, Lx, dx)
+    function TwoDGrid(xmin, xmax, nx :: Int, ymin, ymax, ny :: Int)
 
-        new( nx, xmin, xmax, Lx, dx )
+        dimx = xmax - xmin
+        dimy = ymax - ymin
 
-    end
+        x = LinRange(0, dimx, nx + 1) |> collect
+        y = LinRange(0, dimy, ny + 1) |> collect
 
-    function Mesh( xmin :: Real, xmax :: Real, nx :: Int) 
+        dx = dimx / nx
+        dy = dimy / ny
 
-        Lx = xmax - xmin
-        dx = Lx / (nx - 1)
-
-        Mesh( [nx], [xmin], [xmax], [Lx], [dx] )
-
-    end
-
-    function Mesh( x1min :: Real, x1max :: Real, nx1 :: Int,
-                   x2min :: Real, x2max :: Real, nx2 :: Int  )
-
-        nx   = [nx1, nx2]
-        xmin = [x1min, x2min]
-        xmax = [x1max, x2max]
-        Lx   = xmax .- xmin
-        dx   = Lx ./ ( nx .- 1 )
-
-        Mesh( nx, xmin, xmax, Lx, dx )
+        new(nx, ny, xmin, xmax, ymin, ymax, dimx, dimy, x, y, dx, dy)
 
     end
 
-    function Mesh( x1min :: Real, x1max :: Real, nx1 :: Int,
-                   x2min :: Real, x2max :: Real, nx2 :: Int,
-                   x3min :: Real, x3max :: Real, nx3 :: Int  )
+end
 
-        nx   = [nx1, nx2, nx3]
-        xmin = [x1min, x2min, x3min]
-        xmax = [x1max, x2max, x3max]
-        Lx   = xmax .- xmin
-        dx   = Lx ./ ( nx .- 1 )
+TwoDGrid(dimx, nx::Int, dimy, ny::Int) = TwoDGrid(0.0, dimx, nx, 0.0, dimy, ny)
 
-        Mesh( nx, xmin, xmax, Lx, dx )
+"""
+    TwoDGrid( xmin, xmax, nx, ymin, ymax, ny )
+
+Simple structure to store mesh data from 2 dimensions
+"""
+struct OneDGrid <: AbstractGrid
+
+    nx::Int
+    xmin::Float64
+    xmax::Float64
+    dimx::Float64
+    dx::Float64
+    x::Vector{Float64}
+
+    function OneDGrid(xmin, xmax, nx::Int)
+
+        dimx = xmax - xmin
+        dx = dimx / (nx - 1)
+        x = LinRange(0, dimx, nx + 1) |> collect
+
+        new(nx, xmin, xmax, dimx, dx, x)
 
     end
 
-end 
+end
 
 export get_x
 
@@ -64,11 +81,11 @@ export get_x
 
 Get position
 """
-function get_x( m :: Mesh, i )
+function get_x(m::OneDGrid, i)
 
-    m.xmin .+ (i .- 1) .* m.dx
-    
-end 
+    m.xmin + (i - 1) * m.dx
+
+end
 
 """  
     get_cell_and_offset( mesh, x )
@@ -79,11 +96,11 @@ We compute the cell indices where the particle is and its relative
 normalized position inside the cell
 
 """
-function get_cell_and_offset( m :: Mesh, x ) :: Int64
+function get_cell_and_offset(m::OneDGrid, x)
 
-    cell   = floor.(Int64, ((x .- m.xmin) ./ m.Lx) .* m.nx) .+ 1
-    offset = (x .- get_x( m, cell)) ./ dx
+    cell = floor(Int64, ((x - m.xmin) / m.Lx) * m.nx) + 1
+    offset = (x - get_x(m, cell)) / dx
 
-	cell, offset
-    
-end 
+    cell, offset
+
+end

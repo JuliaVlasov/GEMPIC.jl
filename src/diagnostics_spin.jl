@@ -48,16 +48,16 @@ struct TimeHistoryDiagnosticsSpin
 
     particle_group    :: ParticleGroup
     maxwell_solver    :: Maxwell1DFEM
-    kernel_smoother_0 :: ParticleMeshCoupling
-    kernel_smoother_1 :: ParticleMeshCoupling
+    kernel_smoother_0 :: ParticleMeshCoupling1D
+    kernel_smoother_1 :: ParticleMeshCoupling1D
     data              :: DataFrame
     diagnostics       :: Vector{Float64}
     potential_energy  :: Vector{Float64}
 
     function TimeHistoryDiagnosticsSpin( particle_group :: ParticleGroup,
         maxwell_solver    :: Maxwell1DFEM,
-        kernel_smoother_0 :: ParticleMeshCoupling,
-        kernel_smoother_1 :: ParticleMeshCoupling)
+        kernel_smoother_0 :: ParticleMeshCoupling1D,
+        kernel_smoother_1 :: ParticleMeshCoupling1D)
 
         data = DataFrame(Time = Float64[],
                          KineticEnergy = Float64[],

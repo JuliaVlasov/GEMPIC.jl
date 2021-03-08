@@ -76,12 +76,12 @@ Sample from a Particle sampler
 - `ps`   : Particle sampler
 - `df`   : Distribution function
 - `xmin` : lower bound of the domain
-- `Lx`   : length of the domain.
+- `dimx` : length of the domain.
 """
 function sample!( pg   :: ParticleGroup{1,2}, 
                   ps   :: ParticleSampler, 
                   df   :: AbstractCosGaussian, 
-                  mesh :: Mesh )
+                  mesh :: AbstractGrid )
 
     if ps.symmetric 
         sample_sym( ps, pg, df, mesh )
@@ -97,7 +97,7 @@ end
 
 Helper function for pure sampling
 """
-function sample_all( ps, pg, df :: AbstractCosGaussian, mesh )
+function sample_all( ps, pg::ParticleGroup{1,2}, df :: AbstractCosGaussian, mesh )
 
     ndx, ndv = df.dims
 
@@ -128,13 +128,13 @@ function sample_all( ps, pg, df :: AbstractCosGaussian, mesh )
     for i_part = 1:pg.n_particles
 
        if ps.sampling_type == :sobol
-           x .= mesh.xmin .+ Sobol.next!(rng_sobol) .* mesh.Lx
+           x .= mesh.xmin .+ Sobol.next!(rng_sobol) * mesh.dimx
        else
-           x .= mesh.xmin .+ rand(rng_random, ndx) .* mesh.Lx
+           x .= mesh.xmin .+ rand(rng_random, ndx) * mesh.dimx
        end
 
        # Set weight according to value of perturbation
-       w  = eval_x_density(df, x) .* prod(mesh.Lx)
+       w  = eval_x_density(df, x) .* mesh.dimx
 
        v .= rand!(d, v)
 
@@ -147,10 +147,11 @@ function sample_all( ps, pg, df :: AbstractCosGaussian, mesh )
        v .= v .* df.params.σ[i_gauss] .+ df.params.μ[i_gauss]
        
        # Copy the generated numbers to the particle
-       set_x(pg, i_part, x)
-       set_v(pg, i_part, v)
+       set_x!(pg, i_part, x)
+       set_v!(pg, i_part, v)
+
        # Set weights.
-       set_weights(pg, i_part, w)
+       set_weights!(pg, i_part, w)
 
     end
        
@@ -205,10 +206,10 @@ function sample_sym( ps, pg, df, mesh )
             end 
             
             # Transform rdn to the interval
-            x[1:ndx] .= mesh.xmin .+ mesh.Lx .* rdn[1:ndx]
+            x[1:ndx] .= mesh.xmin .+ mesh.dimx .* rdn[1:ndx]
             
             # Set weight according to value of perturbation
-            wi = eval_x_density(df, x[1:ndx]) * prod(mesh.Lx)
+            wi = eval_x_density(df, x[1:ndx]) * mesh.dimx
             
             # Maxwellian distribution of the temperature
 
@@ -225,7 +226,7 @@ function sample_sym( ps, pg, df, mesh )
 
         elseif ip == 5
 
-            x[1] = mesh.Lx[1] - x[1] + 2.0 * mesh.xmin[1]
+            x[1] = mesh.dimx - x[1] + 2.0 * mesh.xmin
 
         elseif ip % 2 == 0
 
@@ -239,9 +240,9 @@ function sample_sym( ps, pg, df, mesh )
              
         # Copy the generated numbers to the particle
 
-        set_x( pg, i_part, x)
-        set_v( pg, i_part, v)
-        set_weights( pg, i_part, wi)
+        set_x!( pg, i_part, x)
+        set_v!( pg, i_part, v)
+        set_weights!( pg, i_part, wi)
        
     end
 

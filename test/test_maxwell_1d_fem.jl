@@ -27,7 +27,7 @@ Lx = eta1_max - eta1_min
 
 delta_eta1 = Lx / nc_eta1
 
-mesh = Mesh( eta1_min, eta1_max, nc_eta1)
+mesh = OneDGrid( eta1_min, eta1_max, nc_eta1)
 
 deg = 3
 

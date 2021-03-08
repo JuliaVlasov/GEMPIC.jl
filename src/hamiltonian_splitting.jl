@@ -21,8 +21,8 @@ Hamiltonian splitting type for Vlasov-Maxwell
 struct HamiltonianSplitting
 
     maxwell_solver    :: AbstractMaxwellSolver
-    kernel_smoother_0 :: ParticleMeshCoupling
-    kernel_smoother_1 :: ParticleMeshCoupling
+    kernel_smoother_0 :: ParticleMeshCoupling1D
+    kernel_smoother_1 :: ParticleMeshCoupling1D
     particle_group    :: ParticleGroup
 
     spline_degree     :: Int

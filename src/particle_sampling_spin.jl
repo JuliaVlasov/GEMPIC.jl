@@ -12,7 +12,7 @@ Sample from a Particle sampler
 function sample!( pg   :: ParticleGroup{1,1}, 
                   ps   :: ParticleSampler, 
                   df   :: CosSumGaussianSpin, 
-                  mesh :: Mesh )
+                  mesh :: AbstractGrid )
 
     s = zeros( pg.n_spin )
 
@@ -42,9 +42,9 @@ function sample!( pg   :: ParticleGroup{1,1},
     for i_part = 1:(pg.n_particles)  
        
        if ps.sampling_type == :sobol
-           x = mesh.xmin[1] + Sobol.next!(rng_sobol)[1] * mesh.Lx[1]
+           x = mesh.xmin + Sobol.next!(rng_sobol)[1] * mesh.dimx
        else
-           x = mesh.xmin[1] + rand(rng_random) * mesh.Lx[1]
+           x = mesh.xmin + rand(rng_random) * mesh.dimx
        end
 
        v = rand(rng_random, d)
@@ -72,16 +72,16 @@ function sample!( pg   :: ParticleGroup{1,1},
 #        s .= s./norm(s)
 
        # Set weight according to value of perturbation
-       w  = eval_x_density(df, x) * prod(mesh.Lx) 
+       w  = eval_x_density(df, x) * mesh.dimx
         
        # Copy the generated numbers to the particle
-       set_x(pg, i_part, x[1])
-       set_v(pg, i_part, v)
-       set_spin(pg, i_part, 1, s[1])
-       set_spin(pg, i_part, 2, s[2])
-       set_spin(pg, i_part, 3, s[3])
+       set_x!(pg, i_part, x[1])
+       set_v!(pg, i_part, v)
+       set_spin!(pg, i_part, 1, s[1])
+       set_spin!(pg, i_part, 2, s[2])
+       set_spin!(pg, i_part, 3, s[3])
        # Set weights.
-       set_weights(pg, i_part, w)
+       set_weights!(pg, i_part, w)
         
     end
        

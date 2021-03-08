@@ -6,7 +6,7 @@ xmax        = 4π + 1.0
 Lx          = xmax - xmin  
 nx          = 64
 
-mesh = Mesh( xmax, xmin, nx)
+mesh = OneDGrid( xmax, xmin, nx)
 
 pg = ParticleGroup{1,2}(n_particles)
 
@@ -34,7 +34,7 @@ xmin, xmax = 0, 2π/kx
 domain = [xmin, xmax, xmax - xmin]
 nx = 64 
 n_particles = 1000
-mesh = Mesh( xmin, xmax, nx)
+mesh = OneDGrid( xmin, xmax, nx)
 spline_degree = 3
    
 df = CosSumGaussianSpin([[kx]], [α], [[σ]], [[μ]] )

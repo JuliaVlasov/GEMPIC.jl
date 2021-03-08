@@ -102,36 +102,36 @@ Get the jth weight of the ith particle weights of group p
 end
 
 """
-    set_spin( p, i, j)
+    set_spin!( p, i, j)
 
 Set the jth weight of the ith particle weights of group p
 """
-@inline function set_spin( p :: ParticleGroup{D,V}, i::Int, j::Int, s) where {D, V}
+@inline function set_spin!( p :: ParticleGroup{D,V}, i::Int, j::Int, s) where {D, V}
 
     p.array[D+V+p.n_weights+j, i] = s
 
 end
 
 """
-    set_x( p, i, x ) 
+    set_x!( p, i, x ) 
 
 Set position of ith particle of p to x 
 """
-@inline function set_x( p :: ParticleGroup{D,V}, i :: Int, x :: Vector{Float64} ) where {D, V}
+@inline function set_x!( p :: ParticleGroup{D,V}, i :: Int, x :: Vector{Float64} ) where {D, V}
 
     for j in 1:D p.array[j, i] = x[j] end
     
 end
 
 """
-    set_x( p, i, x)
+    set_x!( p, i, x)
 
 Set position of ith particle of p to x
 
 !!! note
     if `x` is a scalar value, only the first x dimension will be set.
 """
-@inline function set_x( p :: ParticleGroup{D,V}, i :: Int, x :: Float64 ) where {D, V}
+@inline function set_x!( p :: ParticleGroup{D,V}, i :: Int, x :: Float64 ) where {D, V}
 
     p.array[1, i] = x
 
@@ -139,44 +139,44 @@ end
     
 
 """
-    set_v( p, i, v)
+    set_v!( p, i, v)
 
 Set velocity of ith particle of p to v
 """
-@inline function set_v( p :: ParticleGroup{D,V}, i :: Int, v :: Vector{Float64} ) where {D, V}
+@inline function set_v!( p :: ParticleGroup{D,V}, i :: Int, v :: Vector{Float64} ) where {D, V}
 
     for j in 1:V p.array[D+j, i] = v[j] end
     
 end
 
 """
-    set_v( p, i, v)
+    set_v!( p, i, v)
 
 Set velocity of ith particle of p to v
 """
-@inline function set_v( p :: ParticleGroup{D,V}, i :: Int, v :: Float64 ) where {D, V}
+@inline function set_v!( p :: ParticleGroup{D,V}, i :: Int, v :: Float64 ) where {D, V}
 
     p.array[D+1, i] = v
     
 end
   
 """
-    set_weights( p, i, w) 
+    set_weights!( p, i, w) 
 
 Set weights of ith particle of p to w
 """
-function set_weights( p :: ParticleGroup{D,V}, i :: Int, w :: Vector{Float64} ) where {D, V}
+function set_weights!( p :: ParticleGroup{D,V}, i :: Int, w :: Vector{Float64} ) where {D, V}
 
     for j in 1:p.n_weights p.array[D+V+j, i] = w[j] end
     
 end
 
 """
-    set_weights( p, i, w) 
+    set_weights!( p, i, w) 
 
 Set weights of particle @ i
 """
-function set_weights( p :: ParticleGroup{D,V}, i :: Int, w :: Float64 ) where {D, V}
+function set_weights!( p :: ParticleGroup{D,V}, i :: Int, w :: Float64 ) where {D, V}
 
     p.array[D+V+1, i] = w
     

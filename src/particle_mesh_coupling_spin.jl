@@ -6,7 +6,7 @@ Add current for one particle and update v
 (according to `H_p1` part in Hamiltonian splitting)
 """
 function add_current_update_v_pp!( j_dofs        :: AbstractArray, 
-                                   p             :: ParticleMeshCoupling, 
+                                   p             :: ParticleMeshCoupling1D, 
                                    position_old  :: Float64, 
                                    position_new  :: Float64, 
                                    marker_charge :: Float64)
@@ -15,12 +15,12 @@ function add_current_update_v_pp!( j_dofs        :: AbstractArray,
     # Compute index_old, the index of the last DoF on the grid the particle
     # contributes to, and r_old, its position (normalized to cell size one).
 
-    xi = (position_old[1] - p.domain[1]) / p.delta_x[1]
+    xi = (position_old[1] - p.xmin) / p.delta_x[1]
     index_old = trunc(Int, xi)
     r_old = xi - index_old
 
     # Compute the new box index index_new and normalized position r_old.
-    xi = (position_new[1] - p.domain[1]) / p.delta_x[1]
+    xi = (position_new[1] - p.xmin) / p.delta_x[1]
     index_new = trunc(Int, xi)
     r_new = xi - index_new
  
@@ -59,7 +59,7 @@ end
 Helper function for `add_current_update_v`.
 """
 function update_jv_pp!( j_dofs         :: AbstractArray,
-                        p              :: ParticleMeshCoupling, 
+                        p              :: ParticleMeshCoupling1D, 
                         lower          :: Float64, 
                         upper          :: Float64, 
                         index          :: Int64, 
@@ -101,19 +101,19 @@ particle contributes to, and `r_old`, its position (normalized to cell size one)
 
 """
 function add_current_update_v!( j_dofs        :: AbstractArray,
-                                p             :: ParticleMeshCoupling, 
+                                p             :: ParticleMeshCoupling1D, 
                                 position_old  :: Float64, 
                                 position_new  :: Float64, 
                                 marker_charge :: Float64) 
 
 
-    xi = (position_old - p.domain[1]) / p.delta_x[1]
+    xi = (position_old - p.xmin) / p.delta_x[1]
     index_old = trunc(Int,xi)
     r_old = xi - index_old
 
     # Compute the new box index index_new and normalized position r_old.
 
-    xi = (position_new - p.domain[1]) / p.delta_x[1]
+    xi = (position_new - p.xmin) / p.delta_x[1]
     index_new = trunc(Int, xi)
     r_new = xi - index_new
  
@@ -156,7 +156,7 @@ end
 Helper function for `add_current_update_v`.
 """
 function update_jv!(j_dofs        :: AbstractArray, 
-                    p             :: ParticleMeshCoupling, 
+                    p             :: ParticleMeshCoupling1D, 
                     lower         :: Float64, 
                     upper         :: Float64, 
                     index         :: Int64, 

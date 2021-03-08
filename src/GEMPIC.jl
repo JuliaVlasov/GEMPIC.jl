@@ -17,7 +17,9 @@ module GEMPIC
     include("particle_group.jl")
 
     # Particle-Mesh coupling
-    include("particle_mesh_coupling.jl")
+    abstract type AbstractParticleMeshCoupling end
+    include("particle_mesh_coupling_1d.jl")
+    include("particle_mesh_coupling_2d.jl")
     include("particle_mesh_coupling_spin.jl")
 
     # Particle sampling

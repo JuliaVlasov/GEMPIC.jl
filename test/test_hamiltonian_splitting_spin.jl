@@ -1,7 +1,6 @@
 @testset "Hamiltonian splitting with spin" begin
 
-    import GEMPIC: set_x, set_v
-    import GEMPIC: set_weights, get_charge, add_charge!
+    import GEMPIC: get_x, get_charge, add_charge!
     import GEMPIC: operatorHp1, operatorHp2, operatorHE, operatorHB
 
     # Tolerance for comparison of real numbers: set it here!
@@ -16,15 +15,15 @@
     degree_smoother = 3
     rnd_seed        = 10
 
-    mesh = Mesh( eta_min, eta_max, num_cells)
+    mesh = OneDGrid( eta_min, eta_max, num_cells)
 
     pg = ParticleGroup{1,1}(n_particles, n_spin = 3)
 
     # Initialize kernel smoothers
-    kernel_smoother_1 = ParticleMeshCoupling( mesh,
+    kernel_smoother_1 = ParticleMeshCoupling1D( mesh,
          n_particles, degree_smoother-1, :galerkin) 
 
-    kernel_smoother_0 = ParticleMeshCoupling( mesh,
+    kernel_smoother_0 = ParticleMeshCoupling1D( mesh,
          n_particles, degree_smoother, :galerkin) 
     
     # Initialize Maxwell solver
