@@ -1,6 +1,5 @@
 @testset " spline pp 1d " begin
 
-    xi    = (xp - domain[1])/delta_x
     import GEMPIC: SplinePP, b_to_pp, uniform_bsplines_eval_basis, horner_1d
 
     ncells = 8
