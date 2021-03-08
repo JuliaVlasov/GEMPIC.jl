@@ -1,7 +1,7 @@
 name = "GEMPIC"
 uuid = "b6d65c3a-4a4e-11e9-25d0-d309dc85ddeb"
 authors = "JuliaVlasov"
-version = "0.2.3"
+version = "0.2.4"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -18,14 +18,14 @@ Sobol = "ed01d8cd-4d21-5b2a-85b4-cc3bdc58bad4"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
-DataFrames = "0.1, 0.22"
-Distributions = "0.1, 0.24"
+DataFrames = "0.20, 0.22"
+Distributions = "0.20, 0.24"
 FFTW = "1"
-FastGaussQuadrature = "0.1, 0.4"
+FastGaussQuadrature = "0.3, 0.4"
 FileIO = "1.2"
 JLD2 = "0.1, 0.2"
 Sobol = "1"
-StaticArrays = "0.1, 0.12"
+StaticArrays = "0.10, 0.12"
 julia = "1"
 
 [extras]
