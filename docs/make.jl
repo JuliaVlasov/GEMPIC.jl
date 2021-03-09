@@ -20,7 +20,7 @@ end
 makedocs(
     sitename = "GEMPIC",
     doctest = true,
-    authors = "Nicolas Crouseilles, Katharina Kormann, Yingzhe Li and Pierre Navaro", 
+    authors = "Julia Vlasov", 
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true",
         mathengine = MathJax(Dict(
