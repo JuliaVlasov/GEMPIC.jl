@@ -4,13 +4,14 @@ Geometric ElectroMagnetic Particle-In-Cell Methods
 
 **NOTE: This package is still very much under development.**
 
-![Lifecycle](https://img.shields.io/badge/lifecycle-maturing-blue.svg)
+
 <!--
 ![Lifecycle](https://img.shields.io/badge/lifecycle-stable-green.svg)
 ![Lifecycle](https://img.shields.io/badge/lifecycle-retired-orange.svg)
 ![Lifecycle](https://img.shields.io/badge/lifecycle-archived-red.svg)
 ![Lifecycle](https://img.shields.io/badge/lifecycle-dormant-blue.svg) 
 -->
+![Lifecycle](https://img.shields.io/badge/lifecycle-maturing-blue.svg)
 [![Build Status](https://travis-ci.org/JuliaVlasov/GEMPIC.jl.svg?branch=master)](https://travis-ci.org/JuliaVlasov/GEMPIC.jl)
 [![codecov](https://codecov.io/gh/JuliaVlasov/GEMPIC.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaVlasov/GEMPIC.jl)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliavlasov.github.io/GEMPIC.jl/stable)
