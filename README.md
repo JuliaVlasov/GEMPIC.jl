@@ -1,4 +1,3 @@
-<!-- #region -->
 # GEMPIC.jl
 
 Geometric ElectroMagnetic Particle-In-Cell Methods
@@ -17,8 +16,6 @@ Geometric ElectroMagnetic Particle-In-Cell Methods
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliavlasov.github.io/GEMPIC.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliavlasov.github.io/GEMPIC.jl/dev)
 
-
-
 A Julia implementation of the [GEMPIC](https://arxiv.org/abs/1609.03053)
 
 ## Installation
@@ -36,25 +33,6 @@ and bring `GEMPIC` into scope:
 ```julia
 julia> using GEMPIC
 ```
-## Run examples
-
-To open the notebooks you need to install [jupytext](https://github.com/mwouts/jupytext)
-
-```bash
-conda install jupytext -c conda-forge
-```
-or
-```bash
-pip install jupytext
-```
-
-```bash
-jupytext --to ipynb notebooks/*.jl
-```
-```julia
-julia> using IJulia
-julia> notebook(dir=joinpath(pwd(),"notebooks"))
-```
 
 ## Credits
 
@@ -67,5 +45,3 @@ This is a translation from a Fortran code written by :
 - Edouardo Zoni
 
 from [Max-Planck-Institut fur Plasmaphysik - Garching (Germany)](https://www.ipp.mpg.de/4098496/kgkm)
-
-<!-- #endregion -->
