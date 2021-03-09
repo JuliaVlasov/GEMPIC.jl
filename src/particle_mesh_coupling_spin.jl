@@ -1,6 +1,6 @@
 """  
     add_current_update_v_pp!( j_dofs, p, position_old, position_new, 
-                              marker_charge, qoverm, bfield_dofs, vi)
+                              marker_charge)
 
 Add current for one particle and update v 
 (according to `H_p1` part in Hamiltonian splitting)
@@ -53,8 +53,7 @@ function add_current_update_v_pp!( j_dofs        :: AbstractArray,
 end
 
 """
-    update_jv_pp!( j_dofs, p, lower, upper, index, marker_charge, 
-                   qoverm, vi, bfield_dofs)
+    update_jv_pp!( j_dofs, p, lower, upper, index, marker_charge)
 
 Helper function for `add_current_update_v`.
 """
@@ -87,10 +86,7 @@ end
 
 
 """
-    add_current_update_v!( j_dofs, p, 
-                           position_old, position_new, 
-                           marker_charge, qoverm, 
-                           bfield_dofs, vi) 
+    add_current_update_v!( j_dofs, p, position_old, position_new, marker_charge) 
 
 Add current for one particle and update v (according to ``H_{p1}``
 part in Hamiltonian splitting)
@@ -149,9 +145,7 @@ function add_current_update_v!( j_dofs        :: AbstractArray,
 end
 
 """
-    update_jv!(j_dofs, p, 
-               lower, upper, index, marker_charge, 
-               qoverm, sign, vi, bfield_dofs)
+    update_jv!(j_dofs, p, lower, upper, index, marker_charge, qoverm, sign)
 
 Helper function for `add_current_update_v`.
 """
