@@ -1,6 +1,7 @@
 using Test 
 using GEMPIC
 
+include("test_maxwell_2d_fft.jl")
 include("test_vm_1d1v_spin.jl")
 include("test_vm_1d2v.jl")
 include("test_mesh.jl")

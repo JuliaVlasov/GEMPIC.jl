@@ -6,16 +6,16 @@ using Literate
 using Plots
 
 # generate examples
-output = joinpath(@__DIR__, "src", "generated")
-examples = String[]
-push!(examples, "strong_landau_damping.jl")
-
-for example in examples
-    jl_file = joinpath(@__DIR__, "examples", example)
-    Literate.markdown(jl_file, output, documenter=true)
-    #Literate.notebook(EXAMPLE, OUTPUT)
-    #Literate.script(EXAMPLE, OUTPUT)
-end
+# output = joinpath(@__DIR__, "src", "generated")
+# examples = String[]
+# push!(examples, "strong_landau_damping.jl")
+# 
+# for example in examples
+#     jl_file = joinpath(@__DIR__, "examples", example)
+#     Literate.markdown(jl_file, output, documenter=true)
+#     #Literate.notebook(EXAMPLE, OUTPUT)
+#     #Literate.script(EXAMPLE, OUTPUT)
+# end
 
 makedocs(
     sitename = "GEMPIC",
@@ -45,7 +45,7 @@ makedocs(
                                  "hamiltonian_splitting_spin.md",
                                  "hamiltonian_splitting_boris.md"],
                                  "diagnostics.md"],
-              "Examples" => [ "generated/strong_landau_damping.md" ],
+              "Examples" => [ "strong_landau_damping.md" ],
              # "Scalar Spin Vlasov-Maxwell" => "scalar_spin_vlasov_maxwell.md",
              "Contents"      => "contents.md"]
 )

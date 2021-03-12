@@ -57,6 +57,7 @@ end
 
 Helper function computing shape factor
 - pm : kernel smoother object
+- xp, xp : poisition of the particle
 """
 function compute_shape_factor(pm::ParticleMeshCoupling2D, xp, yp)
 
