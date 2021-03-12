@@ -9,10 +9,9 @@ module GEMPIC
     include("distributions.jl")
     include("distributions_spin.jl")
 
-
     # Maxwell solvers
     include("maxwell_1d_fem.jl")
-    include("maxwell_2d_fff.jl")
+    #include("maxwell_2d_fem.jl")
 
     # Particle Groups
     include("particle_group.jl")
