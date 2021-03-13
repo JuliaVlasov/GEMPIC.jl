@@ -11,7 +11,9 @@ module GEMPIC
 
     # Maxwell solvers
     include("maxwell_1d_fem.jl")
-    #include("maxwell_2d_fem.jl")
+    include("linear_solver_spline_mass_2d.jl")
+    include("poisson_2d_fem.jl")
+    include("maxwell_2d_fem.jl")
 
     # Particle Groups
     include("particle_group.jl")

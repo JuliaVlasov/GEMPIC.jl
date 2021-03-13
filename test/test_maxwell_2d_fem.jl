@@ -13,9 +13,9 @@
   
   maxwell = TwoDMaxwell(mesh, degree)
 
-  x = zeros(1:nc_eta(1)+1,1:nc_eta(2)+1)
-  y = zeros(1:nc_eta(1)+1,1:nc_eta(2)+1)
-  efield = [ zeros(nt) for _ in 1:3]
+  x = zeros(nx+1,ny+1)
+  y = zeros(nx+1,ny+1)
+  efield = [ zeros(nx * ny) for _ in 1:3]
   bfield = deepcopy(efield)
   efield_ref = deepcopy(efield)
   bfield_ref = deepcopy(efield)
@@ -45,9 +45,9 @@
 
   rho = compute_rhs_from_function( maxwell, cos_k, 1, 0 )
   
-  compute_e_from_rho!( efield, maxwell, rho )
 
 #=
+  compute_e_from_rho!( efield, maxwell, rho )
 
   function evaluate_spline_2d( ndofs, degs, dofs )
 
