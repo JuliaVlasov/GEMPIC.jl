@@ -1,4 +1,47 @@
-@testset "Maxwell 2D" begin
+# -*- coding: utf-8 -*-
+# +
+using Pkg
+Pkg.activate("../")
+using Plots
+using Revise
+
+
+
+
+# +
+using GEMPIC
+
+function evaluate_spline_2d( nx, ny, degs, dofs )
+
+    deg1, deg2 = degs
+    vals = zero(dofs)
+    a_in = zeros(ny) 
+    a_out = zeros(ny)
+    istart = 1
+    iend = nx
+    
+    for j=1:ny
+       vals[istart:iend] .= GEMPIC.eval_uniform_periodic_spline_curve(deg1, dofs)
+       istart = iend+1
+       iend = iend + ndofs1
+    end
+
+    for i=1:nx
+       for j=1:ny
+          a_in[j] = vals[i+(j-1)*ndofs1]
+       end
+       a_out .= GEMPIC.eval_uniform_periodic_spline_curve(deg2, a_in)
+       for j=1:ny
+          vals[i+(j-1)*ndofs1] = a_out[j]
+       end
+    end
+
+    vals
+
+  end
+
+# +
+#@testset "Maxwell 2D" begin
 
   xmin, xmax = 0.0, 2π
   nx = 16
@@ -26,6 +69,8 @@
       x[i,j] = xmin + (i-1) * mesh.dx
       y[i,j] = ymin + (j-1) * mesh.dy
   end
+# -
+
 
   w1 = sqrt(3)
   w2 = sqrt(3)
@@ -41,45 +86,26 @@
   e2(x, y) = - sin(x)*cos(y)*sin(sqrt(2)*time)/sqrt(2)
   sin_k(x, y) = sin((x+y)-w1*time) 
 
+
   cos_k = (x, y) -> cos((x+y)-w1*time) 
 
-  rho = compute_rhs_from_function( maxwell, cos_k, 1, 0 )
-  
+  rho .= compute_rhs_from_function( maxwell, cos_k, 1, 0 )
 
-#=
+
+# +
   compute_e_from_rho!( efield, maxwell, rho )
 
-  function evaluate_spline_2d( ndofs, degs, dofs )
-
-    ndofs1, ndofs2 = ndofs
-    deg1, deg2 = degs
-    vals = zero(dofs)
-    a_in = zeros(ndofs2) 
-    a_out = zeros(ndofs2)
-
-    for j=1:ndofs2
-       vals[istart:iend] .= eval_uniform_periodic_spline_curve(deg1, dofs)
-       istart = iend+1
-       iend = iend + ndofs1
-    end
-
-    for i=1:ndofs1
-       for j=1:ndofs2
-          a_in[j] = vals[i+(j-1)*ndofs1]
-       end
-       a_out .= eval_uniform_periodic_spline_curve(deg2, a_in)
-       for j=1:ndofs2
-          vals[i+(j-1)*ndofs1] = a_out[j]
-       end
-    end
-
-    vals
-
-  end
+efield_val[1] .= evaluate_spline_2d( (nx, ny), (deg-1,deg  ), efield[1])
+efield_val[2] .= evaluate_spline_2d( (nx, ny), (deg  ,deg-1), efield[2])
+efield_val[3] .= evaluate_spline_2d( (nx, ny), (deg  ,deg  ), efield[3])
   
-  efield_val[1] .= evaluate_spline_2d( (nx, ny), (deg-1,deg  ), efield[1])
-  efield_val[2] .= evaluate_spline_2d( (nx, ny), (deg  ,deg-1), efield[2])
-  efield_val[3] .= evaluate_spline_2d( (nx, ny), (deg  ,deg  ), efield[3])
+
+
+# +
+#=
+
+  
+  
   
   ind = 1
   for j = 1:ny, i = 1:nx
@@ -175,7 +201,8 @@
   
   error6 =  maximum( abs.( rho .- rho_ref ) )
   println( " Error compute_rho_from_e: $error6 ")
+# -
 
 =#
-  
+
 end 
