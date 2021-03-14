@@ -247,32 +247,34 @@ end
 # end 
 
 
-function compute_e_from_rho_fft!( efield, solver,  rho )
+function compute_e_from_rho!( efield, solver:: TwoDPoisson,  rho )
   
-  # Compute Fourier transform
-  fft2d( solver, rho )
+    nx, ny = solver.mesh.nx, solver.mesh.ny
+    # Compute Fourier transform
+    fft2d( solver, rho )
     
-  # Apply inverse matrix of eigenvalues on mode
-  for j=1:solver.nx, i=1:n_dofs[1]
+    # Apply inverse matrix of eigenvalues on mode
+    for j=1:ny, i=1:nx
 
-      if ( i == 1 && j==1  )
-         solver.scratch[i,j] = 0
-      else
-         eig_val = solver.eig_values_dtm1d_1[i] * solver.eig_values_mass_0_2[j] + solver.eig_values_mass_0_1[i] * solver.eig_values_dtm1d_2[j] 
-         solver.scratch[i,j] = solver.scratch[i,j] / eig_val
-      end
+        if ( i == 1 && j==1  )
+            solver.scratch[i,j] = 0
+        else
+            eig_val = ( solver.eig_values_dtm1d_1[i] 
+                   * solver.eig_values_mass_0_2[j] 
+                   + solver.eig_values_mass_0_1[i] 
+                   * solver.eig_values_dtm1d_2[j] )
+            solver.scratch[i,j] = solver.scratch[i,j] / eig_val
+        end
       
-      solver.scratchx[i,j] = -solver.scratch[i,j]* solver.eig_values_d1[i]
-      solver.scratchy[i,j] = -solver.scratch[i,j]* solver.eig_values_d2[j]
+        solver.scratchx[i,j] = -solver.scratch[i,j] * solver.eig_values_d1[i]
+        solver.scratchy[i,j] = -solver.scratch[i,j] * solver.eig_values_d2[j]
         
-  end
+    end
   
-    
-  # Compute inverse Fourier transfrom
+    # Compute inverse Fourier transfrom
   
-
-   ifft2d( solver, solver.scratchx, efield[1] )
-   ifft2d( solver, solver.scratchy, efield[2] )
+    ifft2d( solver, solver.scratchx, efield[1] )
+    ifft2d( solver, solver.scratchy, efield[2] )
  
     
 end
