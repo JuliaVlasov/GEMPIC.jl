@@ -177,3 +177,10 @@ function compute_rhs_from_function(solver :: TwoDMaxwell, f :: Function, compone
      end
 
 end 
+
+function compute_e_from_rho!( efield, solver:: TwoMaxwell,  rho ) 
+
+    compute_e_from_rho!( efield, solver.poisson,  rho )
+
+end
+
