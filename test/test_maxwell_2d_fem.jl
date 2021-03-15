@@ -1,11 +1,6 @@
 # -*- coding: utf-8 -*-
-# +
-using Pkg
-Pkg.activate("../")
 using Plots
 using Revise
-
-
 
 
 # +
@@ -14,12 +9,15 @@ using GEMPIC
 function evaluate_spline_2d( nx, ny, degs, dofs )
 
     deg1, deg2 = degs
-    vals = zero(dofs)
+    vals = zeros(nx * ny)
     a_in = zeros(ny) 
     a_out = zeros(ny)
     istart = 1
     iend = nx
     
+    @show nx, ny
+    @show size(dofs)
+
     for j=1:ny
        vals[istart:iend] .= GEMPIC.eval_uniform_periodic_spline_curve(deg1, dofs)
        istart = iend+1
@@ -36,6 +34,7 @@ function evaluate_spline_2d( nx, ny, degs, dofs )
        end
     end
 
+    @show size(vals)
     vals
 
   end
@@ -50,11 +49,11 @@ function evaluate_spline_2d( nx, ny, degs, dofs )
 
   mesh = TwoDGrid( xmin, xmax, nx, ymin, ymax, ny)
 
-  degree = 3
+  deg = 3
   delta_t = 0.01
   nsteps = 30
   
-  maxwell = TwoDMaxwell(mesh, degree)
+  maxwell = TwoDMaxwell(mesh, deg)
 
   x = zeros(nx+1,ny+1)
   y = zeros(nx+1,ny+1)
@@ -80,14 +79,13 @@ function evaluate_spline_2d( nx, ny, degs, dofs )
   rho_ref = zeros( nt) 
   time = 0.0
 
-
   b3(x, y) = - cos(x)*cos(y)*cos(sqrt(2)*time)
   e1(x, y) = cos(x)*sin(y)*sin(sqrt(2)*time)/sqrt(2)
   e2(x, y) = - sin(x)*cos(y)*sin(sqrt(2)*time)/sqrt(2)
   sin_k(x, y) = sin((x+y)-w1*time) 
 
-
   cos_k = (x, y) -> cos((x+y)-w1*time) 
+
 
   rho .= compute_rhs_from_function( maxwell, cos_k, 1, 0 )
 
@@ -95,12 +93,10 @@ function evaluate_spline_2d( nx, ny, degs, dofs )
 # +
   compute_e_from_rho!( efield, maxwell, rho )
 
-efield_val[1] .= evaluate_spline_2d( (nx, ny), (deg-1,deg  ), efield[1])
-efield_val[2] .= evaluate_spline_2d( (nx, ny), (deg  ,deg-1), efield[2])
-efield_val[3] .= evaluate_spline_2d( (nx, ny), (deg  ,deg  ), efield[3])
+  efield_val[1] .= evaluate_spline_2d( nx, ny, (deg-1,deg  ), efield[1])
+  efield_val[2] .= evaluate_spline_2d( nx, ny, (deg  ,deg-1), efield[2])
+  efield_val[3] .= evaluate_spline_2d( nx, ny, (deg  ,deg  ), efield[3])
   
-
-
 # +
 #=
 

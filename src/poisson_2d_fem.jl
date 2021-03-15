@@ -188,29 +188,30 @@ function ifft2d!( outval, solver, inval )
 
     for j=1:ny
         for i=1:nx
-            solver.array1d_x[i] = inval(i,j)
+            solver.array1d_x[i] = inval[i,j]
         end
-        ifft!(self.array1d_x)
-        
+        ifft!(solver.array1d_x)
         for i=1:nx
             k = k+1
-            outval[k] = real( self.array1d_x[i] )
+            outval[k] = real( solver.array1d_x[i] )
         end
     end
 
 end
      
 
-function fft2d( self, rho )
+function fft2d!( solver, rho )
+
+    nx, ny = solver.nx, solver.ny
 
     k=0
     for j=1:ny
-        for i=1:n_dofs(1)
+        for i=1:nx
             k = k+1
             solver.array1d_x[i] = rho[k]
         end
         fft!(solver.array1d_x)
-        for i=1:n_dofs(1)
+        for i=1:nx
             solver.scratch[i,j] = solver.array1d_x[i]
         end
     end
@@ -232,14 +233,14 @@ end
 # """
 # Compute the L2 projection of a given function f on periodic splines of given degree
 # """
-# function l2projection_2d_fem(self, func, component, form)
+# function l2projection_2d_fem(solver, func, component, form)
 # 
-#     compute_fem_rhs(self, func, component, form, self.work )
+#     compute_fem_rhs(solver, func, component, form, solver.work )
 # 
 #     if form == 1 
-#          solve(inverse_mass_1[component], self.work, coefs_dofs )
+#          solve(inverse_mass_1[component], solver.work, coefs_dofs )
 #     elseif form == 2
-#          solve(inverse_mass_2[component], self.work, coefs_dofs )
+#          solve(inverse_mass_2[component], solver.work, coefs_dofs )
 #     end
 # 
 #     coefs_dofs
@@ -249,9 +250,9 @@ end
 
 function compute_e_from_rho!( efield, solver:: TwoDPoisson,  rho )
   
-    nx, ny = solver.mesh.nx, solver.mesh.ny
+    nx, ny = solver.nx, solver.ny
     # Compute Fourier transform
-    fft2d( solver, rho )
+    fft2d!( solver, rho )
     
     # Apply inverse matrix of eigenvalues on mode
     for j=1:ny, i=1:nx
@@ -273,8 +274,8 @@ function compute_e_from_rho!( efield, solver:: TwoDPoisson,  rho )
   
     # Compute inverse Fourier transfrom
   
-    ifft2d( solver, solver.scratchx, efield[1] )
-    ifft2d( solver, solver.scratchy, efield[2] )
+    ifft2d!( efield[1], solver, solver.scratchx )
+    ifft2d!( efield[2], solver, solver.scratchy )
  
     
 end

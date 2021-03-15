@@ -108,7 +108,8 @@ end
 Compute the FEM right-hand-side for a given function f and periodic splines of given degree
 Its components are ``\\int f N_i dx`` where ``N_i`` is the B-spline starting at ``x_i`` 
 """
-function compute_rhs_from_function(solver :: TwoDMaxwell, f :: Function, component, form)
+function compute_rhs_from_function(solver :: TwoDMaxwell, f :: Function, 
+     component :: Int, form :: Int )
 
      nx, ny = solver.mesh.nx, solver.mesh.ny
      dx, dy = solver.mesh.dx, solver.mesh.dy
@@ -117,22 +118,17 @@ function compute_rhs_from_function(solver :: TwoDMaxwell, f :: Function, compone
 
      coefs_dofs = zeros(nx * ny)  # Finite Element right-hand-side
 
-     degree = zeros(Int, 2)
      # Define the spline degree in the 3 dimensions, depending on form and component of the form
      if form == 0
-        degree .= deg_0
+        degree = [ deg_0, deg_0]
      elseif (form == 1 )
-        degree .= deg_0
-        if component<3
-           degree[component] = deg_1
-        end
+        degree = [ deg_0, deg_0]
+        component < 3 && ( degree[component] = deg_1 )
      elseif form == 2
-        degree .= deg_1
-        if (component<3)
-           degree[component] = deg_0
-        end
+        degree = [ deg_1, deg_1]
+        component < 3 && ( degree[component] = deg_0 )
      elseif form == 3
-        degree .=  deg_1
+        degree = [ deg_1, deg_1]
      else 
         @error " Wrong form "
      end
@@ -176,9 +172,11 @@ function compute_rhs_from_function(solver :: TwoDMaxwell, f :: Function, compone
          counter = counter+1
      end
 
+     coefs_dofs
+
 end 
 
-function compute_e_from_rho!( efield, solver:: TwoMaxwell,  rho ) 
+function compute_e_from_rho!( efield, solver:: TwoDMaxwell,  rho ) 
 
     compute_e_from_rho!( efield, solver.poisson,  rho )
 
