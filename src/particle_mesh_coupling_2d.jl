@@ -1,7 +1,8 @@
 export ParticleMeshCoupling2D
 
 """
-    ParticleMeshCoupling2D( pg, grid, degree)
+    ParticleMeshCoupling2D( pg, grid, degree, smoothing_type)
+
 - n_grid(2) : no. of spline coefficients
 - domain(2,2) : lower and upper bounds of the domain
 - no_particles : no. of particles
@@ -52,10 +53,11 @@ end
 
 
 """
-   compute_shape_factor(pm, xp, yp)
+    compute_shape_factor(pm, xp, yp)
 
 Helper function computing shape factor
 - pm : kernel smoother object
+- xp, xp : poisition of the particle
 """
 function compute_shape_factor(pm::ParticleMeshCoupling2D, xp, yp)
 
@@ -73,7 +75,7 @@ function compute_shape_factor(pm::ParticleMeshCoupling2D, xp, yp)
 end
 
 """
-    index_1dto2d_column_major(pm, index1d) 
+    index_1dto2d_column_major(pm, index1d_1, index_1d_2) 
 
 Self function computes the index of a 1D array that stores 2D data in column major ordering. 
 It also takes periodic boundary conditions into account.
@@ -95,7 +97,7 @@ end
 export add_charge!
 
 """
-    add_charge(pm, x_position, y_position wp, ρ_dofs)
+    add_charge!(ρ_dofs, pm, xp, yp, wp)
 
 Add charge of single particle
 - position : Particle position
@@ -120,7 +122,7 @@ end
 export add_charge_pp!
 
 """
-    add_charge_single_spline_pp_2d(pm, position, wp, ρ_dofs)
+    add_charge_pp!(ρ_dofs, pm, xp, yp, wp)
 
 ## Add charge of single particle
 
@@ -165,7 +167,7 @@ end
 export evaluate_pp, evaluate
 
 """
-    evaluate_pp(pm, position, field_dofs_pp)
+    evaluate_pp(pm, xp, yp, pp)
 
 Evaluate field at position using horner scheme
 - pm : kernel smoother object    
@@ -196,7 +198,7 @@ end
 
 
 """
-    evaluate_field_single_spline_2d(pm, position, field_dofs)
+    evaluate(pm, xp, yp, field_dofs)
 
 - position(pm.dim) : Position where to evaluate
 - field_dofs(pm.n_dofs) : Degrees of freedom in kernel representation.
@@ -223,7 +225,7 @@ function evaluate(pm, xp, yp, field_dofs)
 end
 
 """
-    evaluate_multiple(pm, position, components, field_dofs)
+    evaluate_multiple(pm, position, field_dofs)
 
 ## Evaluate multiple fields at position \a position
 - position(pm%dim) : Position where to evaluate
