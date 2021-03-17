@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+using Test
 using Plots
 using Revise
 
@@ -12,35 +13,31 @@ function evaluate_spline_2d( nx, ny, degs, dofs )
     vals = zeros(nx * ny)
     a_in = zeros(ny) 
     a_out = zeros(ny)
-    istart = 1
-    iend = nx
     
-    @show nx, ny
-    @show size(dofs)
-
+    istart, iend = 1, nx
     for j=1:ny
-       vals[istart:iend] .= GEMPIC.eval_uniform_periodic_spline_curve(deg1, dofs)
+       val = GEMPIC.eval_uniform_periodic_spline_curve(deg1, dofs[istart:iend])
+       vals[istart:iend] .= val
        istart = iend+1
-       iend = iend + ndofs1
+       iend = iend + nx
     end
 
     for i=1:nx
        for j=1:ny
-          a_in[j] = vals[i+(j-1)*ndofs1]
+          a_in[j] = vals[i+(j-1)*nx]
        end
        a_out .= GEMPIC.eval_uniform_periodic_spline_curve(deg2, a_in)
        for j=1:ny
-          vals[i+(j-1)*ndofs1] = a_out[j]
+          vals[i+(j-1)*nx] = a_out[j]
        end
     end
 
     @show size(vals)
     vals
 
-  end
+end
 
-# +
-#@testset "Maxwell 2D" begin
+@testset "Maxwell 2D" begin
 
   xmin, xmax = 0.0, 2π
   nx = 16
@@ -68,8 +65,6 @@ function evaluate_spline_2d( nx, ny, degs, dofs )
       x[i,j] = xmin + (i-1) * mesh.dx
       y[i,j] = ymin + (j-1) * mesh.dy
   end
-# -
-
 
   w1 = sqrt(3)
   w2 = sqrt(3)
@@ -82,36 +77,33 @@ function evaluate_spline_2d( nx, ny, degs, dofs )
   b3(x, y) = - cos(x)*cos(y)*cos(sqrt(2)*time)
   e1(x, y) = cos(x)*sin(y)*sin(sqrt(2)*time)/sqrt(2)
   e2(x, y) = - sin(x)*cos(y)*sin(sqrt(2)*time)/sqrt(2)
-  sin_k(x, y) = sin((x+y)-w1*time) 
 
+  sin_k = (x, y) -> sin((x+y)-w1*time) 
   cos_k = (x, y) -> cos((x+y)-w1*time) 
-
 
   rho .= compute_rhs_from_function( maxwell, cos_k, 1, 0 )
 
-
-# +
   compute_e_from_rho!( efield, maxwell, rho )
 
-  efield_val[1] .= evaluate_spline_2d( nx, ny, (deg-1,deg  ), efield[1])
-  efield_val[2] .= evaluate_spline_2d( nx, ny, (deg  ,deg-1), efield[2])
-  efield_val[3] .= evaluate_spline_2d( nx, ny, (deg  ,deg  ), efield[3])
-  
-# +
-#=
-
-  
-  
+  efield_val1 = evaluate_spline_2d( nx, ny, (deg-1,deg  ), efield[1])
+  efield_val2 = evaluate_spline_2d( nx, ny, (deg  ,deg-1), efield[2])
+  efield_val3 = evaluate_spline_2d( nx, ny, (deg  ,deg  ), efield[3])
   
   ind = 1
   for j = 1:ny, i = 1:nx
-      efield_ref[ind] = sin_k([x[i,j], y[i,j]])/2
-      efield_ref[ind+nt] = efield_ref[ind]
-      efield_ref[ind+nt*2] = 0.0
-      ind = ind+1
+      efield_ref[1][ind] = sin_k(x[i,j], y[i,j])/2
+      efield_ref[2][ind] = efield_ref[1][ind]
+      efield_ref[3][ind] = 0.0
+      ind += 1
   end
+
+  surface(sin.( x .+ y))
   
-  @test efield_val ≈ efield_ref
+  @test efield_val[1] ≈ efield_ref[1]
+  @test efield_val[2] ≈ efield_ref[2]
+  @test efield_val[3] ≈ efield_ref[3]
+
+#=
 
   ! Now assemble initial efield and bfield
   time = 0.0
