@@ -230,22 +230,6 @@ function fft2d!( solver, rho )
   
 end 
 
-# """
-# Compute the L2 projection of a given function f on periodic splines of given degree
-# """
-# function l2projection_2d_fem(solver, func, component, form)
-# 
-#     compute_fem_rhs(solver, func, component, form, solver.work )
-# 
-#     if form == 1 
-#          solve(inverse_mass_1[component], solver.work, coefs_dofs )
-#     elseif form == 2
-#          solve(inverse_mass_2[component], solver.work, coefs_dofs )
-#     end
-# 
-#     coefs_dofs
-# 
-# end 
 
 
 function compute_e_from_rho!( efield, solver:: TwoDPoisson,  rho )

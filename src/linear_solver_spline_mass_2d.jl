@@ -15,7 +15,8 @@ struct TwoDLinearSolverSplineMass
 
 end 
 
-function solve_real_mass1(solver :: TwoDLinearSolverSplineMass, rhs)
+function solve_real_mass1(solver :: TwoDLinearSolverSplineMass,
+                          rhs :: Vector{Float64}) :: Vector{Float64}
 
     nx, ny = solver.nx, solver.ny
     array1d_x = zeros(ComplexF64, nx)
@@ -57,5 +58,7 @@ function solve_real_mass1(solver :: TwoDLinearSolverSplineMass, rhs)
             sol[k] = real(array1d_x[i])
         end
     end
+
+    sol
     
 end 

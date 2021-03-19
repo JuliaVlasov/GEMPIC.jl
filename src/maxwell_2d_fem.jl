@@ -182,3 +182,95 @@ function compute_e_from_rho!( efield, solver:: TwoDMaxwell,  rho )
 
 end
 
+"""
+    compute_fem_rhs(solver, func , component, form, coefs_dofs)
+
+Compute the FEM right-hand-side for a given function f and periodic splines of given degree
+Its components are ``\\int f N_i dx`` where ``N_i`` is the B-spline starting at ``x_i`` 
+- component : Specify the component
+- form : Specify 0,1,2 or 3 form
+coefs_dofs - Finite Element right-hand-side
+"""
+function compute_fem_rhs!(coefs_dofs, solver, f, component, form)
+
+     n1, n2 = solver.mesh.nx, solver.mesh.ny
+     δ1, δ2 = solver.mesh.dx, solver.mesh.dy
+     s_deg_0, s_deg_1 = solver.s_deg_0, solver.s_deg_1
+
+     if form == 0 
+        degree = [s_deg_0, s_deg_0]
+     elseif form == 1
+        degree = [s_deg_0, s_deg_0]
+        if component<3
+           degree[component] = s_deg_1
+        end
+     elseif form == 2
+        degree = [s_deg_1, s_deg_1]
+        if component<3
+           degree[component] = s_deg_0
+        end
+     elseif form == 3
+        degree = [s_deg_1, s_deg_1]
+     end
+
+     d1, d2 = degree
+
+     # take enough Gauss points so that projection is exact for splines of degree deg
+     # rescale on [0,1] for compatibility with B-splines
+
+     bspl_d1 = zeros(d1+1, d1+1)
+     x1, w1 = gausslegendre(d1+1)
+     x1 .+= 1; x1 ./= 2; w1 ./= 2
+     # Compute bsplines at gauss_points
+     for k=1:d1+1
+         bspl_d1[k,:] = uniform_bsplines_eval_basis(d1,x1[k])
+     end
+
+     bspl_d2 = zeros(d2+1, d2+1)
+     x2, w2 = gausslegendre(d2+1)
+     x2 .+= 1; x2 ./= 2; w2 ./= 2
+     # Compute bsplines at gauss_points
+     for k=1:d2+1
+         bspl_d2[k,:] .= uniform_bsplines_eval_basis(d2,x2[k])
+     end
+
+     indices_2d = CartesianIndices(reshape(coefs_dofs, n1, n2))
+
+     # Compute coefs_dofs = int f(x)N_i(x) 
+     for counter in eachindex(coefs_dofs)
+         i1, i2 = Tuple(indices_2d[counter])
+         coef = 0.0
+         # loop over support of B spline
+         for j1 = 1:d1+1, j2 = 1:d2+1
+             # loop over Gauss points
+             for k1=1:d1+1, k2=1:d2+1
+                 coef += ( w1[k1] * w2[k2] * 
+                           f(δ1 * (x1[k1] + i1 + j1 - 2), δ2 * (x2[k2] + i2 + j2 - 2)) *
+                           bspl_d1[k1,d1+2-j1] * bspl_d2[k2,d2+2-j2] )
+             end
+         end
+         # rescale by cell size
+         coefs_dofs[counter] = coef * δ1 * δ2
+     end
+
+end 
+
+
+export l2projection
+"""
+Compute the L2 projection of a given function f on periodic splines of given degree
+"""
+function l2projection(solver :: TwoDMaxwell, f, component, form)
+
+    n1, n2 = solver.mesh.nx, solver.mesh.ny
+
+    work = zeros( n1 * n2 )
+    compute_fem_rhs!(work, solver, f, component, form)
+ 
+    if form == 1 
+        solve_real_mass1(solver.inverse_mass_1[component], work )
+    elseif form == 2
+        solve_real_mass1(solver.inverse_mass_2[component], work )
+    end
+ 
+end 

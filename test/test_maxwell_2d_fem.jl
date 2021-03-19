@@ -83,28 +83,26 @@ y = ones(nx) .* transpose(LinRange(xmin, xmax, ny+1)[1:end-1])
   efield_ref[2] .= efield_ref[1]
   efield_ref[3] .= 0.0
  
+  @test efield_val1 ≈ efield_ref[1] rtol=1e-4
+  @test efield_val2 ≈ efield_ref[2] rtol=1e-4
+  @test efield_val3 ≈ efield_ref[3]
 
-@test efield_val1 ≈ efield_ref[1] rtol=1e-4
-@test efield_val2 ≈ efield_ref[2] rtol=1e-4
-@test efield_val3 ≈ efield_ref[3]
-
-#=
-
-  ! Now assemble initial efield and bfield
   time = 0.0
 
   time = -0.5*delta_t
 
-  l2projection!( maxwell, e1, 1, 2, bfield(1:nt) )
-  l2projection!( maxwell, e2, 2, 2, bfield(nt+1:nt*2) )
-  l2projection!( maxwell, b3, 3, 2, bfield(nt*2+1:nt*3) )
+  bfield[1] .= l2projection( maxwell, e1, 1, 2)
+  bfield[2] .= l2projection( maxwell, e2, 2, 2)
+  bfield[3] .= l2projection( maxwell, b3, 3, 2)
 
   time = 0.0
   
-  l2projection!( maxwell, e1, 1, 1, efield(1:nt) )
-  l2projection!( maxwell, e2, 2, 1, efield(nt+1:nt*2) )
-  l2projection!( maxwell, b3, 3, 1, efield(nt*2+1:nt*3) )
-  efield(nt*2+1:nt*3) = -efield(nt*2+1:nt*3)
+  efield[1] .= l2projection( maxwell, e1, 1, 1)
+  efield[2] .= l2projection( maxwell, e2, 2, 1)
+  efield[3] .= l2projection( maxwell, b3, 3, 1)
+  efield[3] .*= -1
+
+#=
   
   for istep = 1:nsteps
      compute_b_from_e!( bfield, maxwell, delta_t, efield )
