@@ -1,11 +1,4 @@
-# -*- coding: utf-8 -*-
-using Test
-using Plots
-using Revise
-
-
-# +
-using GEMPIC
+@testset "Maxwell 2D" begin
 
 function evaluate_spline_2d( nx, ny, degs, dofs )
 
@@ -37,7 +30,6 @@ function evaluate_spline_2d( nx, ny, degs, dofs )
 
 end
 
-@testset "Maxwell 2D" begin
 
   xmin, xmax = 0.0, 2π
   nx = 16
@@ -61,10 +53,8 @@ end
   efield_val = deepcopy(efield)
   bfield_val = deepcopy(efield)
 
-  for j = 1:ny+1, i = 1:nx+1
-      x[i,j] = xmin + (i-1) * mesh.dx
-      y[i,j] = ymin + (j-1) * mesh.dy
-  end
+x = LinRange(xmin, xmax, nx+1)[1:end-1] .* transpose(ones(ny))
+y = ones(nx) .* transpose(LinRange(xmin, xmax, ny+1)[1:end-1])
 
   w1 = sqrt(3)
   w2 = sqrt(3)
@@ -85,23 +75,18 @@ end
 
   compute_e_from_rho!( efield, maxwell, rho )
 
-  efield_val1 = evaluate_spline_2d( nx, ny, (deg-1,deg  ), efield[1])
+  efield_val1 = evaluate_spline_2d( nx, ny, (deg-1,deg  ), efield[1])  
   efield_val2 = evaluate_spline_2d( nx, ny, (deg  ,deg-1), efield[2])
   efield_val3 = evaluate_spline_2d( nx, ny, (deg  ,deg  ), efield[3])
   
-  ind = 1
-  for j = 1:ny, i = 1:nx
-      efield_ref[1][ind] = sin_k(x[i,j], y[i,j])/2
-      efield_ref[2][ind] = efield_ref[1][ind]
-      efield_ref[3][ind] = 0.0
-      ind += 1
-  end
+  efield_ref[1] .= vec(sin_k.(x, y) ./ 2)
+  efield_ref[2] .= efield_ref[1]
+  efield_ref[3] .= 0.0
+ 
 
-  surface(sin.( x .+ y))
-  
-  @test efield_val[1] ≈ efield_ref[1]
-  @test efield_val[2] ≈ efield_ref[2]
-  @test efield_val[3] ≈ efield_ref[3]
+@test efield_val1 ≈ efield_ref[1] rtol=1e-4
+@test efield_val2 ≈ efield_ref[2] rtol=1e-4
+@test efield_val3 ≈ efield_ref[3]
 
 #=
 
@@ -189,7 +174,6 @@ end
   
   error6 =  maximum( abs.( rho .- rho_ref ) )
   println( " Error compute_rho_from_e: $error6 ")
-# -
 
 =#
 
