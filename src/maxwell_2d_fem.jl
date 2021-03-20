@@ -15,13 +15,9 @@ struct TwoDMaxwell
 
     mesh :: TwoDGrid
 
-    mass_line_0_x :: Array{Float64,1}
-    mass_line_1_x :: Array{Float64,1}
-    mass_line_mixed_x :: Array{Float64,1}
-    mass_line_0_y :: Array{Float64,1}
-    mass_line_1_y :: Array{Float64,1}
-    mass_line_mixed_y :: Array{Float64,1}
-
+    mass_line_0 :: Vector{Array{Float64,1}}
+    mass_line_1 :: Vector{Array{Float64,1}}
+    mass_line_mixed :: Vector{Array{Float64,1}}
     inverse_mass_1 :: Vector{TwoDLinearSolverSplineMass}
     inverse_mass_2 :: Vector{TwoDLinearSolverSplineMass}
     poisson :: TwoDPoisson
@@ -37,35 +33,33 @@ struct TwoDMaxwell
         # Assemble the mass matrices
         # First assemble a mass line for both degrees
 
-        mass_line_0_x = spline_fem_mass_line( s_deg_0 ) .* dx
-        mass_line_0_y = spline_fem_mass_line( s_deg_0 ) .* dy
-        mass_line_1_x = spline_fem_mass_line( s_deg_1 ) .* dx
-        mass_line_1_y = spline_fem_mass_line( s_deg_1 ) .* dy
-        mass_line_mixed_x = spline_fem_mixedmass_line( s_deg_0 ) .* dx
-        mass_line_mixed_y = spline_fem_mixedmass_line( s_deg_0 ) .* dy
+        mass_line_0 = [ spline_fem_mass_line( s_deg_0 ) .* dx,
+                        spline_fem_mass_line( s_deg_0 ) .* dy ]
+
+        mass_line_1 = [ spline_fem_mass_line( s_deg_1 ) .* dx,
+                        spline_fem_mass_line( s_deg_1 ) .* dy ]
+
+        mass_line_mixed = [ spline_fem_mixedmass_line( s_deg_0 ) .* dx,
+                            spline_fem_mixedmass_line( s_deg_0 ) .* dy ]
 
         # Next put together the 1d parts of the 2d Kronecker product
 
-        eig_values_mass_0_1 = spline_fem_compute_mass_eig( nx, s_deg_0, mass_line_0_x)
-        eig_values_mass_0_2 = spline_fem_compute_mass_eig( ny, s_deg_0, mass_line_0_y)
-        eig_values_mass_1_1 = spline_fem_compute_mass_eig( nx, s_deg_1, mass_line_1_x)
-        eig_values_mass_1_2 = spline_fem_compute_mass_eig( ny, s_deg_1, mass_line_1_y)
+        eig_values_mass_0_1 = spline_fem_compute_mass_eig( nx, s_deg_0, mass_line_0[1])
+        eig_values_mass_0_2 = spline_fem_compute_mass_eig( ny, s_deg_0, mass_line_0[2])
+        eig_values_mass_1_1 = spline_fem_compute_mass_eig( nx, s_deg_1, mass_line_1[1])
+        eig_values_mass_1_2 = spline_fem_compute_mass_eig( ny, s_deg_1, mass_line_1[2])
 
-        inverse_mass_1 = TwoDLinearSolverSplineMass[]
-        push!(inverse_mass_1, TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_1_1, eig_values_mass_0_2))
-        push!(inverse_mass_1, TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_0_1, eig_values_mass_1_2))
-        push!(inverse_mass_1, TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_0_1, eig_values_mass_0_2))
+        inverse_mass_1 = [ TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_1_1, eig_values_mass_0_2),
+                           TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_0_1, eig_values_mass_1_2),
+                           TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_0_1, eig_values_mass_0_2) ]
 
-        inverse_mass_2 = TwoDLinearSolverSplineMass[]
-        push!(inverse_mass_2, TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_0_1, eig_values_mass_1_2))
-        push!(inverse_mass_2, TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_1_1, eig_values_mass_0_2))
-        push!(inverse_mass_2, TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_1_1, eig_values_mass_1_2))
+        inverse_mass_2 = [ TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_0_1, eig_values_mass_1_2),
+                           TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_1_1, eig_values_mass_0_2),
+                           TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_1_1, eig_values_mass_1_2)]
 
         poisson = TwoDPoisson( mesh, s_deg_0 )
 
-        new( s_deg_0, s_deg_1, mesh, 
-             mass_line_0_x, mass_line_1_x, mass_line_mixed_x, 
-             mass_line_0_y, mass_line_1_y, mass_line_mixed_y,
+        new( s_deg_0, s_deg_1, mesh, mass_line_0, mass_line_1, mass_line_mixed, 
              inverse_mass_1, inverse_mass_2, poisson )
      
     end 
@@ -274,3 +268,263 @@ function l2projection(solver :: TwoDMaxwell, f, component, form)
     end
  
 end 
+
+function spline_fem_multiply_mass( n_cells, degree, mass, invec )
+
+    outvec = zero(invec)
+    ind = 1
+    # For the first degree rows we need to put the first part to the back due to periodic boundaries
+    for row = 1:degree
+       outvec[row] = mass[1]*invec[row]
+       for column = 1:row-1
+          outvec[row] += mass[column+1]*(invec[row+column] + invec[row-column])
+       end
+       for column = row:degree
+          outvec[row] += mass[column+1]*(invec[row+column] + invec[row-column+n_cells])
+       end
+    end
+
+    for row = degree+1:n_cells-degree
+       outvec[row] = mass[1]*invec[row]
+       for column = 1:degree
+          outvec[row] += mass[column+1]*(invec[row+column] + invec[row-column])
+       end
+    end
+
+    # For the last degree rows, we need to put the second part to the front due to periodic boundaries
+    for row = n_cells-degree+1:n_cells
+       outvec[row] = mass[1]*invec[row]
+       for column = 1:n_cells-row
+          outvec[row] += mass[column+1]*(invec[row+column] + invec[row-column])
+       end
+       for column = n_cells-row+1:degree
+          outvec[row] += mass[column+1]*(invec[row+column-n_cells] + invec[row-column])
+       end
+    end
+
+    outvec
+
+end
+
+
+"""
+Multiply by the mass matrix 
+"""
+function multiply_mass_2dkron!( c_out, solver, mass_line_1, mass_line_2,  c_in )
+
+    nx1 = solver.mesh.nx
+    nx2 = solver.mesh.ny
+    deg1 = size(mass_line_1)[1]-1
+    deg2 = size(mass_line_2)[1]-1
+    work2d = zeros(nx1, nx2)
+    
+    istart = 1
+    iend = nx1
+    for j=1:nx2
+       work2d[:,j] .= spline_fem_multiply_mass( nx1, deg1, mass_line_1, c_in[istart:iend] )          
+       istart = iend+1
+       iend += nx1
+    end
+
+    istart = 1
+    for i =1:nx1
+        work_d2_in = view(work2d,i,:)
+        work_d2_out = spline_fem_multiply_mass( nx2, deg2, mass_line_2, work_d2_in )
+        for j=1:nx2
+            c_out[istart+(j-1)*nx1] = work_d2_out[j]
+        end
+        istart += 1
+    end
+     
+end
+
+
+
+"""
+    compute_e_from_b!(e, solver, delta_t, b)
+
+compute Ey from Bz using weak Ampere formulation 
+"""
+function compute_e_from_b!(e, solver, dt, b)
+
+    n1, n2 = solver.mesh.nx, solver.mesh.ny
+    dx1, dx2 = solver.mesh.dx, solver.mesh.dy
+
+    work = deepcopy(b)
+
+    multiply_mass_2dkron!( work[1], solver, solver.mass_line_0[1], solver.mass_line_1[2], b[1] )
+    multiply_mass_2dkron!( work[2], solver, solver.mass_line_1[1], solver.mass_line_0[2], b[2] )
+    multiply_mass_2dkron!( work[3], solver, solver.mass_line_1[1], solver.mass_line_1[2], b[3] )
+
+    work2 = deepcopy(work)
+    
+    coef1 = -1.0/ dx2
+    stride1 = n1
+    
+    ind2d = 0
+    for j=1:n2
+       if j == n2
+          indp1 = -stride1*(n2-1)
+       else
+          indp1 = stride1
+       end
+       for i=1:n1
+          ind2d = ind2d + 1
+          ind2d_1 = ind2d + indp1
+          work2[1][ind2d] = coef1 * ( work[3][ind2d] - work[3][ind2d_1])
+          
+       end
+    end
+
+
+    coef2 = 1.0/ dx1
+    stride2 = 1
+    ind2d = 0
+    for j=1:n2, i=1:n1
+        if i==n1
+            indp2 = -stride2*(n1-1)
+        else
+            indp2 = stride2
+        end
+        ind2d = ind2d + 1
+        ind2d_2 = ind2d +indp2
+        work2[2][ind2d] = coef2 * ( work[3][ind2d] - work[3][ind2d_2])
+    end
+
+    coef1 = -1.0/ dx1
+    coef2 = 1.0/ dx2
+
+    stride1 = 1
+    stride2 = n1
+
+    ind2d = 0
+    for j=1:n2
+        if j == n2
+           indp2 = -stride2*(n2-1)
+        else
+           indp2 = stride2
+        end
+        for i=1:n1
+           if i==n1
+              indp1 = -stride1*(n1-1)
+           else
+              indp1 = stride1
+           end
+           ind2d = ind2d + 1
+
+           ind2d_1 = ind2d +indp1
+           ind2d_2 = ind2d +indp2
+              
+           work2[3][ind2d] = ( coef1 * ( work[2][ind2d] - work[2][ind2d_1] )
+                             + coef2 * ( work[1][ind2d] - work[1][ind2d_2] ))
+              
+        end
+    end
+
+    de = deepcopy(e)
+    
+    work[1] .= solve_real_mass1(solver.inverse_mass_1[1], work2[1] ) 
+    work[2] .= solve_real_mass1(solver.inverse_mass_1[2], work2[2] ) 
+    work[3] .= solve_real_mass1(solver.inverse_mass_1[3], work2[3] ) 
+
+    # Update b from solver value
+    e[1] .= b[1] .+ dt .* work[1]
+    e[2] .= b[2] .+ dt .* work[2]
+    e[3] .= b[3] .+ dt .* work[3]
+
+end
+
+
+"""
+    compute_b_from_e!(b, solver, delta_t, e)
+
+Compute Bz from Ey using strong 1D Faraday equation for spline coefficients
+``B_z^{new}(x_j) = B_z^{old}(x_j) - \\frac{\\Delta t}{\\Delta x} (E_y(x_j) - E_y(x_{j-1}) ``
+
+multiplying by discrete curl matrix
+
+"""
+function compute_b_from_e!( b, solver, dt, e)
+
+    nx1 = solver.mesh.nx
+    nx2 = solver.mesh.ny
+    dx1 = solver.mesh.dx
+    dx2 = solver.mesh.dy
+
+    db = deepcopy( b )
+
+    coef1 = 1.0/ dx2
+
+    stride1 = nx1
+    stride2 = nx1 * nx2
+
+    ind2d = 0
+    for j=1:nx2
+       if j==1 
+          indp1 = stride1 * ( nx2 - 1)
+       else
+          indp1 = - stride1
+       end
+       for i=1:nx1
+          ind2d = ind2d + 1
+          ind2d_1 = ind2d + indp1
+          db[1][ind2d] = coef1 * ( e[3][ind2d] - e[3][ind2d_1])
+       end
+    end
+    
+
+    coef2 = -1.0/ dx1
+    stride2 = 1
+
+    ind2d = 0
+    for j=1:nx2, i=1:nx1
+        if i==1 
+           indp2 = stride2*(nx1-1)
+        else
+           indp2 = - stride2
+        end
+        ind2d = ind2d + 1
+
+        ind2d_2 = ind2d +indp2
+           
+        db[2][ind2d] = coef2 * ( e[3][ind2d] - e[3][ind2d_2])
+    end
+
+    # Third component
+    coef1 = 1.0/ dx1
+    coef2 = -1.0/ dx2
+
+    stride1 = 1
+    stride2 = nx1
+
+    ind2d = 0
+
+    for j=1:nx2
+        if j == 1
+            indp2 = stride2*(nx2-1)
+        else
+            indp2 = - stride2
+        end
+        for i=1:nx1
+            if i==1
+                indp1 = stride1*(nx1-1)
+            else
+                indp1 = - stride1
+            end
+            ind2d = ind2d + 1
+           
+            ind2d_1 = ind2d +indp1
+            ind2d_2 = ind2d +indp2
+           
+            db[3][ind2d] = ( coef1 * (e[1][ind2d] - e[1][ind2d_1]) 
+                           + coef2 * (e[2][ind2d] - e[2][ind2d_2]))
+           
+        end
+    end
+    
+    b[1] .-= dt .* db[1]
+    b[2] .-= dt .* db[2]
+    b[3] .-= dt .* db[3]
+  
+end
+  

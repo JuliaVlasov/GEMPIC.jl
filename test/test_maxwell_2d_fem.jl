@@ -1,3 +1,5 @@
+using Test
+
 @testset "Maxwell 2D" begin
 
 function evaluate_spline_2d( nx, ny, degs, dofs )
@@ -36,6 +38,8 @@ end
   ymin, ymax = 0.0, 2π
   ny = 32
 
+  n1, n2 = nx, ny
+
   mesh = TwoDGrid( xmin, xmax, nx, ymin, ymax, ny)
 
   deg = 3
@@ -50,11 +54,9 @@ end
   bfield = deepcopy(efield)
   efield_ref = deepcopy(efield)
   bfield_ref = deepcopy(efield)
-  efield_val = deepcopy(efield)
-  bfield_val = deepcopy(efield)
 
-x = LinRange(xmin, xmax, nx+1)[1:end-1] .* transpose(ones(ny))
-y = ones(nx) .* transpose(LinRange(xmin, xmax, ny+1)[1:end-1])
+  x = LinRange(xmin, xmax, nx+1)[1:end-1] .* transpose(ones(ny))
+  y = ones(nx) .* transpose(LinRange(xmin, xmax, ny+1)[1:end-1])
 
   w1 = sqrt(3)
   w2 = sqrt(3)
@@ -102,7 +104,6 @@ y = ones(nx) .* transpose(LinRange(xmin, xmax, ny+1)[1:end-1])
   efield[3] .= l2projection( maxwell, b3, 3, 1)
   efield[3] .*= -1
 
-#=
   
   for istep = 1:nsteps
      compute_b_from_e!( bfield, maxwell, delta_t, efield )
@@ -110,38 +111,44 @@ y = ones(nx) .* transpose(LinRange(xmin, xmax, ny+1)[1:end-1])
   end
 
   # Evaluate E and B at the grid points
-  evaluate_spline_2d( (nx, ny), [deg,deg-1], bfield(1:nt), bfield_val(1:nt) )
-  evaluate_spline_2d( (nx, ny), [deg-1,deg], bfield(1+nt:2*nt), bfield_val(1+nt:2*nt)  )
-  evaluate_spline_2d( (nx, ny), [deg-1,deg-1], bfield(1+nt*2:3*nt), bfield_val(1+nt*2:3*nt) )
-  evaluate_spline_2d( (nx, ny), [deg-1,deg], efield(1:nt), efield_val(1:nt) )
-  evaluate_spline_2d( (nx, ny), [deg,deg-1], efield(1+nt:2*nt), efield_val(1+nt:2*nt) )
-  evaluate_spline_2d( (nx, ny), [deg,deg], efield(1+nt*2:3*nt), efield_val(1+nt*2:3*nt) )
+  bfield_val1 = evaluate_spline_2d( nx, ny, (deg,deg-1), bfield[1])
+  bfield_val2 = evaluate_spline_2d( nx, ny, (deg-1,deg), bfield[2])
+  bfield_val3 = evaluate_spline_2d( nx, ny, (deg-1,deg-1), bfield[3])
+
+  efield_val1 = evaluate_spline_2d( nx, ny, (deg-1,deg), efield[1])
+  efield_val2 = evaluate_spline_2d( nx, ny, (deg,deg-1), efield[2])
+  efield_val3 = evaluate_spline_2d( nx, ny, (deg,deg), efield[3])
+
 
   # Reference solutions
   time = (nsteps)*delta_t
   ind = 1
-  for j = 1:nc_eta[2]
-     for i = 1:nc_eta[1]
-        efield_ref(ind) = e1([x(i,j), y(i,j)])
-        efield_ref(ind+nt) = e2([x(i,j), y(i,j)])
-        efield_ref(ind+nt*2) = -b3([x(i,j), y(i,j)])
+  for j = 1:n2
+     for i = 1:n1
+        efield_ref[1][ind] = e1(x[i,j], y[i,j])
+        efield_ref[2][ind] = e2(x[i,j], y[i,j])
+        efield_ref[3][ind] = -b3(x[i,j], y[i,j])
         ind = ind+1
      end
   end
   time = (nsteps-0.5)*delta_t
   ind = 1
-  for j = 1:nc_eta[2]
-     for i = 1, nc_eta[1]
-        bfield_ref(ind) = e1([x(i,j), y(i,j)])
-        bfield_ref(ind+nt) = e2([x(i,j), y(i,j)])
-        bfield_ref(ind+nt*2) = b3([x(i,j), y(i,j)])
-        ind = ind+1
-     end
+  for j = 1:n2, i = 1:n1
+      bfield_ref[1][ind] = e1(x[i,j], y[i,j])
+      bfield_ref[2][ind] = e2(x[i,j], y[i,j])
+      bfield_ref[3][ind] = b3(x[i,j], y[i,j])
+      ind = ind+1
   end
-  error3 = maxval(abs(efield_val-efield_ref))
-  error4 = maxval(abs(bfield_val-bfield_ref))
-  println("Error efield: $error3")
-  println("Error bfield: $error4")
+
+#=
+
+  @test efield_val1 ≈ efield_ref[1] rtol=1e-3
+  @test efield_val2 ≈ efield_ref[2] rtol=1e-3
+  @test efield_val3 ≈ efield_ref[3] rtol=1e-3
+
+  @test bfield_val1 ≈ bfield_ref[1] rtol=1e-3
+  @test bfield_val2 ≈ bfield_ref[2] rtol=1e-3
+  @test bfield_val3 ≈ bfield_ref[3] rtol=1e-3
 
 
   l2projection( maxwell, cos_k, 1, 1, efield[1:nt] )
