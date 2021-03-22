@@ -529,3 +529,44 @@ function compute_b_from_e!( b, solver, dt, e)
   
 end
   
+
+"""
+    compute_e_from_j(e, solver, current, component)
+
+Compute E_i from j_i integrated over the time interval using weak Ampere formulation
+- solver : Maxwell solver class
+- current : Component of the current integrated over time interval
+- component : Component of the Efield to be computed
+- e : Updated electric field
+"""
+function compute_e_from_j!(e, solver :: TwoDMaxwell, current, component)
+
+    work = solve( solver.inverse_mass_1[component], current )
+
+    e .= e .- work
+
+end
+  
+
+function multiply_mass_1form( coefs_out, solver, coefs_in )
+
+     multiply_mass_2dkron(  solver, solver.mass_line_1[1], solver.mass_line_0[2], coefs_in(istart:iend), coefs_out(istart:iend) )
+     multiply_mass_2dkron(  solver, solver.mass_line_0(:,1), solver.mass_line_1(:,2),  coefs_in(istart:iend), coefs_out(istart:iend) )
+     multiply_mass_2dkron(  solver, solver.mass_line_0(:,1), solver.mass_line_0(:,2), coefs_in(istart:iend), coefs_out(istart:iend) )
+end
+  
+
+"""
+    compute_rho_from_e(rho, solver, efield)
+
+compute rho from e using weak Gauss law ( rho = G^T M_1 e ) 
+"""
+function compute_rho_from_e(rho, solver, efield)
+
+    multiply_mass_1form( solver, efield, solver.work )
+    multiply_gt( solver, solver.work, rho )
+
+    rho = - rho
+
+end
+
