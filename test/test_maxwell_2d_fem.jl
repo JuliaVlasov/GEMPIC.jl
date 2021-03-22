@@ -1,6 +1,6 @@
 using Test
 
-#@testset "Maxwell 2D" begin
+@testset "Maxwell 2D" begin
 
     function evaluate_spline_2d( nx, ny, degs, dofs )
     
@@ -155,7 +155,8 @@ using Test
     
     rho = compute_rhs_from_function( maxwell, sin_k, 1, 1 )
 
-    compute_e_from_j( maxwell, rho, 1, efield[1] )
+    compute_e_from_j( efield[1], maxwell, rho, 1 )
+
     efield_val1 = evaluate_spline_2d( nc_eta, [deg-1,deg,deg], efield[1])
     
     ind = 1
@@ -165,18 +166,18 @@ using Test
         ind = ind+1
     end
 
-    @test efield_val1 \approx efield_ref(1:nt)))
+    @test efield_val1 ≈ efield_ref[1]
 
     rho_ref = compute_rhs_from_function( maxwell, cos_k, 1, 0 )
-    rho_ref = 2.0 .* rho_ref
-    l2projection( maxwell, sin_k, 1, 1, efield(1:nt) )
-    l2projection( maxwell, sin_k, 2, 1, efield(nt+1:nt*2) )
-    l2projection( maxwell, sin_k, 3, 1, efield(nt*2+1:nt*3) )
+    rho_ref .*= 2.0 
+
+    efield[1] = l2projection( maxwell, sin_k, 1, 1 )
+    efield[2] = l2projection( maxwell, sin_k, 2, 1 )
+    efield[3] = l2projection( maxwell, sin_k, 3, 1 )
 
     compute_rho_from_e!( rho, maxwell, efield )
     
-    error6 =  maximum( abs.( rho .- rho_ref ) )
-    println( " Error compute_rho_from_e: $error6 ")
+    @test rho ≈ rho_ref
 
 
 end 
