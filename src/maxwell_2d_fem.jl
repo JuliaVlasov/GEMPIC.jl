@@ -541,18 +541,68 @@ Compute E_i from j_i integrated over the time interval using weak Ampere formula
 """
 function compute_e_from_j!(e, solver :: TwoDMaxwell, current, component)
 
-    work = solve( solver.inverse_mass_1[component], current )
+    work = solve_real_mass1( solver.inverse_mass_1[component], current )
 
     e .= e .- work
 
 end
   
 
-function multiply_mass_1form( coefs_out, solver, coefs_in )
+function multiply_mass_1form!( coefs_out :: Vector{Vector{Float64}}, 
+                               solver :: TwoDMaxwell, 
+                               coefs_in :: Vector{Vector{Float64}} )
 
-     multiply_mass_2dkron(  solver, solver.mass_line_1[1], solver.mass_line_0[2], coefs_in(istart:iend), coefs_out(istart:iend) )
-     multiply_mass_2dkron(  solver, solver.mass_line_0(:,1), solver.mass_line_1(:,2),  coefs_in(istart:iend), coefs_out(istart:iend) )
-     multiply_mass_2dkron(  solver, solver.mass_line_0(:,1), solver.mass_line_0(:,2), coefs_in(istart:iend), coefs_out(istart:iend) )
+    multiply_mass_2dkron!( coefs_out[1], solver, solver.mass_line_0[1], solver.mass_line_1[2], coefs_in[1] )
+    multiply_mass_2dkron!( coefs_out[2], solver, solver.mass_line_1[1], solver.mass_line_0[2], coefs_in[2] )
+    multiply_mass_2dkron!( coefs_out[3], solver, solver.mass_line_1[1], solver.mass_line_1[2], coefs_in[3] )
+
+end
+
+"""
+    multiply_gt!(field_out, solver, field_in)
+
+Multiply by transpose of dicrete gradient matrix
+- solver : Maxwell solver object
+- field_in : Matrix to be multiplied
+- field_out : C*field_in
+"""
+function multiply_gt!( field_out, solver, field_in )
+
+    dx1, dx2 = solver.mesh.dx, solver.mesh.dy
+    n1, n2 = solver.mesh.nx, solver.mesh.ny
+
+    coef = 1.0 / dx1
+    jump = 1
+    jump_end = 1-n1
+
+    ind2d = 0
+    for j=1:n2
+       for i=1:n1-1
+          ind2d = ind2d + 1
+          field_out[ind2d] = coef * ( field_in(ind2d) - field_in[ind2d+jump] )
+       end
+       ind2d = ind2d + 1
+       field_out[ind2d] = coef * ( field_in[ind2d] - field_in[ind2d+jump_end])
+    end
+
+    coef = 1.0/ dx2
+    jump = n1
+    jump_end = (1-n2)*n1
+
+    ind2d_1 = 0
+    for j=1:n2-1
+       for i=1:n1
+          ind2d = ind2d + 1
+          ind2d_1 = ind2d_1 + 1
+          field_out[ind2d_1] += coef * ( field_in[ind2d] - field_in[ind2d+jump] )
+       end
+    end
+    for i=1:n1
+       ind2d = ind2d + 1
+       ind2d_1 = ind2d_1 + 1
+       field_out[ind2d_1] += coef * ( field_in[ind2d] - field_in[ind2d+jump_end] )
+    end
+
 end
   
 
@@ -563,10 +613,50 @@ compute rho from e using weak Gauss law ( rho = G^T M_1 e )
 """
 function compute_rho_from_e(rho, solver, efield)
 
-    multiply_mass_1form( solver, efield, solver.work )
-    multiply_gt( solver, solver.work, rho )
+    work = vcat(efield...)
+    multiply_mass_1form!( solver, efield, work )
+    multiply_gt!( rho, solver, work )
 
-    rho = - rho
+    rho .*= - 1
 
 end
 
+"""
+    inner_product( solver, coefs1_dofs, coefs2_dofs, component, form)
+
+- solver : Maxwell solver object
+- coefs1_dofs : Coefficient for each DoF
+- coefs2_dofs : Coefficient for each DoF
+- component : Specify the component
+- form : Specify 0,1,2 or 3 form
+- r : Result: squared L2 norm
+"""
+function inner_product( solver, coefs1_dofs, coefs2_dofs, component, form)
+
+     work = zero(coefs1_dofs)
+     if form == 0 
+         multiply_mass_2dkron!( work, solver, self.mass_line_0[1], solver.mass_line_0[2], coefs2_dofs)
+     elseif form == 1
+         if component == 1
+             multiply_mass_2dkron!( work, solver, self.mass_line_1[1], solver.mass_line_0[2], coefs2_dofs )
+         elseif component == 2
+             multiply_mass_2dkron!( work, solver, self.mass_line_0[1], solver.mass_line_1[2], coefs2_dofs )
+         elseif component == 3
+             multiply_mass_2dkron!( work, solver, self.mass_line_0[1], solver.mass_line_0[2], coefs2_dofs )
+         end
+     elseif form == 2
+         if component == 1
+             multiply_mass_2dkron!( work, solver, self.mass_line_0[1], solver.mass_line_1[2], coefs2_dofs )
+         elseif component == 2
+             multiply_mass_2dkron!( work, solver, self.mass_line_1[1], solver.mass_line_0[2], coefs2_dofs )
+         elseif component == 3
+             multiply_mass_2dkron!( work, solver, self.mass_line_1[1], solver.mass_line_1[2], coefs2_dofs )
+         end
+     elseif form == 3
+         multiply_mass_2dkron!( work, solver, self.mass_line_1[1], solver.mass_line_1[2], coefs2_dofs )
+     end
+
+     sum(coefs1_dofs .* work)
+
+     
+end
