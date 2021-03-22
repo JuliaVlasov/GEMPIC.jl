@@ -185,7 +185,7 @@ Its components are ``\\int f N_i dx`` where ``N_i`` is the B-spline starting at 
 - form : Specify 0,1,2 or 3 form
 coefs_dofs - Finite Element right-hand-side
 """
-function compute_fem_rhs!(coefs_dofs, solver, f, component, form)
+function compute_fem_rhs!(coefs_dofs :: Vector{Float64}, solver :: TwoDMaxwell, f, component :: Int, form :: Int)
 
      n1, n2 = solver.mesh.nx, solver.mesh.ny
      δ1, δ2 = solver.mesh.dx, solver.mesh.dy
@@ -217,7 +217,7 @@ function compute_fem_rhs!(coefs_dofs, solver, f, component, form)
      x1 .+= 1; x1 ./= 2; w1 ./= 2
      # Compute bsplines at gauss_points
      for k=1:d1+1
-         bspl_d1[k,:] = uniform_bsplines_eval_basis(d1,x1[k])
+         bspl_d1[k,:] .= uniform_bsplines_eval_basis(d1,x1[k])
      end
 
      bspl_d2 = zeros(d2+1, d2+1)
@@ -231,20 +231,21 @@ function compute_fem_rhs!(coefs_dofs, solver, f, component, form)
      indices_2d = CartesianIndices(reshape(coefs_dofs, n1, n2))
 
      # Compute coefs_dofs = int f(x)N_i(x) 
-     for counter in eachindex(coefs_dofs)
-         i1, i2 = Tuple(indices_2d[counter])
+     ind = 0
+     for i2 = 1:n2, i1 = 1:n1
+         ind += 1
          coef = 0.0
          # loop over support of B spline
          for j1 = 1:d1+1, j2 = 1:d2+1
              # loop over Gauss points
              for k1=1:d1+1, k2=1:d2+1
-                 coef += ( w1[k1] * w2[k2] * 
-                           f(δ1 * (x1[k1] + i1 + j1 - 2), δ2 * (x2[k2] + i2 + j2 - 2)) *
-                           bspl_d1[k1,d1+2-j1] * bspl_d2[k2,d2+2-j2] )
+                 xg1 = δ1 * (x1[k1] + i1 + j1 - 2)
+                 xg2 = δ2 * (x2[k2] + i2 + j2 - 2)
+                 coef += w1[k1] * w2[k2] * f(xg1,xg2) * bspl_d1[k1,d1+2-j1] * bspl_d2[k2,d2+2-j2]
              end
          end
          # rescale by cell size
-         coefs_dofs[counter] = coef * δ1 * δ2
+         coefs_dofs[ind] = coef * δ1 * δ2
      end
 
 end 
