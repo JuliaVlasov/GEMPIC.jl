@@ -155,10 +155,8 @@ using Test
 
     efield_val1 = evaluate_spline_2d( nx, ny, [deg-1,deg], efield[1])
     
-    ind = 1
-    for j = 1:nc_eta2, i = 1:nc_eta1
-        efield_ref[ind] = cos_k(x[i,j], y[i,j]) - sin_k(x[i,j], y[i,j])
-        ind = ind+1
+    for i in eachindex(x,y)
+        efield_ref[1][i] = cos_k(x[i], y[i]) - sin_k(x[i], y[i])
     end
 
 #    @test efield_val1 ≈ efield_ref[1]
