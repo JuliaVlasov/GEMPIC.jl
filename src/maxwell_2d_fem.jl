@@ -579,7 +579,7 @@ function multiply_gt!( field_out, solver, field_in )
     for j=1:n2
        for i=1:n1-1
           ind2d = ind2d + 1
-          field_out[ind2d] = coef * ( field_in(ind2d) - field_in[ind2d+jump] )
+          field_out[ind2d] = coef * ( field_in[ind2d] - field_in[ind2d+jump] )
        end
        ind2d = ind2d + 1
        field_out[ind2d] = coef * ( field_in[ind2d] - field_in[ind2d+jump_end])
@@ -605,17 +605,19 @@ function multiply_gt!( field_out, solver, field_in )
 
 end
   
+export compute_rho_from_e!
 
 """
     compute_rho_from_e(rho, solver, efield)
 
 compute rho from e using weak Gauss law ( rho = G^T M_1 e ) 
 """
-function compute_rho_from_e(rho, solver, efield)
+function compute_rho_from_e!(rho, solver, efield)
 
-    work = vcat(efield...)
-    multiply_mass_1form!( solver, efield, work )
-    multiply_gt!( rho, solver, work )
+    work = deepcopy(efield)
+    multiply_mass_1form!( work, solver, efield )
+    work2 = vcat(work...)
+    multiply_gt!( rho, solver, work2 )
 
     rho .*= - 1
 
