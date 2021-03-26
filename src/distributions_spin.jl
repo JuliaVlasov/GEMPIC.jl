@@ -37,34 +37,36 @@ df = CosSumGaussian{1,1,3}([[k]],[α], [[σ₁,σ₂]], [[μ₁,μ₂]])
 """
 struct CosSumGaussianSpin <: AbstractCosGaussian
 
-    params :: CosGaussianParams
+    params::CosGaussianParams
 
-    function CosSumGaussianSpin( k :: Array{Vector{Float64}, 1}, 
-                                 α :: Vector{Float64}, 
-                                 σ :: Array{Vector{Float64}, 1}, 
-                                 μ :: Array{Vector{Float64}, 1},
-                                 δ :: Vector{Float64} = [1.0] )
+    function CosSumGaussianSpin(
+        k::Array{Vector{Float64},1},
+        α::Vector{Float64},
+        σ::Array{Vector{Float64},1},
+        μ::Array{Vector{Float64},1},
+        δ::Vector{Float64} = [1.0],
+    )
 
         dims = (1, 1)
-        params = CosGaussianParams( dims, k, α, σ, μ, δ )
-        new( params )
+        params = CosGaussianParams(dims, k, α, σ, μ, δ)
+        new(params)
 
     end
 
 end
 
-function eval_x_density( f :: CosSumGaussianSpin, x :: Float64 )
-    
+function eval_x_density(f::CosSumGaussianSpin, x::Float64)
+
     fval = 1.0
-    for j=1:f.params.n_cos
-       fval += f.params.α[j] * cos( sum(f.params.k[j] * x) )
+    for j = 1:f.params.n_cos
+        fval += f.params.α[j] * cos(sum(f.params.k[j] * x))
     end
     fval
 
 end
 
-function( f :: CosSumGaussianSpin )( x :: Float64, v :: Float64 )
+function (f::CosSumGaussianSpin)(x::Float64, v::Float64)
 
-    eval_x_density( f, x) * eval_v_density( f, v)
+    eval_x_density(f, x) * eval_v_density(f, v)
 
 end

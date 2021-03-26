@@ -12,39 +12,41 @@ distribution along x and a Normal distribution along v.
 """
 struct CosGaussianParams
 
-    dims        :: Tuple{Int64, Int64}
-    n_cos       :: Int64
-    n_gaussians :: Int64
-    k           :: Array{Vector{Float64}, 1}
-    α           :: Vector{Float64}
-    σ           :: Array{Vector{Float64}, 1}
-    μ           :: Array{Vector{Float64}, 1}
-    normal      :: Vector{Float64}
-    δ           :: Vector{Float64}
+    dims::Tuple{Int64,Int64}
+    n_cos::Int64
+    n_gaussians::Int64
+    k::Array{Vector{Float64},1}
+    α::Vector{Float64}
+    σ::Array{Vector{Float64},1}
+    μ::Array{Vector{Float64},1}
+    normal::Vector{Float64}
+    δ::Vector{Float64}
 
-    function CosGaussianParams( dims :: Tuple{Int64, Int64},
-                                k    :: Array{Vector{Float64}, 1}, 
-                                α    :: Vector{Float64}, 
-                                σ    :: Array{Vector{Float64}, 1}, 
-                                μ    :: Array{Vector{Float64}, 1},
-                                δ    :: Vector{Float64} = [1.0]) 
+    function CosGaussianParams(
+        dims::Tuple{Int64,Int64},
+        k::Array{Vector{Float64},1},
+        α::Vector{Float64},
+        σ::Array{Vector{Float64},1},
+        μ::Array{Vector{Float64},1},
+        δ::Vector{Float64} = [1.0],
+    )
 
-        n_cos = length(k) 
+        n_cos = length(k)
         @assert n_cos == length(α)
-        for i in 1:n_cos
+        for i = 1:n_cos
             @assert length(k[i]) == dims[1]
         end
         n_gaussians = length(σ)
         @assert n_gaussians == length(μ)
-        @assert all( σ .!= 0.0)
+        @assert all(σ .!= 0.0)
         normal = zeros(n_gaussians)
-        for j in 1:n_gaussians
+        for j = 1:n_gaussians
             @assert length(σ[j]) == dims[2]
-            normal[j] = 1.0/((2π)^(0.5*dims[2])*prod(σ[j]))
+            normal[j] = 1.0 / ((2π)^(0.5 * dims[2]) * prod(σ[j]))
         end
         @assert sum(δ) == 1.0
 
-        new( dims, n_cos, n_gaussians, k, α, σ, μ, normal, δ )
+        new(dims, n_cos, n_gaussians, k, α, σ, μ, normal, δ)
     end
 
 end
@@ -86,21 +88,23 @@ df = CosSumGaussian{1,2}([[k]],[α], [[σ₁,σ₂]], [[μ₁,μ₂]])
 ```
 
 """
-struct CosSumGaussian{D, V} <: AbstractCosGaussian
+struct CosSumGaussian{D,V} <: AbstractCosGaussian
 
-    dims        :: Tuple{Int64, Int64}
-    params      :: CosGaussianParams
+    dims::Tuple{Int64,Int64}
+    params::CosGaussianParams
 
-    function CosSumGaussian{D, V}( k :: Array{Vector{Float64}, 1}, 
-                                   α :: Vector{Float64}, 
-                                   σ :: Array{Vector{Float64}, 1}, 
-                                   μ :: Array{Vector{Float64}, 1},
-                                   δ :: Vector{Float64} = [1.0] ) where {D,V}
+    function CosSumGaussian{D,V}(
+        k::Array{Vector{Float64},1},
+        α::Vector{Float64},
+        σ::Array{Vector{Float64},1},
+        μ::Array{Vector{Float64},1},
+        δ::Vector{Float64} = [1.0],
+    ) where {D,V}
 
-        dims   = (D, V)
-        params = CosGaussianParams( dims, k, α, σ, μ, δ )
+        dims = (D, V)
+        params = CosGaussianParams(dims, k, α, σ, μ, δ)
 
-        new( dims, params )
+        new(dims, params)
     end
 
 end
@@ -142,28 +146,29 @@ df = SumCosGaussian{1,2}([[k₁],[k₂]], [α₁, α₂], [[σ₁,σ₂]], [[0.0
 ```
 """
 struct SumCosGaussian{D,V} <: AbstractCosGaussian
-    dims   :: Tuple{Int64,Int64}
-    params :: CosGaussianParams
+    dims::Tuple{Int64,Int64}
+    params::CosGaussianParams
 
-    function SumCosGaussian{D,V}( k :: Array{Array{Float64,1},1}, 
-                                  α :: Vector{Float64}, 
-                                  σ :: Array{Array{Float64,1},1}, 
-                                  μ :: Array{Array{Float64,1},1},
-                                  δ :: Array{Float64,1} = [1.0]
-                                  ) where {D,V}
+    function SumCosGaussian{D,V}(
+        k::Array{Array{Float64,1},1},
+        α::Vector{Float64},
+        σ::Array{Array{Float64,1},1},
+        μ::Array{Array{Float64,1},1},
+        δ::Array{Float64,1} = [1.0],
+    ) where {D,V}
 
-        dims   = (D, V)
-        params = CosGaussianParams( dims, k, α, σ, μ, δ)
-        new( dims, params )
+        dims = (D, V)
+        params = CosGaussianParams(dims, k, α, σ, μ, δ)
+        new(dims, params)
     end
 
 end
 
-function eval_x_density( f :: CosSumGaussian, x :: Union{Float64,Vector{Float64}} )
-    
+function eval_x_density(f::CosSumGaussian, x::Union{Float64,Vector{Float64}})
+
     fval = 1.0
-    for j=1:f.params.n_cos
-       fval += f.params.α[j] * cos( sum(f.params.k[j] .* x) )
+    for j = 1:f.params.n_cos
+        fval += f.params.α[j] * cos(sum(f.params.k[j] .* x))
     end
     fval
 
@@ -174,12 +179,11 @@ end
 
 evaluate the cosine part of the distribution function
 """
-function eval_x_density( f :: SumCosGaussian, 
-                         x :: Union{Float64,Vector{Float64}} )
-    
+function eval_x_density(f::SumCosGaussian, x::Union{Float64,Vector{Float64}})
+
     fval = 1.0
-    for j=1:f.params.n_cos
-       fval += f.params.α[j] * cos( sum(f.params.k[j] .* x) )
+    for j = 1:f.params.n_cos
+        fval += f.params.α[j] * cos(sum(f.params.k[j] .* x))
     end
     fval
 
@@ -190,26 +194,26 @@ end
 
 evaluate the normal part of the distribution function
 """
-function eval_v_density( f :: AbstractCosGaussian, 
-                         v :: Union{Float64,Vector{Float64}} ) 
+function eval_v_density(f::AbstractCosGaussian, v::Union{Float64,Vector{Float64}})
 
     fval = 0.0
-    for j=1:f.params.n_gaussians
-       fval += f.params.normal[j] * f.params.δ[j] .* exp( - 0.5 * 
-               sum( ((v .- f.params.μ[j]) ./ f.params.σ[j]).^2))
+    for j = 1:f.params.n_gaussians
+        fval +=
+            f.params.normal[j] * f.params.δ[j] .*
+            exp(-0.5 * sum(((v .- f.params.μ[j]) ./ f.params.σ[j]) .^ 2))
     end
     fval
 
-end 
+end
 
-function( f :: CosSumGaussian )( x, v )
+function (f::CosSumGaussian)(x, v)
 
-    eval_x_density( f, x) * eval_v_density( f, v)
+    eval_x_density(f, x) * eval_v_density(f, v)
 
 end
 
-function( f :: SumCosGaussian )( x, v )
+function (f::SumCosGaussian)(x, v)
 
-    eval_x_density( f, x) * eval_v_density( f, v)
+    eval_x_density(f, x) * eval_v_density(f, v)
 
 end

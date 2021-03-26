@@ -29,7 +29,7 @@ struct TwoDGrid <: AbstractGrid
     dx::Float64
     dy::Float64
 
-    function TwoDGrid(xmin, xmax, nx :: Int, ymin, ymax, ny :: Int)
+    function TwoDGrid(xmin, xmax, nx::Int, ymin, ymax, ny::Int)
 
         dimx = xmax - xmin
         dimy = ymax - ymin

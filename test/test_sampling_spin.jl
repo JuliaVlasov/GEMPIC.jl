@@ -1,62 +1,60 @@
 @testset "Spin Sampling" begin
 
-function test_sampling_spin( sampling_type :: Symbol, 
-                        pg :: ParticleGroup{D,V}, 
-                        df :: CosSumGaussianSpin ) where {D, V}
+    function test_sampling_spin(
+        sampling_type::Symbol,
+        pg::ParticleGroup{D,V},
+        df::CosSumGaussianSpin,
+    ) where {D,V}
 
-   mean  = zeros(2)
-   sigma = zeros(2)
+        mean = zeros(2)
+        sigma = zeros(2)
 
-   n_particles = pg.n_particles
-   
-   sampling = ParticleSampler{D,V}( sampling_type, n_particles )
+        n_particles = pg.n_particles
 
-   sample!( pg, sampling, df, mesh )
-   
-   for i_part = 1:n_particles
-       xi = get_x(pg, i_part)
-       vi = get_v(pg, i_part)
-       mean[1] += xi[1]
-       mean[2] += vi[1]
-   end
+        sampling = ParticleSampler{D,V}(sampling_type, n_particles)
 
-   mean = mean/n_particles
+        sample!(pg, sampling, df, mesh)
 
-   for i_part = 1:n_particles
-       xi = get_x(pg, i_part)
-       vi = get_v(pg, i_part)
-       sigma[1] += (xi[1] - mean[1])^2
-       sigma[2] += (vi[1] - mean[2])^2
-   end
-   
-   sigma = sigma/(n_particles-1)
-   
-   mean, sigma
-   
-end
+        for i_part = 1:n_particles
+            xi = get_x(pg, i_part)
+            vi = get_v(pg, i_part)
+            mean[1] += xi[1]
+            mean[2] += vi[1]
+        end
 
-σ, μ = 0.02, 0.0
-kx, α = 1.004355, 0.001
-n_particles = 100000
-xmin        = 0.0
-xmax        = 2π / kx
-Lx          = xmax - xmin  
-nx          = 512
+        mean = mean / n_particles
 
-mesh = OneDGrid( xmax, xmin, nx)
+        for i_part = 1:n_particles
+            xi = get_x(pg, i_part)
+            vi = get_v(pg, i_part)
+            sigma[1] += (xi[1] - mean[1])^2
+            sigma[2] += (vi[1] - mean[2])^2
+        end
 
-pg = ParticleGroup{1,1}(n_particles, n_spin=3)
+        sigma = sigma / (n_particles - 1)
 
-params = ( k = [[kx]],
-           α = [α],
-           σ = [[σ]],
-           μ = [[μ]]
-)
+        mean, sigma
 
-df = CosSumGaussianSpin(params...)
+    end
 
-mean, sigma = test_sampling_spin( :sobol, pg, df)
+    σ, μ = 0.02, 0.0
+    kx, α = 1.004355, 0.001
+    n_particles = 100000
+    xmin = 0.0
+    xmax = 2π / kx
+    Lx = xmax - xmin
+    nx = 512
 
-@test true
+    mesh = OneDGrid(xmax, xmin, nx)
+
+    pg = ParticleGroup{1,1}(n_particles, n_spin = 3)
+
+    params = (k = [[kx]], α = [α], σ = [[σ]], μ = [[μ]])
+
+    df = CosSumGaussianSpin(params...)
+
+    mean, sigma = test_sampling_spin(:sobol, pg, df)
+
+    @test true
 
 end
