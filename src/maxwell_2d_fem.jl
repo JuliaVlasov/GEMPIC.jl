@@ -450,81 +450,22 @@ function compute_b_from_e!( b, solver, dt, e)
     dx1 = solver.mesh.dx
     dx2 = solver.mesh.dy
 
-    db = deepcopy( b )
-
-    coef1 = 1.0/ dx2
-
-    stride1 = nx1
-    stride2 = nx1 * nx2
-
-    ind2d = 0
     for j=1:nx2
-       if j==1 
-          indp1 = stride1 * ( nx2 - 1)
-       else
-          indp1 = - stride1
-       end
-       for i=1:nx1
-          ind2d = ind2d + 1
-          ind2d_1 = ind2d + indp1
-          db[1][ind2d] = coef1 * ( e[3][ind2d] - e[3][ind2d_1])
-       end
-    end
-    
-
-    coef2 = -1.0/ dx1
-    stride2 = 1
-
-    ind2d = 0
-    for j=1:nx2, i=1:nx1
-        if i==1 
-           indp2 = stride2*(nx1-1)
-        else
-           indp2 = - stride2
-        end
-        ind2d = ind2d + 1
-
-        ind2d_2 = ind2d +indp2
-           
-        db[2][ind2d] = coef2 * ( e[3][ind2d] - e[3][ind2d_2])
-    end
-
-    # Third component
-    coef1 = 1.0/ dx1
-    coef2 = -1.0/ dx2
-
-    stride1 = 1
-    stride2 = nx1
-
-    ind2d = 0
-
-    for j=1:nx2
-        if j == 1
-            indp2 = stride2*(nx2-1)
-        else
-            indp2 = - stride2
-        end
+        indp2 = j == 1 ? nx1*(nx2-1) : - nx1
         for i=1:nx1
-            if i==1
-                indp1 = stride1*(nx1-1)
-            else
-                indp1 = - stride1
-            end
-            ind2d = ind2d + 1
+            indp1 = i==1 ?  nx1 - 1 : - 1
+            ind2d   = (j-1)*nx1 + i 
+            ind2d_1 = ind2d + indp1
+            ind2d_2 = ind2d + indp2
            
-            ind2d_1 = ind2d +indp1
-            ind2d_2 = ind2d +indp2
-           
-            db[3][ind2d] = ( coef1 * (e[1][ind2d] - e[1][ind2d_1]) 
-                           + coef2 * (e[2][ind2d] - e[2][ind2d_2]))
+            b[1][ind2d] += - dt * ( e[3][ind2d] - e[3][ind2d_2]) / dx2
+            b[2][ind2d] +=   dt * ( e[3][ind2d] - e[3][ind2d_1]) / dx1
+            b[3][ind2d] += - dt * ((e[2][ind2d] - e[2][ind2d_1]) / dx1 
+                                 - (e[1][ind2d] - e[1][ind2d_2]) / dx2)
            
         end
     end
     
-    b[1] .-= dt .* db[1]
-    b[2] .-= dt .* db[2]
-    b[3] .-= dt .* db[3]
-  
 end
   
 
