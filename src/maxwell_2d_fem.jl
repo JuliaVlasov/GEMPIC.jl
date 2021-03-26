@@ -346,7 +346,7 @@ compute Ey from Bz using weak Ampere formulation
 """
 function compute_e_from_b!(e, solver, dt, b)
 
-    n1, n2 = solver.mesh.nx, solver.mesh.ny
+    nx1, nx2 = solver.mesh.nx, solver.mesh.ny
     dx1, dx2 = solver.mesh.dx, solver.mesh.dy
 
     work = deepcopy(b)
@@ -356,66 +356,18 @@ function compute_e_from_b!(e, solver, dt, b)
     multiply_mass_2dkron!( work[3], solver, solver.mass_line_1[1], solver.mass_line_1[2], b[3] )
 
     work2 = deepcopy(work)
-    
-    coef1 = -1.0/ dx2
-    stride1 = n1
-    
-    ind2d = 0
-    for j=1:n2
-       if j == n2
-          indp1 = -stride1*(n2-1)
-       else
-          indp1 = stride1
-       end
-       for i=1:n1
-          ind2d = ind2d + 1
-          ind2d_1 = ind2d + indp1
-          work2[1][ind2d] = coef1 * ( work[3][ind2d] - work[3][ind2d_1])
-          
-       end
-    end
 
-
-    coef2 = 1.0/ dx1
-    stride2 = 1
-    ind2d = 0
-    for j=1:n2, i=1:n1
-        if i==n1
-            indp2 = -stride2*(n1-1)
-        else
-            indp2 = stride2
-        end
-        ind2d = ind2d + 1
-        ind2d_2 = ind2d +indp2
-        work2[2][ind2d] = coef2 * ( work[3][ind2d] - work[3][ind2d_2])
-    end
-
-    coef1 = -1.0/ dx1
-    coef2 = 1.0/ dx2
-
-    stride1 = 1
-    stride2 = n1
-
-    ind2d = 0
-    for j=1:n2
-        if j == n2
-           indp2 = -stride2*(n2-1)
-        else
-           indp2 = stride2
-        end
-        for i=1:n1
-           if i==n1
-              indp1 = -stride1*(n1-1)
-           else
-              indp1 = stride1
-           end
-           ind2d = ind2d + 1
-
-           ind2d_1 = ind2d +indp1
-           ind2d_2 = ind2d +indp2
-              
-           work2[3][ind2d] = ( coef1 * ( work[2][ind2d] - work[2][ind2d_1] )
-                             + coef2 * ( work[1][ind2d] - work[1][ind2d_2] ))
+    for j=1:nx2
+        indp2 = j == nx2 ?  -nx1*(nx2-1) : nx1
+        for i=1:nx1
+            indp1 = i == nx1 ? -(nx1-1) : 1
+            ind2d = (j-1) * nx1 + i
+            ind2d_1 = ind2d + indp1
+            ind2d_2 = ind2d + indp2
+            work2[1][ind2d] = ( work[3][ind2d] - work[3][ind2d_2]) / dx2
+            work2[2][ind2d] = - ( work[3][ind2d] - work[3][ind2d_1]) / dx1
+            work2[3][ind2d] = (( work[2][ind2d] - work[2][ind2d_1]) / dx1 
+                            - ( work[1][ind2d] - work[1][ind2d_2]) / dx2)
               
         end
     end
@@ -427,9 +379,9 @@ function compute_e_from_b!(e, solver, dt, b)
     work[3] .= solve(solver.inverse_mass_1[3], work2[3] ) 
 
     # Update b from solver value
-    e[1] .= b[1] .+ dt .* work[1]
-    e[2] .= b[2] .+ dt .* work[2]
-    e[3] .= b[3] .+ dt .* work[3]
+    e[1] .= e[1] .+ dt .* work[1]
+    e[2] .= e[2] .+ dt .* work[2]
+    e[3] .= e[3] .+ dt .* work[3]
 
 end
 
