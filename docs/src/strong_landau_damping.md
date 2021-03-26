@@ -3,9 +3,9 @@
 If we only use the subsystems $H_p$ and $H_E$, we are solving Vlasov--Poisson system.
 In this test, initial condition is as follows:
 
-$$
+```math
 f_0(x,v) = \frac{1}{\sqrt{2\pi} \sigma}e^{-\frac{v^2}{2\sigma^2}}(1+\alpha \cos(kx)), \quad E_{10} (x) = \frac{\alpha}{k}\sin(kx), \ x \in [0,2\pi/k ),  \ v \in \mathbb{R}^2.
-$$
+```
 
 ```@setup strong
 using Plots

@@ -228,8 +228,6 @@ function compute_fem_rhs!(coefs_dofs :: Vector{Float64}, solver :: TwoDMaxwell, 
          bspl_d2[k,:] .= uniform_bsplines_eval_basis(d2,x2[k])
      end
 
-     indices_2d = CartesianIndices(reshape(coefs_dofs, n1, n2))
-
      # Compute coefs_dofs = int f(x)N_i(x) 
      ind = 0
      for i2 = 1:n2, i1 = 1:n1
@@ -263,9 +261,9 @@ function l2projection(solver :: TwoDMaxwell, f, component, form)
     compute_fem_rhs!(work, solver, f, component, form)
  
     if form == 1 
-        solve_real_mass1(solver.inverse_mass_1[component], work )
+        solve(solver.inverse_mass_1[component], work )
     elseif form == 2
-        solve_real_mass1(solver.inverse_mass_2[component], work )
+        solve(solver.inverse_mass_2[component], work )
     end
  
 end 
@@ -424,9 +422,9 @@ function compute_e_from_b!(e, solver, dt, b)
 
     de = deepcopy(e)
     
-    work[1] .= solve_real_mass1(solver.inverse_mass_1[1], work2[1] ) 
-    work[2] .= solve_real_mass1(solver.inverse_mass_1[2], work2[2] ) 
-    work[3] .= solve_real_mass1(solver.inverse_mass_1[3], work2[3] ) 
+    work[1] .= solve(solver.inverse_mass_1[1], work2[1] ) 
+    work[2] .= solve(solver.inverse_mass_1[2], work2[2] ) 
+    work[3] .= solve(solver.inverse_mass_1[3], work2[3] ) 
 
     # Update b from solver value
     e[1] .= b[1] .+ dt .* work[1]
@@ -541,7 +539,7 @@ Compute E_i from j_i integrated over the time interval using weak Ampere formula
 """
 function compute_e_from_j!(e, solver :: TwoDMaxwell, current, component)
 
-    work = solve_real_mass1( solver.inverse_mass_1[component], current )
+    work = solve( solver.inverse_mass_1[component], current )
 
     e .= e .- work
 
