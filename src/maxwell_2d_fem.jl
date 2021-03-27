@@ -15,13 +15,9 @@ struct TwoDMaxwell
 
     mesh :: TwoDGrid
 
-    mass_line_0_x :: Array{Float64,1}
-    mass_line_1_x :: Array{Float64,1}
-    mass_line_mixed_x :: Array{Float64,1}
-    mass_line_0_y :: Array{Float64,1}
-    mass_line_1_y :: Array{Float64,1}
-    mass_line_mixed_y :: Array{Float64,1}
-
+    mass_line_0 :: Vector{Array{Float64,1}}
+    mass_line_1 :: Vector{Array{Float64,1}}
+    mass_line_mixed :: Vector{Array{Float64,1}}
     inverse_mass_1 :: Vector{TwoDLinearSolverSplineMass}
     inverse_mass_2 :: Vector{TwoDLinearSolverSplineMass}
     poisson :: TwoDPoisson
@@ -37,35 +33,33 @@ struct TwoDMaxwell
         # Assemble the mass matrices
         # First assemble a mass line for both degrees
 
-        mass_line_0_x = spline_fem_mass_line( s_deg_0 ) .* dx
-        mass_line_0_y = spline_fem_mass_line( s_deg_0 ) .* dy
-        mass_line_1_x = spline_fem_mass_line( s_deg_1 ) .* dx
-        mass_line_1_y = spline_fem_mass_line( s_deg_1 ) .* dy
-        mass_line_mixed_x = spline_fem_mixedmass_line( s_deg_0 ) .* dx
-        mass_line_mixed_y = spline_fem_mixedmass_line( s_deg_0 ) .* dy
+        mass_line_0 = [ spline_fem_mass_line( s_deg_0 ) .* dx,
+                        spline_fem_mass_line( s_deg_0 ) .* dy ]
+
+        mass_line_1 = [ spline_fem_mass_line( s_deg_1 ) .* dx,
+                        spline_fem_mass_line( s_deg_1 ) .* dy ]
+
+        mass_line_mixed = [ spline_fem_mixedmass_line( s_deg_0 ) .* dx,
+                            spline_fem_mixedmass_line( s_deg_0 ) .* dy ]
 
         # Next put together the 1d parts of the 2d Kronecker product
 
-        eig_values_mass_0_1 = spline_fem_compute_mass_eig( nx, s_deg_0, mass_line_0_x)
-        eig_values_mass_0_2 = spline_fem_compute_mass_eig( ny, s_deg_0, mass_line_0_y)
-        eig_values_mass_1_1 = spline_fem_compute_mass_eig( nx, s_deg_1, mass_line_1_x)
-        eig_values_mass_1_2 = spline_fem_compute_mass_eig( ny, s_deg_1, mass_line_1_y)
+        eig_values_mass_0_1 = spline_fem_compute_mass_eig( nx, s_deg_0, mass_line_0[1])
+        eig_values_mass_0_2 = spline_fem_compute_mass_eig( ny, s_deg_0, mass_line_0[2])
+        eig_values_mass_1_1 = spline_fem_compute_mass_eig( nx, s_deg_1, mass_line_1[1])
+        eig_values_mass_1_2 = spline_fem_compute_mass_eig( ny, s_deg_1, mass_line_1[2])
 
-        inverse_mass_1 = TwoDLinearSolverSplineMass[]
-        push!(inverse_mass_1, TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_1_1, eig_values_mass_0_2))
-        push!(inverse_mass_1, TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_0_1, eig_values_mass_1_2))
-        push!(inverse_mass_1, TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_0_1, eig_values_mass_0_2))
+        inverse_mass_1 = [ TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_1_1, eig_values_mass_0_2),
+                           TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_0_1, eig_values_mass_1_2),
+                           TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_0_1, eig_values_mass_0_2) ]
 
-        inverse_mass_2 = TwoDLinearSolverSplineMass[]
-        push!(inverse_mass_2, TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_0_1, eig_values_mass_1_2))
-        push!(inverse_mass_2, TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_1_1, eig_values_mass_0_2))
-        push!(inverse_mass_2, TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_1_1, eig_values_mass_1_2))
+        inverse_mass_2 = [ TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_0_1, eig_values_mass_1_2),
+                           TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_1_1, eig_values_mass_0_2),
+                           TwoDLinearSolverSplineMass( nx, ny, eig_values_mass_1_1, eig_values_mass_1_2)]
 
         poisson = TwoDPoisson( mesh, s_deg_0 )
 
-        new( s_deg_0, s_deg_1, mesh, 
-             mass_line_0_x, mass_line_1_x, mass_line_mixed_x, 
-             mass_line_0_y, mass_line_1_y, mass_line_mixed_y,
+        new( s_deg_0, s_deg_1, mesh, mass_line_0, mass_line_1, mass_line_mixed, 
              inverse_mass_1, inverse_mass_2, poisson )
      
     end 
@@ -108,7 +102,8 @@ end
 Compute the FEM right-hand-side for a given function f and periodic splines of given degree
 Its components are ``\\int f N_i dx`` where ``N_i`` is the B-spline starting at ``x_i`` 
 """
-function compute_rhs_from_function(solver :: TwoDMaxwell, f :: Function, component, form)
+function compute_rhs_from_function(solver :: TwoDMaxwell, f :: Function, 
+     component :: Int, form :: Int )
 
      nx, ny = solver.mesh.nx, solver.mesh.ny
      dx, dy = solver.mesh.dx, solver.mesh.dy
@@ -117,22 +112,17 @@ function compute_rhs_from_function(solver :: TwoDMaxwell, f :: Function, compone
 
      coefs_dofs = zeros(nx * ny)  # Finite Element right-hand-side
 
-     degree = zeros(Int, 2)
      # Define the spline degree in the 3 dimensions, depending on form and component of the form
      if form == 0
-        degree .= deg_0
+        degree = [ deg_0, deg_0]
      elseif (form == 1 )
-        degree .= deg_0
-        if component<3
-           degree[component] = deg_1
-        end
+        degree = [ deg_0, deg_0]
+        component < 3 && ( degree[component] = deg_1 )
      elseif form == 2
-        degree .= deg_1
-        if (component<3)
-           degree[component] = deg_0
-        end
+        degree = [ deg_1, deg_1]
+        component < 3 && ( degree[component] = deg_0 )
      elseif form == 3
-        degree .=  deg_1
+        degree = [ deg_1, deg_1]
      else 
         @error " Wrong form "
      end
@@ -176,4 +166,350 @@ function compute_rhs_from_function(solver :: TwoDMaxwell, f :: Function, compone
          counter = counter+1
      end
 
+     coefs_dofs
+
 end 
+
+function compute_e_from_rho!( efield, solver:: TwoDMaxwell,  rho ) 
+
+    compute_e_from_rho!( efield, solver.poisson,  rho )
+
+end
+
+"""
+    compute_fem_rhs(solver, func , component, form, coefs_dofs)
+
+Compute the FEM right-hand-side for a given function f and periodic splines of given degree
+Its components are ``\\int f N_i dx`` where ``N_i`` is the B-spline starting at ``x_i`` 
+- component : Specify the component
+- form : Specify 0,1,2 or 3 form
+coefs_dofs - Finite Element right-hand-side
+"""
+function compute_fem_rhs!(coefs_dofs :: Vector{Float64}, solver :: TwoDMaxwell, f, component :: Int, form :: Int)
+
+     n1, n2 = solver.mesh.nx, solver.mesh.ny
+     δ1, δ2 = solver.mesh.dx, solver.mesh.dy
+     s_deg_0, s_deg_1 = solver.s_deg_0, solver.s_deg_1
+
+     if form == 0 
+        degree = [s_deg_0, s_deg_0]
+     elseif form == 1
+        degree = [s_deg_0, s_deg_0]
+        if component<3
+           degree[component] = s_deg_1
+        end
+     elseif form == 2
+        degree = [s_deg_1, s_deg_1]
+        if component<3
+           degree[component] = s_deg_0
+        end
+     elseif form == 3
+        degree = [s_deg_1, s_deg_1]
+     end
+
+     d1, d2 = degree
+
+     # take enough Gauss points so that projection is exact for splines of degree deg
+     # rescale on [0,1] for compatibility with B-splines
+
+     bspl_d1 = zeros(d1+1, d1+1)
+     x1, w1 = gausslegendre(d1+1)
+     x1 .+= 1; x1 ./= 2; w1 ./= 2
+     # Compute bsplines at gauss_points
+     for k=1:d1+1
+         bspl_d1[k,:] .= uniform_bsplines_eval_basis(d1,x1[k])
+     end
+
+     bspl_d2 = zeros(d2+1, d2+1)
+     x2, w2 = gausslegendre(d2+1)
+     x2 .+= 1; x2 ./= 2; w2 ./= 2
+     # Compute bsplines at gauss_points
+     for k=1:d2+1
+         bspl_d2[k,:] .= uniform_bsplines_eval_basis(d2,x2[k])
+     end
+
+     # Compute coefs_dofs = int f(x)N_i(x) 
+     ind = 0
+     for i2 = 1:n2, i1 = 1:n1
+         ind += 1
+         coef = 0.0
+         # loop over support of B spline
+         for j1 = 1:d1+1, j2 = 1:d2+1
+             # loop over Gauss points
+             for k1=1:d1+1, k2=1:d2+1
+                 xg1 = δ1 * (x1[k1] + i1 + j1 - 2)
+                 xg2 = δ2 * (x2[k2] + i2 + j2 - 2)
+                 coef += w1[k1] * w2[k2] * f(xg1,xg2) * bspl_d1[k1,d1+2-j1] * bspl_d2[k2,d2+2-j2]
+             end
+         end
+         # rescale by cell size
+         coefs_dofs[ind] = coef * δ1 * δ2
+     end
+
+end 
+
+
+export l2projection
+"""
+Compute the L2 projection of a given function f on periodic splines of given degree
+"""
+function l2projection(solver :: TwoDMaxwell, f, component, form)
+
+    n1, n2 = solver.mesh.nx, solver.mesh.ny
+
+    work = zeros( n1 * n2 )
+    compute_fem_rhs!(work, solver, f, component, form)
+ 
+    if form == 1 
+        solve(solver.inverse_mass_1[component], work )
+    elseif form == 2
+        solve(solver.inverse_mass_2[component], work )
+    end
+ 
+end 
+
+function spline_fem_multiply_mass( n_cells, degree, mass, invec )
+
+    outvec = copy(invec)
+
+    ind = 1
+    # For the first degree rows we need to put the first part to the back due to periodic boundaries
+    for row = 1:degree
+       outvec[row] = mass[1]*invec[row]
+       for column = 1:row-1
+          outvec[row] += mass[column+1]*(invec[row+column] + invec[row-column])
+       end
+       for column = row:degree
+          outvec[row] += mass[column+1]*(invec[row+column] + invec[row-column+n_cells])
+       end
+    end
+
+    for row = degree+1:n_cells-degree
+       outvec[row] = mass[1]*invec[row]
+       for column = 1:degree
+          outvec[row] += mass[column+1]*(invec[row+column] + invec[row-column])
+       end
+    end
+
+    # For the last degree rows, we need to put the second part to the front due to periodic boundaries
+    for row = n_cells-degree+1:n_cells
+       outvec[row] = mass[1]*invec[row]
+       for column = 1:n_cells-row
+          outvec[row] += mass[column+1]*(invec[row+column] + invec[row-column])
+       end
+       for column = n_cells-row+1:degree
+          outvec[row] += mass[column+1]*(invec[row+column-n_cells] + invec[row-column])
+       end
+    end
+
+    outvec
+
+end
+
+
+"""
+Multiply by the mass matrix 
+"""
+function multiply_mass_2dkron!( c_out, solver, mass_line_1, mass_line_2,  c_in )
+
+    nx1 = solver.mesh.nx
+    nx2 = solver.mesh.ny
+    deg1 = size(mass_line_1)[1]-1
+    deg2 = size(mass_line_2)[1]-1
+    work2d = zeros(nx1, nx2)
+    
+    istart = 1
+    iend = nx1
+    for j=1:nx2
+       work2d[:,j] .= spline_fem_multiply_mass( nx1, deg1, mass_line_1, c_in[istart:iend] )          
+       istart = iend+1
+       iend += nx1
+    end
+
+    istart = 1
+    for i =1:nx1
+        work_d2_in = view(work2d,i,:)
+        work_d2_out = spline_fem_multiply_mass( nx2, deg2, mass_line_2, work_d2_in )
+        for j=1:nx2
+            c_out[istart+(j-1)*nx1] = work_d2_out[j]
+        end
+        istart += 1
+    end
+     
+end
+
+
+
+"""
+    compute_e_from_b!(e, solver, delta_t, b)
+
+compute Ey from Bz using weak Ampere formulation 
+"""
+function compute_e_from_b!(e, solver, dt, b)
+
+    nx1, nx2 = solver.mesh.nx, solver.mesh.ny
+    dx1, dx2 = solver.mesh.dx, solver.mesh.dy
+
+    work = deepcopy(b)
+
+    multiply_mass_2dkron!( work[1], solver, solver.mass_line_0[1], solver.mass_line_1[2], b[1] )
+    multiply_mass_2dkron!( work[2], solver, solver.mass_line_1[1], solver.mass_line_0[2], b[2] )
+    multiply_mass_2dkron!( work[3], solver, solver.mass_line_1[1], solver.mass_line_1[2], b[3] )
+
+    curl_b = deepcopy(work)
+
+    # Compute curl with periodic boundary conditions
+    for j=1:nx2
+        indp2 = j == nx2 ?  -nx1*(nx2-1) : nx1
+        for i=1:nx1
+            indp1 = i == nx1 ? -(nx1-1) : 1
+            ind2d = (j-1) * nx1 + i
+            ind2d_1 = ind2d + indp1
+            ind2d_2 = ind2d + indp2
+            curl_b[1][ind2d] = - ( work[3][ind2d] - work[3][ind2d_2]) / dx2
+            curl_b[2][ind2d] = + ( work[3][ind2d] - work[3][ind2d_1]) / dx1
+            curl_b[3][ind2d] = (- ( work[2][ind2d] - work[2][ind2d_1]) / dx1 
+                                + ( work[1][ind2d] - work[1][ind2d_2]) / dx2)
+              
+        end
+    end
+
+    curl_b[1] .= solve(solver.inverse_mass_1[1], curl_b[1] ) 
+    curl_b[2] .= solve(solver.inverse_mass_1[2], curl_b[2] ) 
+    curl_b[3] .= solve(solver.inverse_mass_1[3], curl_b[3] ) 
+
+    # Update b from solver value
+    e[1] .= e[1] .+ dt .* curl_b[1]
+    e[2] .= e[2] .+ dt .* curl_b[2]
+    e[3] .= e[3] .+ dt .* curl_b[3]
+
+end
+
+
+"""
+    compute_b_from_e!(b, solver, delta_t, e)
+
+Compute Bz from Ey using strong 1D Faraday equation for spline coefficients
+``B_z^{new}(x_j) = B_z^{old}(x_j) - \\frac{\\Delta t}{\\Delta x} (E_y(x_j) - E_y(x_{j-1}) ``
+
+multiplying by discrete curl matrix
+
+"""
+function compute_b_from_e!( b, solver, dt, e)
+
+    nx1 = solver.mesh.nx
+    nx2 = solver.mesh.ny
+    dx1 = solver.mesh.dx
+    dx2 = solver.mesh.dy
+
+    for j=1:nx2
+        indp2 = j == 1 ? nx1*(nx2-1) : - nx1
+        for i=1:nx1
+            indp1 = i==1 ?  nx1 - 1 : - 1
+            ind2d   = (j-1)*nx1 + i 
+            ind2d_1 = ind2d + indp1
+            ind2d_2 = ind2d + indp2
+           
+            b[1][ind2d] += - dt * ( e[3][ind2d] - e[3][ind2d_2]) / dx2
+            b[2][ind2d] +=   dt * ( e[3][ind2d] - e[3][ind2d_1]) / dx1
+            b[3][ind2d] += - dt * ((e[2][ind2d] - e[2][ind2d_1]) / dx1 
+                                 - (e[1][ind2d] - e[1][ind2d_2]) / dx2)
+           
+        end
+    end
+    
+end
+  
+
+"""
+    compute_e_from_j(e, solver, current, component)
+
+Compute E_i from j_i integrated over the time interval using weak Ampere formulation
+- solver : Maxwell solver class
+- current : Component of the current integrated over time interval
+- component : Component of the Efield to be computed
+- e : Updated electric field
+"""
+function compute_e_from_j!(e, solver :: TwoDMaxwell, current, component)
+
+    work = solve( solver.inverse_mass_1[component], current )
+
+    e .= e .- work
+
+end
+  
+
+
+export compute_rho_from_e!
+
+"""
+    compute_rho_from_e(rho, solver, efield)
+
+compute rho from e using weak Gauss law ( rho = G^T M_1 e ) 
+"""
+function compute_rho_from_e!(rho, solver, efield)
+
+    work = deepcopy(efield)
+    multiply_mass_2dkron!( work[1], solver, solver.mass_line_1[1], solver.mass_line_0[2], efield[1] )
+    multiply_mass_2dkron!( work[2], solver, solver.mass_line_0[1], solver.mass_line_1[2], efield[2] )
+    multiply_mass_2dkron!( work[3], solver, solver.mass_line_0[1], solver.mass_line_0[2], efield[3] )
+
+    dx1, dx2 = solver.mesh.dx, solver.mesh.dy
+    nx1, nx2 = solver.mesh.nx, solver.mesh.ny
+
+    # Compute div with periodic boundary conditions
+    for j=1:nx2
+        indp2 = j == nx2 ?  -nx1*(nx2-1) : nx1
+        for i=1:nx1
+            indp1 = i == nx1 ? 1-nx1 : 1
+            ind2d = (j-1) * nx1 + i
+            ind2d_1 = ind2d + indp1
+            ind2d_2 = ind2d + indp2
+            rho[ind2d] = (   ( work[1][ind2d] - work[1][ind2d_1]) / dx1 
+                           + ( work[2][ind2d] - work[2][ind2d_2]) / dx2)
+        end
+    end
+
+    rho .*= - 1
+
+end
+
+"""
+    inner_product( solver, coefs1_dofs, coefs2_dofs, component, form)
+
+- solver : Maxwell solver object
+- coefs1_dofs : Coefficient for each DoF
+- coefs2_dofs : Coefficient for each DoF
+- component : Specify the component
+- form : Specify 0,1,2 or 3 form
+- r : Result: squared L2 norm
+"""
+function inner_product( solver, coefs1_dofs, coefs2_dofs, component, form)
+
+     work = zero(coefs1_dofs)
+     if form == 0 
+         multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], solver.mass_line_0[2], coefs2_dofs)
+     elseif form == 1
+         if component == 1
+             multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], solver.mass_line_0[2], coefs2_dofs )
+         elseif component == 2
+             multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], solver.mass_line_1[2], coefs2_dofs )
+         elseif component == 3
+             multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], solver.mass_line_0[2], coefs2_dofs )
+         end
+     elseif form == 2
+         if component == 1
+             multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], solver.mass_line_1[2], coefs2_dofs )
+         elseif component == 2
+             multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], solver.mass_line_0[2], coefs2_dofs )
+         elseif component == 3
+             multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], solver.mass_line_1[2], coefs2_dofs )
+         end
+     elseif form == 3
+         multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], solver.mass_line_1[2], coefs2_dofs )
+     end
+
+     sum(coefs1_dofs .* work)
+
+     
+end
