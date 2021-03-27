@@ -3,34 +3,19 @@
 using Test
 using GEMPIC
 
-@testset "Maxwell 2D" begin
+@time @testset "Maxwell 2D" begin
 
 function evaluate_spline_2d( nx1, nx2, degs, dofs )
     
     deg1, deg2 = degs
-    vals = zeros(nx1 * nx2)
-    a_in = zeros(nx2) 
-    a_out = zeros(nx2)
-    
-    istart, iend = 1, nx1
+    vals = collect(reshape( dofs, nx1, nx2))
     for j=1:nx2
-       val = GEMPIC.eval_uniform_periodic_spline_curve(deg1, dofs[istart:iend])
-       vals[istart:iend] .= val
-       istart = iend+1
-       iend = iend + nx1
+       vals[:, j] .= GEMPIC.eval_uniform_periodic_spline_curve(deg1, vals[:,j])
     end
-    
     for i=1:nx1
-       for j=1:nx2
-          a_in[j] = vals[i+(j-1)*nx1]
-       end
-       a_out .= GEMPIC.eval_uniform_periodic_spline_curve(deg2, a_in)
-       for j=1:nx2
-          vals[i+(j-1)*nx1] = a_out[j]
-       end
+       vals[i,:] .= GEMPIC.eval_uniform_periodic_spline_curve(deg2, vals[i,:])
     end
-    
-    vals
+    vec(vals)
     
 end
 
@@ -44,7 +29,7 @@ mesh = TwoDGrid( x1min, x1max, nx1, x2min, x2max, nx2)
 
 deg = 3
 delta_t = 0.01
-nsteps = 30
+nsteps = 300
 
 maxwell = TwoDMaxwell(mesh, deg)
 
@@ -140,7 +125,6 @@ error2 = GEMPIC.inner_product( maxwell, efield[1], efield[1], 1, 1 ) - 2*pi^2
 println( " Error in L2 norm squared: $error2")
 @test error2 ≈ 0  atol=1e-5
 
-
 rho .= compute_rhs_from_function( maxwell, sin_k, 1, 1 )
 
 compute_e_from_j!( efield[1], maxwell, rho, 1 )
@@ -165,7 +149,6 @@ efield[3] = l2projection( maxwell, sin_k, 3, 1 )
 compute_rho_from_e!( rho, maxwell, efield )
 
 @show maximum(abs.(rho .- rho_ref))
-
 
 @test rho ≈ rho_ref
 

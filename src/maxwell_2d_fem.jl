@@ -21,6 +21,7 @@ struct TwoDMaxwell
     inverse_mass_1 :: Vector{TwoDLinearSolverSplineMass}
     inverse_mass_2 :: Vector{TwoDLinearSolverSplineMass}
     poisson :: TwoDPoisson
+    wk :: Array{Float64, 2}
 
     function TwoDMaxwell( mesh, degree )
 
@@ -59,8 +60,10 @@ struct TwoDMaxwell
 
         poisson = TwoDPoisson( mesh, s_deg_0 )
 
+        wk = zeros(nx, ny)
+
         new( s_deg_0, s_deg_1, mesh, mass_line_0, mass_line_1, mass_line_mixed, 
-             inverse_mass_1, inverse_mass_2, poisson )
+             inverse_mass_1, inverse_mass_2, poisson, wk )
      
     end 
 
@@ -316,25 +319,17 @@ function multiply_mass_2dkron!( c_out, solver, mass_line_1, mass_line_2,  c_in )
     nx2 = solver.mesh.ny
     deg1 = size(mass_line_1)[1]-1
     deg2 = size(mass_line_2)[1]-1
-    work2d = zeros(nx1, nx2)
+
+    solver.wk .= reshape(c_in, nx1, nx2)
     
-    istart = 1
-    iend = nx1
     for j=1:nx2
-       work2d[:,j] .= spline_fem_multiply_mass( nx1, deg1, mass_line_1, c_in[istart:iend] )          
-       istart = iend+1
-       iend += nx1
+        solver.wk[:,j] .= spline_fem_multiply_mass( nx1, deg1, mass_line_1, solver.wk[:,j] )
+    end
+    for i=1:nx1
+        solver.wk[i,:] .= spline_fem_multiply_mass( nx2, deg2, mass_line_2, solver.wk[i,:] )
     end
 
-    istart = 1
-    for i =1:nx1
-        work_d2_in = view(work2d,i,:)
-        work_d2_out = spline_fem_multiply_mass( nx2, deg2, mass_line_2, work_d2_in )
-        for j=1:nx2
-            c_out[istart+(j-1)*nx1] = work_d2_out[j]
-        end
-        istart += 1
-    end
+    c_out .= vec(solver.wk)
      
 end
 

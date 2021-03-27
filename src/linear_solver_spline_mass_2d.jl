@@ -1,15 +1,17 @@
 struct TwoDLinearSolverSplineMass
   
-    nx :: Int
-    ny :: Int
+    nx1 :: Int
+    nx2 :: Int
     factor :: Float64 
-    eig_values_1 :: Vector{Float64}
-    eig_values_2 :: Vector{Float64}
+    eigvals1 :: Vector{Float64}
+    eigvals2 :: Vector{Float64}
+    wk :: Array{ComplexF64, 2}
 
-    function TwoDLinearSolverSplineMass( nx, ny, eig_values_1, eig_values_2)
+    function TwoDLinearSolverSplineMass( nx1, nx2, eigvals1, eigvals2)
 
         factor = 1.0
-        new( nx, ny, factor, eig_values_1, eig_values_2 )
+        wk = zeros(ComplexF64, nx1, nx2)
+        new( nx1, nx2, factor, eigvals1, eigvals2, wk )
 
     end 
 
@@ -17,47 +19,18 @@ end
 
 function solve(solver :: TwoDLinearSolverSplineMass, rhs :: Vector{Float64}) :: Vector{Float64}
 
-    nx, ny = solver.nx, solver.ny
-    array1d_x = zeros(ComplexF64, nx)
-    array1d_y = zeros(ComplexF64, ny)
-    scratch = zeros(ComplexF64, nx, ny)
-    k=0
-    for j=1:ny
-        for i=1:nx
-            k = k+1
-            array1d_x[i] = rhs[k]
-        end
-        fft!(array1d_x)
-        scratch[:,j] .= array1d_x
-    end
-    for i=1:nx
-        array1d_y .= scratch[i,:]
-        fft!(array1d_y)
-        scratch[i,:] .= array1d_y
-    end
+    nx1, nx2 = solver.nx1, solver.nx2
 
-    # Multiply by inverse mass
-    for j=1:ny, i=1:nx
-        scratch[i,j] /= (solver.eig_values_1[i] * solver.eig_values_2[j] * solver.factor)
+    solver.wk .= reshape( rhs, nx1, nx2)
+
+    fft!(solver.wk)
+
+    for j=1:nx2, i=1:nx1
+        @inbounds solver.wk[i,j] /= (solver.eigvals1[i] * solver.eigvals2[j] * solver.factor)
     end
     
-    for i=1:nx
-        array1d_y .= scratch[i,:]
-        ifft!(array1d_y)
-        scratch[i,:] .= array1d_y
-    end
-    
-    sol = zero(rhs)
-    k=0
-    for j=1:ny
-        array1d_x .= scratch[:,j]
-        ifft!(array1d_x)
-        for i=1:nx
-            k = k+1
-            sol[k] = real(array1d_x[i])
-        end
-    end
+    ifft!(solver.wk)
 
-    sol
+    vec(real(solver.wk))
     
 end 
