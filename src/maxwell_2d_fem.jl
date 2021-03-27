@@ -366,8 +366,8 @@ function compute_e_from_b!(e, solver, dt, b)
             ind2d = (j-1) * nx1 + i
             ind2d_1 = ind2d + indp1
             ind2d_2 = ind2d + indp2
-            curl_b[1][ind2d] = ( work[3][ind2d] - work[3][ind2d_2]) / dx2
-            curl_b[2][ind2d] = - ( work[3][ind2d] - work[3][ind2d_1]) / dx1
+            curl_b[1][ind2d] = - ( work[3][ind2d] - work[3][ind2d_2]) / dx2
+            curl_b[2][ind2d] = + ( work[3][ind2d] - work[3][ind2d_1]) / dx1
             curl_b[3][ind2d] = (- ( work[2][ind2d] - work[2][ind2d_1]) / dx1 
                                 + ( work[1][ind2d] - work[1][ind2d_2]) / dx2)
               
@@ -439,63 +439,7 @@ function compute_e_from_j!(e, solver :: TwoDMaxwell, current, component)
 end
   
 
-function multiply_mass_1form!( coefs_out :: Vector{Vector{Float64}}, 
-                               solver :: TwoDMaxwell, 
-                               coefs_in :: Vector{Vector{Float64}} )
 
-    multiply_mass_2dkron!( coefs_out[1], solver, solver.mass_line_0[1], solver.mass_line_1[2], coefs_in[1] )
-    multiply_mass_2dkron!( coefs_out[2], solver, solver.mass_line_1[1], solver.mass_line_0[2], coefs_in[2] )
-    multiply_mass_2dkron!( coefs_out[3], solver, solver.mass_line_1[1], solver.mass_line_1[2], coefs_in[3] )
-
-end
-
-"""
-    multiply_gt!(field_out, solver, field_in)
-
-Multiply by transpose of dicrete gradient matrix
-- solver : Maxwell solver object
-- field_in : Matrix to be multiplied
-- field_out : C*field_in
-"""
-function multiply_gt!( field_out, solver, field_in )
-
-    dx1, dx2 = solver.mesh.dx, solver.mesh.dy
-    n1, n2 = solver.mesh.nx, solver.mesh.ny
-
-    coef = 1.0 / dx1
-    jump = 1
-    jump_end = 1-n1
-
-    ind2d = 0
-    for j=1:n2
-       for i=1:n1-1
-          ind2d = ind2d + 1
-          field_out[ind2d] = coef * ( field_in[ind2d] - field_in[ind2d+jump] )
-       end
-       ind2d = ind2d + 1
-       field_out[ind2d] = coef * ( field_in[ind2d] - field_in[ind2d+jump_end])
-    end
-
-    coef = 1.0/ dx2
-    jump = n1
-    jump_end = (1-n2)*n1
-
-    ind2d_1 = 0
-    for j=1:n2-1
-       for i=1:n1
-          ind2d = ind2d + 1
-          ind2d_1 = ind2d_1 + 1
-          field_out[ind2d_1] += coef * ( field_in[ind2d] - field_in[ind2d+jump] )
-       end
-    end
-    for i=1:n1
-       ind2d = ind2d + 1
-       ind2d_1 = ind2d_1 + 1
-       field_out[ind2d_1] += coef * ( field_in[ind2d] - field_in[ind2d+jump_end] )
-    end
-
-end
-  
 export compute_rho_from_e!
 
 """
@@ -506,9 +450,25 @@ compute rho from e using weak Gauss law ( rho = G^T M_1 e )
 function compute_rho_from_e!(rho, solver, efield)
 
     work = deepcopy(efield)
-    multiply_mass_1form!( work, solver, efield )
-    work2 = vcat(work...)
-    multiply_gt!( rho, solver, work2 )
+    multiply_mass_2dkron!( work[1], solver, solver.mass_line_1[1], solver.mass_line_0[2], efield[1] )
+    multiply_mass_2dkron!( work[2], solver, solver.mass_line_0[1], solver.mass_line_1[2], efield[2] )
+    multiply_mass_2dkron!( work[3], solver, solver.mass_line_0[1], solver.mass_line_0[2], efield[3] )
+
+    dx1, dx2 = solver.mesh.dx, solver.mesh.dy
+    nx1, nx2 = solver.mesh.nx, solver.mesh.ny
+
+    # Compute div with periodic boundary conditions
+    for j=1:nx2
+        indp2 = j == nx2 ?  -nx1*(nx2-1) : nx1
+        for i=1:nx1
+            indp1 = i == nx1 ? 1-nx1 : 1
+            ind2d = (j-1) * nx1 + i
+            ind2d_1 = ind2d + indp1
+            ind2d_2 = ind2d + indp2
+            rho[ind2d] = (   ( work[1][ind2d] - work[1][ind2d_1]) / dx1 
+                           + ( work[2][ind2d] - work[2][ind2d_2]) / dx2)
+        end
+    end
 
     rho .*= - 1
 
@@ -528,25 +488,25 @@ function inner_product( solver, coefs1_dofs, coefs2_dofs, component, form)
 
      work = zero(coefs1_dofs)
      if form == 0 
-         multiply_mass_2dkron!( work, solver, self.mass_line_0[1], solver.mass_line_0[2], coefs2_dofs)
+         multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], solver.mass_line_0[2], coefs2_dofs)
      elseif form == 1
          if component == 1
-             multiply_mass_2dkron!( work, solver, self.mass_line_1[1], solver.mass_line_0[2], coefs2_dofs )
+             multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], solver.mass_line_0[2], coefs2_dofs )
          elseif component == 2
-             multiply_mass_2dkron!( work, solver, self.mass_line_0[1], solver.mass_line_1[2], coefs2_dofs )
+             multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], solver.mass_line_1[2], coefs2_dofs )
          elseif component == 3
-             multiply_mass_2dkron!( work, solver, self.mass_line_0[1], solver.mass_line_0[2], coefs2_dofs )
+             multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], solver.mass_line_0[2], coefs2_dofs )
          end
      elseif form == 2
          if component == 1
-             multiply_mass_2dkron!( work, solver, self.mass_line_0[1], solver.mass_line_1[2], coefs2_dofs )
+             multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], solver.mass_line_1[2], coefs2_dofs )
          elseif component == 2
-             multiply_mass_2dkron!( work, solver, self.mass_line_1[1], solver.mass_line_0[2], coefs2_dofs )
+             multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], solver.mass_line_0[2], coefs2_dofs )
          elseif component == 3
-             multiply_mass_2dkron!( work, solver, self.mass_line_1[1], solver.mass_line_1[2], coefs2_dofs )
+             multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], solver.mass_line_1[2], coefs2_dofs )
          end
      elseif form == 3
-         multiply_mass_2dkron!( work, solver, self.mass_line_1[1], solver.mass_line_1[2], coefs2_dofs )
+         multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], solver.mass_line_1[2], coefs2_dofs )
      end
 
      sum(coefs1_dofs .* work)

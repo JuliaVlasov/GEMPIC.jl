@@ -1,53 +1,46 @@
 # -*- coding: utf-8 -*-
-using Pkg
-using Test
-Pkg.activate("../")
-using Revise
-
 # +
+using Test
 using GEMPIC
 
-function evaluate_spline_2d( nx, ny, degs, dofs )
-    
-        deg1, deg2 = degs
-        vals = zeros(nx * ny)
-        a_in = zeros(ny) 
-        a_out = zeros(ny)
-        
-        istart, iend = 1, nx
-        for j=1:ny
-           val = GEMPIC.eval_uniform_periodic_spline_curve(deg1, dofs[istart:iend])
-           vals[istart:iend] .= val
-           istart = iend+1
-           iend = iend + nx
-        end
-    
-        for i=1:nx
-           for j=1:ny
-              a_in[j] = vals[i+(j-1)*nx]
-           end
-           a_out .= GEMPIC.eval_uniform_periodic_spline_curve(deg2, a_in)
-           for j=1:ny
-              vals[i+(j-1)*nx] = a_out[j]
-           end
-        end
-    
-        vals
-    
-    end
-# -
+@testset "Maxwell 2D" begin
 
-using Plots
+function evaluate_spline_2d( nx1, nx2, degs, dofs )
+    
+    deg1, deg2 = degs
+    vals = zeros(nx1 * nx2)
+    a_in = zeros(nx2) 
+    a_out = zeros(nx2)
+    
+    istart, iend = 1, nx1
+    for j=1:nx2
+       val = GEMPIC.eval_uniform_periodic_spline_curve(deg1, dofs[istart:iend])
+       vals[istart:iend] .= val
+       istart = iend+1
+       iend = iend + nx1
+    end
+    
+    for i=1:nx1
+       for j=1:nx2
+          a_in[j] = vals[i+(j-1)*nx1]
+       end
+       a_out .= GEMPIC.eval_uniform_periodic_spline_curve(deg2, a_in)
+       for j=1:nx2
+          vals[i+(j-1)*nx1] = a_out[j]
+       end
+    end
+    
+    vals
+    
+end
 
 # +
-xmin, xmax = 0.0, 2π
-nx = 16
-ymin, ymax = 0.0, 2π
-ny = 32
+x1min, x1max = 0.0, 2π
+nx1 = 16
+x2min, x2max = 0.0, 2π
+nx2 = 32
 
-n1, n2 = nx, ny
-
-mesh = TwoDGrid( xmin, xmax, nx, ymin, ymax, ny)
+mesh = TwoDGrid( x1min, x1max, nx1, x2min, x2max, nx2)
 
 deg = 3
 delta_t = 0.01
@@ -55,22 +48,21 @@ nsteps = 30
 
 maxwell = TwoDMaxwell(mesh, deg)
 
-efield = [ zeros(nx * ny) for _ in 1:3]
+efield = [ zeros(nx1 * nx2) for _ in 1:3]
 bfield = deepcopy(efield)
 efield_val = deepcopy(efield)
 bfield_val = deepcopy(efield)
 efield_ref = deepcopy(efield)
 bfield_ref = deepcopy(efield)
 
-x = LinRange(xmin, xmax, nx+1)[1:end-1] .* transpose(ones(ny))
-y = ones(nx) .* transpose(LinRange(ymin, ymax, ny+1)[1:end-1])
+x = LinRange(x1min, x1max, nx1+1)[1:end-1] .* transpose(ones(nx2))
+y = ones(nx1) .* transpose(LinRange(x2min, x2max, nx2+1)[1:end-1])
 
 w1 = sqrt(3)
 w2 = sqrt(3)
 
-nt = nx * ny
-rho = zeros( nt)
-rho_ref = zeros( nt) 
+rho = zeros( nx1 * nx2)
+rho_ref = zeros( nx1 * nx2) 
 time = 0.0
 
 sin_k = (x, y) -> sin((x+y)-w1*time) 
@@ -80,9 +72,9 @@ rho .= compute_rhs_from_function( maxwell, cos_k, 1, 0 )
 
 compute_e_from_rho!( efield, maxwell, rho )
 
-efield_val1 = evaluate_spline_2d( nx, ny, (deg-1,deg  ), efield[1])  
-efield_val2 = evaluate_spline_2d( nx, ny, (deg  ,deg-1), efield[2])
-efield_val3 = evaluate_spline_2d( nx, ny, (deg  ,deg  ), efield[3])
+efield_val1 = evaluate_spline_2d( nx1, nx2, (deg-1,deg  ), efield[1])  
+efield_val2 = evaluate_spline_2d( nx1, nx2, (deg  ,deg-1), efield[2])
+efield_val3 = evaluate_spline_2d( nx1, nx2, (deg  ,deg  ), efield[3])
 
 efield_ref[1] .= vec(sin_k.(x, y) ./ 2)
 efield_ref[2] .= efield_ref[1]
@@ -110,87 +102,71 @@ efield[2] .= l2projection( maxwell, e2, 2, 1)
 efield[3] .= l2projection( maxwell, b3, 3, 1)
 efield[3] .*= -1;
 
-compute_b_from_e!( bfield, maxwell, delta_t, efield )
-
-bfield_val[3] = evaluate_spline_2d( nx, ny, (deg-1,deg-1), bfield[3])
-time = 0.5 * delta_t
-bfield_ref[3] .= vec(b3.(x, y))
-maximum(abs.(bfield_ref[3] .- bfield_val[3]))
-# -
-
 for istep = 1:nsteps
-   compute_b_from_e!( bfield, maxwell, delta_t, efield )
-   compute_e_from_b!( efield, maxwell, delta_t, bfield )
+    compute_b_from_e!( bfield, maxwell, delta_t, efield )
+    compute_e_from_b!(efield, maxwell, delta_t, bfield)
 end
 
-# +
-# Evaluate E and B at the grid points
-bfield_val[1] = evaluate_spline_2d( nx, ny, (deg,deg-1), bfield[1])
-bfield_val[2] = evaluate_spline_2d( nx, ny, (deg-1,deg), bfield[2])
-bfield_val[3] = evaluate_spline_2d( nx, ny, (deg-1,deg-1), bfield[3])
+bfield_val[1] = evaluate_spline_2d( nx1, nx2, (deg,deg-1), bfield[1])
+bfield_val[2] = evaluate_spline_2d( nx1, nx2, (deg-1,deg), bfield[2])
+bfield_val[3] = evaluate_spline_2d( nx1, nx2, (deg-1,deg-1), bfield[3])
 
-efield_val[1] = evaluate_spline_2d( nx, ny, (deg-1,deg), efield[1])
-efield_val[2] = evaluate_spline_2d( nx, ny, (deg,deg-1), efield[2])
-efield_val[3] = evaluate_spline_2d( nx, ny, (deg,deg), efield[3]);
-# -
-
-# Reference solutions
-x = LinRange(xmin, xmax, nx).* transpose(ones(ny))
-y = ones(nx) .* transpose(LinRange(ymin, ymax, ny))
-time = (nsteps)*delta_t
-efield_ref[1] .= vec(e1.(x, y))
-efield_ref[2] .= vec(e2.(x, y))
-efield_ref[3] .= - vec(b3.(x, y))
 time = (nsteps-0.5)*delta_t
 bfield_ref[1] .= vec(e1.(x, y))
 bfield_ref[2] .= vec(e2.(x, y))
 bfield_ref[3] .= vec(b3.(x, y))
-surface(reshape(bfield_ref[2], nx, ny))
 
-# +
+@test bfield_ref[1] ≈ bfield_val[1] rtol=1e-4
+@test bfield_ref[2] ≈ bfield_val[2] rtol=1e-4
+@test bfield_ref[3] ≈ bfield_val[3] rtol=1e-3
 
-surface(reshape(bfield_ref[3], nx, ny))
+efield_val[1] = evaluate_spline_2d( nx1, nx2, (deg-1,deg), efield[1])
+efield_val[2] = evaluate_spline_2d( nx1, nx2, (deg,deg-1), efield[2])
+efield_val[3] = evaluate_spline_2d( nx1, nx2, (deg,deg), efield[3]);
 
-for k in 1:3
-    @show maximum(abs.(efield_ref[k] .- efield_val[k]))
-    @show maximum(abs.(bfield_ref[k] .- bfield_val[k]))
-end
-# -
+time = nsteps*delta_t
 
-  @test efield_val1 ≈ efield_ref[1] rtol=1e-2
-  @test efield_val2 ≈ efield_ref[2] rtol=1e-2
-  @test efield_val3 ≈ efield_ref[3] rtol=1e-2
+efield_ref[1] .= vec(e1.(x, y))
+efield_ref[2] .= vec(e2.(x, y))
+efield_ref[3] .= - vec(b3.(x, y))
 
-#   @test bfield_val1 ≈ bfield_ref[1] rtol=1e-3
-#   @test bfield_val2 ≈ bfield_ref[2] rtol=1e-3
-#   @test bfield_val3 ≈ bfield_ref[3] rtol=1e-3
+@test efield_ref[1] ≈ efield_val[1] rtol=1e-4
+@test efield_ref[2] ≈ efield_val[2] rtol=1e-4
+@test efield_ref[3] ≈ efield_val[3] rtol=1e-3
 
-    efield[1] = l2projection( maxwell, cos_k, 1, 1 )
+efield[1] = l2projection( maxwell, cos_k, 1, 1 )
 
-#    @test inner_product( maxwell, efield[1], efield[1], 1, 1 )  ≈ 2*pi^2
+error2 = GEMPIC.inner_product( maxwell, efield[1], efield[1], 1, 1 ) - 2*pi^2
+println( " Error in L2 norm squared: $error2")
+@test error2 ≈ 0  atol=1e-5
 
-    rho = compute_rhs_from_function( maxwell, sin_k, 1, 1 )
 
-    compute_e_from_j!( efield[1], maxwell, rho, 1 )
+rho .= compute_rhs_from_function( maxwell, sin_k, 1, 1 )
 
-    efield_val1 = evaluate_spline_2d( nx, ny, [deg-1,deg], efield[1])
+compute_e_from_j!( efield[1], maxwell, rho, 1 )
+
+efield_val1 = evaluate_spline_2d( nx1, nx2, [deg-1,deg], efield[1])
     
-    for i in eachindex(x,y)
-        efield_ref[1][i] = cos_k(x[i], y[i]) - sin_k(x[i], y[i])
-    end
+for i in eachindex(x,y)
+    efield_ref[1][i] = cos_k(x[i], y[i]) - sin_k(x[i], y[i])
+end
 
-#    @test efield_val1 ≈ efield_ref[1]
+@show maximum(abs.(efield_val1 .- efield_ref[1]))
+@test efield_val1 ≈ efield_ref[1] atol = 1e-2
 
-    rho_ref = compute_rhs_from_function( maxwell, cos_k, 1, 0 )
-    rho_ref .*= 2.0 
+time = 0.0
+rho_ref = compute_rhs_from_function( maxwell, cos_k, 1, 0 )
+rho_ref .*= 2.0 
 
-    efield[1] = l2projection( maxwell, sin_k, 1, 1 )
-    efield[2] = l2projection( maxwell, sin_k, 2, 1 )
-    efield[3] = l2projection( maxwell, sin_k, 3, 1 )
+efield[1] = l2projection( maxwell, sin_k, 1, 1 )
+efield[2] = l2projection( maxwell, sin_k, 2, 1 )
+efield[3] = l2projection( maxwell, sin_k, 3, 1 )
 
-    compute_rho_from_e!( rho, maxwell, efield )
+compute_rho_from_e!( rho, maxwell, efield )
 
-#    @test rho ≈ rho_ref
+@show maximum(abs.(rho .- rho_ref))
 
 
-end 
+@test rho ≈ rho_ref
+
+end
