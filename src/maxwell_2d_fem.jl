@@ -270,7 +270,8 @@ end
 
 function spline_fem_multiply_mass( n_cells, degree, mass, invec )
 
-    outvec = zero(invec)
+    outvec = copy(invec)
+
     ind = 1
     # For the first degree rows we need to put the first part to the back due to periodic boundaries
     for row = 1:degree
@@ -355,8 +356,9 @@ function compute_e_from_b!(e, solver, dt, b)
     multiply_mass_2dkron!( work[2], solver, solver.mass_line_1[1], solver.mass_line_0[2], b[2] )
     multiply_mass_2dkron!( work[3], solver, solver.mass_line_1[1], solver.mass_line_1[2], b[3] )
 
-    work2 = deepcopy(work)
+    curl_b = deepcopy(work)
 
+    # Compute curl with periodic boundary conditions
     for j=1:nx2
         indp2 = j == nx2 ?  -nx1*(nx2-1) : nx1
         for i=1:nx1
@@ -364,24 +366,22 @@ function compute_e_from_b!(e, solver, dt, b)
             ind2d = (j-1) * nx1 + i
             ind2d_1 = ind2d + indp1
             ind2d_2 = ind2d + indp2
-            work2[1][ind2d] = ( work[3][ind2d] - work[3][ind2d_2]) / dx2
-            work2[2][ind2d] = - ( work[3][ind2d] - work[3][ind2d_1]) / dx1
-            work2[3][ind2d] = (( work[2][ind2d] - work[2][ind2d_1]) / dx1 
-                            - ( work[1][ind2d] - work[1][ind2d_2]) / dx2)
+            curl_b[1][ind2d] = ( work[3][ind2d] - work[3][ind2d_2]) / dx2
+            curl_b[2][ind2d] = - ( work[3][ind2d] - work[3][ind2d_1]) / dx1
+            curl_b[3][ind2d] = (- ( work[2][ind2d] - work[2][ind2d_1]) / dx1 
+                                + ( work[1][ind2d] - work[1][ind2d_2]) / dx2)
               
         end
     end
 
-    de = deepcopy(e)
-    
-    work[1] .= solve(solver.inverse_mass_1[1], work2[1] ) 
-    work[2] .= solve(solver.inverse_mass_1[2], work2[2] ) 
-    work[3] .= solve(solver.inverse_mass_1[3], work2[3] ) 
+    curl_b[1] .= solve(solver.inverse_mass_1[1], curl_b[1] ) 
+    curl_b[2] .= solve(solver.inverse_mass_1[2], curl_b[2] ) 
+    curl_b[3] .= solve(solver.inverse_mass_1[3], curl_b[3] ) 
 
     # Update b from solver value
-    e[1] .= e[1] .+ dt .* work[1]
-    e[2] .= e[2] .+ dt .* work[2]
-    e[3] .= e[3] .+ dt .* work[3]
+    e[1] .= e[1] .+ dt .* curl_b[1]
+    e[2] .= e[2] .+ dt .* curl_b[2]
+    e[3] .= e[3] .+ dt .* curl_b[3]
 
 end
 
