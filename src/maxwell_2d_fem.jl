@@ -21,7 +21,8 @@ struct TwoDMaxwell
     inverse_mass_1 :: Vector{TwoDLinearSolverSplineMass}
     inverse_mass_2 :: Vector{TwoDLinearSolverSplineMass}
     poisson :: TwoDPoisson
-    wk :: Array{Float64, 2}
+    wk1d :: Array{Float64, 1}
+    wk2d :: Array{Float64, 2}
 
     function TwoDMaxwell( mesh, degree )
 
@@ -60,10 +61,11 @@ struct TwoDMaxwell
 
         poisson = TwoDPoisson( mesh, s_deg_0 )
 
-        wk = zeros(nx, ny)
+        wk1d = zeros(nx * ny)
+        wk2d = zeros(nx, ny)
 
         new( s_deg_0, s_deg_1, mesh, mass_line_0, mass_line_1, mass_line_mixed, 
-             inverse_mass_1, inverse_mass_2, poisson, wk )
+             inverse_mass_1, inverse_mass_2, poisson, wk1d, wk2d )
      
     end 
 
@@ -320,16 +322,16 @@ function multiply_mass_2dkron!( c_out, solver, mass_line_1, mass_line_2,  c_in )
     deg1 = size(mass_line_1)[1]-1
     deg2 = size(mass_line_2)[1]-1
 
-    solver.wk .= reshape(c_in, nx1, nx2)
+    solver.wk2d .= reshape(c_in, nx1, nx2)
     
     for j=1:nx2
-        solver.wk[:,j] .= spline_fem_multiply_mass( nx1, deg1, mass_line_1, solver.wk[:,j] )
+        solver.wk2d[:,j] .= spline_fem_multiply_mass( nx1, deg1, mass_line_1, solver.wk2d[:,j] )
     end
     for i=1:nx1
-        solver.wk[i,:] .= spline_fem_multiply_mass( nx2, deg2, mass_line_2, solver.wk[i,:] )
+        solver.wk2d[i,:] .= spline_fem_multiply_mass( nx2, deg2, mass_line_2, solver.wk2d[i,:] )
     end
 
-    c_out .= vec(solver.wk)
+    c_out .= vec(solver.wk2d)
      
 end
 
@@ -483,28 +485,36 @@ function inner_product( solver, coefs1_dofs, coefs2_dofs, component, form)
 
      work = zero(coefs1_dofs)
      if form == 0 
-         multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], solver.mass_line_0[2], coefs2_dofs)
+         multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], 
+solver.mass_line_0[2], coefs2_dofs)
      elseif form == 1
          if component == 1
-             multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], solver.mass_line_0[2], coefs2_dofs )
+             multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], 
+solver.mass_line_0[2], coefs2_dofs )
          elseif component == 2
-             multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], solver.mass_line_1[2], coefs2_dofs )
+             multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], 
+solver.mass_line_1[2], coefs2_dofs )
          elseif component == 3
-             multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], solver.mass_line_0[2], coefs2_dofs )
+             multiply_mass_2dkron!( work, solver, solver.mass_line_0[1],
+ solver.mass_line_0[2], coefs2_dofs )
          end
      elseif form == 2
          if component == 1
-             multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], solver.mass_line_1[2], coefs2_dofs )
+             multiply_mass_2dkron!( work, solver, solver.mass_line_0[1], 
+solver.mass_line_1[2], coefs2_dofs )
          elseif component == 2
-             multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], solver.mass_line_0[2], coefs2_dofs )
+             multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], 
+solver.mass_line_0[2], coefs2_dofs )
          elseif component == 3
-             multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], solver.mass_line_1[2], coefs2_dofs )
+             multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], 
+solver.mass_line_1[2], coefs2_dofs )
          end
      elseif form == 3
-         multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], solver.mass_line_1[2], coefs2_dofs )
+         multiply_mass_2dkron!( work, solver, solver.mass_line_1[1], 
+solver.mass_line_1[2], coefs2_dofs )
      end
 
-     sum(coefs1_dofs .* work)
+     return sum(coefs1_dofs .* work)
 
      
 end

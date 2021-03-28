@@ -20,59 +20,74 @@ Hamiltonian splitting type for Vlasov-Maxwell
 """
 struct HamiltonianSplitting
 
-    maxwell_solver    :: AbstractMaxwellSolver
-    kernel_smoother_0 :: ParticleMeshCoupling1D
-    kernel_smoother_1 :: ParticleMeshCoupling1D
-    particle_group    :: ParticleGroup
+    maxwell_solver::AbstractMaxwellSolver
+    kernel_smoother_0::ParticleMeshCoupling1D
+    kernel_smoother_1::ParticleMeshCoupling1D
+    particle_group::ParticleGroup
 
-    spline_degree     :: Int
-    Lx                :: Float64
-    x_min             :: Float64
-    delta_x           :: Float64
+    spline_degree::Int
+    Lx::Float64
+    x_min::Float64
+    delta_x::Float64
 
-    cell_integrals_0  :: SVector
-    cell_integrals_1  :: SVector
+    cell_integrals_0::SVector
+    cell_integrals_1::SVector
 
-    e_dofs :: Array{Array{Float64,1}}
-    b_dofs :: Array{Float64,1}
-    j_dofs :: Array{Array{Float64,1}}
+    e_dofs::Array{Array{Float64,1}}
+    b_dofs::Array{Float64,1}
+    j_dofs::Array{Array{Float64,1}}
 
-    buffer :: Array{Array{Float64,1}}
-    chunks :: Iterators.PartitionIterator
+    buffer::Array{Array{Float64,1}}
+    chunks::Iterators.PartitionIterator
 
-    function HamiltonianSplitting( maxwell_solver,
-                                   kernel_smoother_0,
-                                   kernel_smoother_1,
-                                   particle_group,
-                                   e_dofs,
-                                   b_dofs) 
+    function HamiltonianSplitting(
+        maxwell_solver,
+        kernel_smoother_0,
+        kernel_smoother_1,
+        particle_group,
+        e_dofs,
+        b_dofs,
+    )
 
         # Check that n_dofs is the same for both kernel smoothers.
         @assert kernel_smoother_0.n_dofs == kernel_smoother_1.n_dofs
 
-        j_dofs = [zeros(Float64,kernel_smoother_0.n_dofs) for i in 1:2]
+        j_dofs = [zeros(Float64, kernel_smoother_0.n_dofs) for i = 1:2]
 
         x_min = maxwell_solver.xmin
-        Lx    = maxwell_solver.Lx
+        Lx = maxwell_solver.Lx
         spline_degree = 3
-        delta_x = Lx/kernel_smoother_1.n_dofs
-        
+        delta_x = Lx / kernel_smoother_1.n_dofs
+
         cell_integrals_1 = SVector{3}([0.5, 2.0, 0.5] ./ 3.0)
-        cell_integrals_0 = SVector{4}([1.0,11.0,11.0,1.0] ./ 24.0)
+        cell_integrals_0 = SVector{4}([1.0, 11.0, 11.0, 1.0] ./ 24.0)
 
         np = particle_group.n_particles
         n_jobs = nthreads()
 
         @assert np % n_jobs == 0
 
-        buffer = [zeros(Float64,kernel_smoother_0.n_dofs) for i in 1:n_jobs]
+        buffer = [zeros(Float64, kernel_smoother_0.n_dofs) for i = 1:n_jobs]
 
         chunks = Iterators.partition(1:np, np ÷ n_jobs)
 
-        new( maxwell_solver, kernel_smoother_0, kernel_smoother_1, 
-             particle_group, spline_degree, Lx, x_min, delta_x,
-             cell_integrals_0, cell_integrals_1, e_dofs, b_dofs, 
-             j_dofs, buffer, chunks)
+        new(
+            maxwell_solver,
+            kernel_smoother_0,
+            kernel_smoother_1,
+            particle_group,
+            spline_degree,
+            Lx,
+            x_min,
+            delta_x,
+            cell_integrals_0,
+            cell_integrals_1,
+            e_dofs,
+            b_dofs,
+            j_dofs,
+            buffer,
+            chunks,
+        )
 
     end
 
@@ -88,21 +103,19 @@ Strang splitting
 - time step
 - number of time steps
 """
-function strang_splitting!( h            :: HamiltonianSplitting,
-                            dt           :: Float64, 
-                            number_steps :: Int)
+function strang_splitting!(h::HamiltonianSplitting, dt::Float64, number_steps::Int)
 
     for i_step = 1:number_steps
-       operatorHB(  h, 0.5dt)
-       operatorHE(  h, 0.5dt)
-       operatorHp2( h, 0.5dt)
-       operatorHp1( h, 1.0dt)
-       operatorHp2( h, 0.5dt)
-       operatorHE(  h, 0.5dt)
-       operatorHB(  h, 0.5dt)
+        operatorHB(h, 0.5dt)
+        operatorHE(h, 0.5dt)
+        operatorHp2(h, 0.5dt)
+        operatorHp1(h, 1.0dt)
+        operatorHp2(h, 0.5dt)
+        operatorHE(h, 0.5dt)
+        operatorHB(h, 0.5dt)
     end
 
-end 
+end
 
 export lie_splitting!
 """
@@ -110,18 +123,16 @@ export lie_splitting!
 
 Lie splitting
 """
-function lie_splitting!(h            :: HamiltonianSplitting,
-                        dt           :: Float64, 
-                        number_steps :: Int)
+function lie_splitting!(h::HamiltonianSplitting, dt::Float64, number_steps::Int)
 
     for i_step = 1:number_steps
-       operatorHE(dt)
-       operatorHB(dt)
-       operatorHp1(dt)
-       operatorHp2(dt)
+        operatorHE(dt)
+        operatorHB(dt)
+        operatorHp1(dt)
+        operatorHp2(dt)
     end
 
-end 
+end
 
 export lie_splitting_back!
 """
@@ -129,21 +140,18 @@ export lie_splitting_back!
 
 Lie splitting (oposite ordering)
 """
-function lie_splitting_back!(h            :: HamiltonianSplitting,
-                             dt           :: Float64, 
-                             number_steps :: Int)
+function lie_splitting_back!(h::HamiltonianSplitting, dt::Float64, number_steps::Int)
 
     for i_step = 1:number_steps
-
-       operatorHp2(dt)
-       operatorHp1(dt)
-       operatorHB(dt)
-       operatorHE(dt)
+        operatorHp2(dt)
+        operatorHp1(dt)
+        operatorHB(dt)
+        operatorHE(dt)
 
     end
 
 end
-  
+
 
 """
 
@@ -185,7 +193,7 @@ does not hold the values for `j` itself but for the integrated `j`.
 Then update particle position:  
 ``X_{new} = X_{old} + dt * V``
 """
-function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
+function operatorHp1(h::HamiltonianSplitting, dt::Float64)
 
     np = h.particle_group.n_particles
     n_cells = h.kernel_smoother_0.n_dofs
@@ -199,7 +207,7 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
             for i_part in i_chunk
 
                 # Read out particle position and velocity
-                x_old  = h.particle_group.array[1, i_part]
+                x_old = h.particle_group.array[1, i_part]
                 v1_old = h.particle_group.array[2, i_part]
                 v2_old = h.particle_group.array[3, i_part]
 
@@ -207,20 +215,22 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
                 x_new = x_old + dt * v1_old
 
                 # Get charge for accumulation of j
-                wi     = h.particle_group.array[4, i_part]
-                wi     = wi * h.particle_group.charge
-                wi     = wi * h.particle_group.common_weight
+                wi = h.particle_group.array[4, i_part]
+                wi = wi * h.particle_group.charge
+                wi = wi * h.particle_group.common_weight
 
                 qoverm = h.particle_group.q_over_m
 
-                v2_new = add_current_update_v!( h.buffer[threadid()], 
-                                       h.kernel_smoother_1,
-                                       x_old, 
-                                       x_new, 
-                                       wi,
-                                       qoverm, 
-                                       h.b_dofs, 
-                                       v2_old)
+                v2_new = add_current_update_v!(
+                    h.buffer[threadid()],
+                    h.kernel_smoother_1,
+                    x_old,
+                    x_new,
+                    wi,
+                    qoverm,
+                    h.b_dofs,
+                    v2_old,
+                )
 
                 x_new = mod(x_new, h.Lx)
 
@@ -245,14 +255,11 @@ function operatorHp1(h :: HamiltonianSplitting, dt :: Float64)
                 w = w * h.particle_group.common_weight
 
                 # Accumulate rho for Poisson diagnostics
-                add_charge!( h.buffer[threadid()],
-                             h.kernel_smoother_0, 
-                             x, 
-                             w)
+                add_charge!(h.buffer[threadid()], h.kernel_smoother_0, x, w)
             end
         end
     end
-      
+
     h.j_dofs[2] .= reduce(+, h.buffer)
 
     # Update the electric field.
@@ -275,8 +282,8 @@ E_{2,new} = E_{2,old} - \\int \\int v_2 f(t,x_1 + s v_1,v) dv ds\\\\
 \\end{aligned}
 ```
 """
-function operatorHp2(h :: HamiltonianSplitting, dt :: Float64)
-    
+function operatorHp2(h::HamiltonianSplitting, dt::Float64)
+
     n_cells = h.kernel_smoother_0.n_dofs
 
     fill!(h.j_dofs[1], 0.0)
@@ -294,23 +301,23 @@ function operatorHp2(h :: HamiltonianSplitting, dt :: Float64)
             for i_part in i_chunk
 
                 # Evaluate b at particle position (splines of order p)
-                x1    = h.particle_group.array[1, i_part]
-                v1    = h.particle_group.array[2, i_part]
-                v2    = h.particle_group.array[3, i_part]
+                x1 = h.particle_group.array[1, i_part]
+                v1 = h.particle_group.array[2, i_part]
+                v2 = h.particle_group.array[3, i_part]
 
-                b     = evaluate(h.kernel_smoother_1, x1, h.b_dofs)
-                v1    = v1 + dt * qm * v2 * b
+                b = evaluate(h.kernel_smoother_1, x1, h.b_dofs)
+                v1 = v1 + dt * qm * v2 * b
 
                 h.particle_group.array[2, i_part] = v1
 
                 # Scale vi by weight to combine both factors 
                 #for accumulation of integral over j
-	            w  = h.particle_group.array[4, i_part] 
-                w  = w * h.particle_group.charge
-                w  = w * h.particle_group.common_weight
-                w  = w * v2
+                w = h.particle_group.array[4, i_part]
+                w = w * h.particle_group.charge
+                w = w * h.particle_group.common_weight
+                w = w * v2
 
-                add_charge!( h.buffer[threadid()], h.kernel_smoother_0, x1, w)
+                add_charge!(h.buffer[threadid()], h.kernel_smoother_0, x1, w)
 
             end
         end
@@ -319,13 +326,13 @@ function operatorHp2(h :: HamiltonianSplitting, dt :: Float64)
     h.j_dofs[2] .= reduce(+, h.buffer)
 
     # Update the electric field. Also, we still need to scale with 1/Lx 
-    
+
     h.j_dofs[2] .= h.j_dofs[2] .* dt
 
-    compute_e_from_j!( h.e_dofs[2], h.maxwell_solver, h.j_dofs[2], 2)
-    
+    compute_e_from_j!(h.e_dofs[2], h.maxwell_solver, h.j_dofs[2], 2)
+
 end
-  
+
 """
     operatorHE(h, dt)
 
@@ -339,7 +346,7 @@ Push ``H_E``: Equations to be solved
 \\end{aligned}
 ```
 """
-function operatorHE(h :: HamiltonianSplitting, dt :: Float64)
+function operatorHE(h::HamiltonianSplitting, dt::Float64)
 
     qm = h.particle_group.q_over_m
 
@@ -350,7 +357,6 @@ function operatorHE(h :: HamiltonianSplitting, dt :: Float64)
     @sync for i_chunk in h.chunks
         @spawn begin
             for i_part in i_chunk
-
                 v_old1 = h.particle_group.array[2, i_part]
                 v_old2 = h.particle_group.array[3, i_part]
 
@@ -372,10 +378,10 @@ function operatorHE(h :: HamiltonianSplitting, dt :: Float64)
     end
 
     # Update bfield
-    compute_b_from_e!( h.b_dofs, h.maxwell_solver, dt, h.e_dofs[2])
-        
+    compute_b_from_e!(h.b_dofs, h.maxwell_solver, dt, h.e_dofs[2])
+
 end
-  
+
 @doc raw"""
     operatorHB(h, dt)
 
@@ -389,8 +395,8 @@ Push ``H_B``: Equations to be solved ``V_{new} = V_{old}``
 \end{aligned}
 ```
 """
-function operatorHB(h :: HamiltonianSplitting, dt :: Float64)
+function operatorHB(h::HamiltonianSplitting, dt::Float64)
 
-    compute_e_from_b!( h.e_dofs[2], h.maxwell_solver, dt, h.b_dofs)
+    compute_e_from_b!(h.e_dofs[2], h.maxwell_solver, dt, h.b_dofs)
 
 end

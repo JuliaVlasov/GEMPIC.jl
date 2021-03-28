@@ -12,22 +12,24 @@ Accumulate rho and solve Poisson
  - `rho` : preallocated array for Charge density
  - `efield_dofs` : spline coefficients of electric field (1D)
 """
-function solve_poisson!( efield_dofs       :: Vector{Float64},
-                         particle_group    :: AbstractParticleGroup, 
-                         kernel_smoother_0 :: AbstractParticleMeshCoupling, 
-                         maxwell_solver    :: Maxwell1DFEM, 
-                         rho               :: Vector{Float64}) 
+function solve_poisson!(
+    efield_dofs::Vector{Float64},
+    particle_group::AbstractParticleGroup,
+    kernel_smoother_0::AbstractParticleMeshCoupling,
+    maxwell_solver::Maxwell1DFEM,
+    rho::Vector{Float64},
+)
 
-    
+
     fill!(rho, 0.0)
 
     for i_part = 1:particle_group.n_particles
-       xi = particle_group.array[1, i_part]
-       wi = get_charge(particle_group, i_part)
-       add_charge!(rho, kernel_smoother_0, xi, wi)
+        xi = particle_group.array[1, i_part]
+        wi = get_charge(particle_group, i_part)
+        add_charge!(rho, kernel_smoother_0, xi, wi)
     end
 
-    compute_e_from_rho!( efield_dofs, maxwell_solver, rho )
+    compute_e_from_rho!(efield_dofs, maxwell_solver, rho)
 
 end
 
@@ -44,28 +46,30 @@ Compute ``\\sum_{particles} w_p ( v_1,p e_1(x_p) + v_2,p e_2(x_p)) ``
 - `efield_dofs` : coefficients of efield
 
 """
-function pic_diagnostics_transfer( particle_group :: ParticleGroup{1,2}, 
-                                   kernel_smoother_0, kernel_smoother_1, 
-                                   efield_dofs )
+function pic_diagnostics_transfer(
+    particle_group::ParticleGroup{1,2},
+    kernel_smoother_0,
+    kernel_smoother_1,
+    efield_dofs,
+)
 
-    transfer = 0.0 :: Float64
+    transfer = 0.0::Float64
 
     for i_part = 1:particle_group.n_particles
+        xi = particle_group.array[1, i_part]
+        wi = get_charge(particle_group, i_part)
+        v1 = particle_group.array[2, i_part]
+        v2 = particle_group.array[3, i_part]
 
-       xi = particle_group.array[1,i_part]
-       wi = get_charge(particle_group, i_part)
-       v1 = particle_group.array[2, i_part]
-       v2 = particle_group.array[3, i_part]
+        efield_1 = evaluate(kernel_smoother_1, xi, efield_dofs[1])
+        efield_2 = evaluate(kernel_smoother_0, xi, efield_dofs[2])
 
-       efield_1 = evaluate( kernel_smoother_1, xi, efield_dofs[1] )
-       efield_2 = evaluate( kernel_smoother_0, xi, efield_dofs[2] )
+        transfer += (v1 * efield_1 + v2 * efield_2) * wi
 
-       transfer += (v1 * efield_1 + v2 * efield_2) * wi
-       
     end
 
     transfer
-    
+
 end
 
 """
@@ -78,23 +82,22 @@ Compute ``\\sum_{particles} ( w_p v_1, p b(x_p) v_2, p )``
 - `bfield_dofs` : coefficients of bfield
 
 """
-function pic_diagnostics_vvb( particle_group, kernel_smoother_1, bfield_dofs )
+function pic_diagnostics_vvb(particle_group, kernel_smoother_1, bfield_dofs)
 
-    vvb = 0.0 :: Float64
+    vvb = 0.0::Float64
 
-    for i_part in 1:particle_group.n_particles
+    for i_part = 1:particle_group.n_particles
+        xi = particle_group.array[1, i_part]
+        v1 = particle_group.array[2, i_part]
+        v2 = particle_group.array[3, i_part]
+        wi = particle_group.array[4, i_part]
+        wi *= particle_group.charge
+        wi *= particle_group.common_weight
 
-       xi = particle_group.array[1, i_part]
-       v1 = particle_group.array[2, i_part]
-       v2 = particle_group.array[3, i_part]
-       wi = particle_group.array[4, i_part]
-       wi *= particle_group.charge
-       wi *= particle_group.common_weight
+        bfield = evaluate(kernel_smoother_1, xi[1], bfield_dofs)
 
-       bfield = evaluate(kernel_smoother_1, xi[1], bfield_dofs )
+        vvb += wi * v1 * v2 * bfield
 
-       vvb += wi * v1 * v2 * bfield
-     
     end
 
     vvb
@@ -113,18 +116,17 @@ Compute ``e^T M_0^{-1}  R^T b``
 - `bfield_dofs` : coefficients of `bfield`
 
 """
-function pic_diagnostics_poynting( maxwell_solver, degree, efield_dofs, 
-                                   bfield_dofs )
+function pic_diagnostics_poynting(maxwell_solver, degree, efield_dofs, bfield_dofs)
 
     scratch = similar(bfield_dofs)
     # Multiply B by M_0^{-1}  R^T
-    compute_e_from_b!(scratch, maxwell_solver, 1.0, bfield_dofs )
+    compute_e_from_b!(scratch, maxwell_solver, 1.0, bfield_dofs)
 
-    inner_product( maxwell_solver, efield_dofs, scratch, degree )
+    inner_product(maxwell_solver, efield_dofs, scratch, degree)
 
 end
 
-  
+
 export TimeHistoryDiagnostics
 
 """
@@ -141,37 +143,48 @@ Context to save and plot diagnostics
 """
 struct TimeHistoryDiagnostics
 
-    particle_group    :: ParticleGroup
-    maxwell_solver    :: Maxwell1DFEM
-    kernel_smoother_0 :: ParticleMeshCoupling1D
-    kernel_smoother_1 :: ParticleMeshCoupling1D
-    data              :: DataFrame
-    diagnostics       :: Vector{Float64}
-    potential_energy  :: Vector{Float64}
+    particle_group::ParticleGroup
+    maxwell_solver::Maxwell1DFEM
+    kernel_smoother_0::ParticleMeshCoupling1D
+    kernel_smoother_1::ParticleMeshCoupling1D
+    data::DataFrame
+    diagnostics::Vector{Float64}
+    potential_energy::Vector{Float64}
 
-    function TimeHistoryDiagnostics( particle_group    :: ParticleGroup,
-                                     maxwell_solver    :: Maxwell1DFEM,
-                                     kernel_smoother_0 :: ParticleMeshCoupling1D,
-                                     kernel_smoother_1 :: ParticleMeshCoupling1D)
+    function TimeHistoryDiagnostics(
+        particle_group::ParticleGroup,
+        maxwell_solver::Maxwell1DFEM,
+        kernel_smoother_0::ParticleMeshCoupling1D,
+        kernel_smoother_1::ParticleMeshCoupling1D,
+    )
 
 
-        data = DataFrame(Time = Float64[],
-                         KineticEnergy = Float64[],
-                         Momentum1 = Float64[],
-                         Momentum2 = Float64[],
-                         PotentialEnergyE1 = Float64[],
-                         PotentialEnergyE2 = Float64[],
-                         PotentialEnergyB3 = Float64[],
-                         Transfer = Float64[],
-                         VVB = Float64[],
-                         Poynting = Float64[],
-                         ErrorPoisson = Float64[])
+        data = DataFrame(
+            Time = Float64[],
+            KineticEnergy = Float64[],
+            Momentum1 = Float64[],
+            Momentum2 = Float64[],
+            PotentialEnergyE1 = Float64[],
+            PotentialEnergyE2 = Float64[],
+            PotentialEnergyB3 = Float64[],
+            Transfer = Float64[],
+            VVB = Float64[],
+            Poynting = Float64[],
+            ErrorPoisson = Float64[],
+        )
 
         diagnostics = zeros(Float64, 3)
         potential_energy = zeros(Float64, 3)
 
-        new( particle_group, maxwell_solver, kernel_smoother_0,
-             kernel_smoother_1, data, diagnostics, potential_energy )
+        new(
+            particle_group,
+            maxwell_solver,
+            kernel_smoother_0,
+            kernel_smoother_1,
+            data,
+            diagnostics,
+            potential_energy,
+        )
     end
 end
 
@@ -189,61 +202,72 @@ write diagnostics for PIC
 - `bfield_dofs` : Magnetic field
 - `degree` : Spline degree
 """
-function write_step!( thdiag :: TimeHistoryDiagnostics,
-                      time, degree, efield_dofs,
-                      bfield_dofs, efield_dofs_n, 
-                      efield_poisson)
+function write_step!(
+    thdiag::TimeHistoryDiagnostics,
+    time,
+    degree,
+    efield_dofs,
+    bfield_dofs,
+    efield_dofs_n,
+    efield_poisson,
+)
 
 
     fill!(thdiag.diagnostics, 0.0)
     fill!(thdiag.potential_energy, 0.0)
 
-    for i_part=1:thdiag.particle_group.n_particles
+    for i_part = 1:thdiag.particle_group.n_particles
+        v1 = thdiag.particle_group.array[2, i_part]
+        v2 = thdiag.particle_group.array[3, i_part]
+        wi = thdiag.particle_group.array[4, i_part]
+        wi *= thdiag.particle_group.mass
+        wi *= thdiag.particle_group.common_weight
 
-       v1 = thdiag.particle_group.array[2, i_part]
-       v2 = thdiag.particle_group.array[3, i_part]
-       wi = thdiag.particle_group.array[4, i_part]
-       wi *= thdiag.particle_group.mass
-       wi *= thdiag.particle_group.common_weight
-
-       # Kinetic energy
-       thdiag.diagnostics[1] += (v1^2+v2^2) * wi
-       # Momentum 1
-       thdiag.diagnostics[2] += v1 * wi
-       # Momentum 2
-       thdiag.diagnostics[3] += v2 * wi
+        # Kinetic energy
+        thdiag.diagnostics[1] += (v1^2 + v2^2) * wi
+        # Momentum 1
+        thdiag.diagnostics[2] += v1 * wi
+        # Momentum 2
+        thdiag.diagnostics[3] += v2 * wi
 
     end
 
-    transfer = pic_diagnostics_transfer( thdiag.particle_group, 
-        thdiag.kernel_smoother_0, thdiag.kernel_smoother_1, 
-        efield_dofs )
+    transfer = pic_diagnostics_transfer(
+        thdiag.particle_group,
+        thdiag.kernel_smoother_0,
+        thdiag.kernel_smoother_1,
+        efield_dofs,
+    )
 
-    vvb = pic_diagnostics_vvb( thdiag.particle_group, 
-        thdiag.kernel_smoother_1, bfield_dofs)
+    vvb = pic_diagnostics_vvb(thdiag.particle_group, thdiag.kernel_smoother_1, bfield_dofs)
 
-    poynting = pic_diagnostics_poynting( thdiag.maxwell_solver, degree, 
-                                         efield_dofs[2], bfield_dofs )
-  
-    thdiag.potential_energy[1] = inner_product(thdiag.maxwell_solver, 
-        efield_dofs[1], efield_dofs_n[1], degree-1 )
+    poynting =
+        pic_diagnostics_poynting(thdiag.maxwell_solver, degree, efield_dofs[2], bfield_dofs)
 
-    thdiag.potential_energy[2] = inner_product( thdiag.maxwell_solver, 
-        efield_dofs[2], efield_dofs_n[2], degree )
+    thdiag.potential_energy[1] =
+        inner_product(thdiag.maxwell_solver, efield_dofs[1], efield_dofs_n[1], degree - 1)
 
-    thdiag.potential_energy[3] = l2norm_squared( thdiag.maxwell_solver, 
-        bfield_dofs, degree-1 )
+    thdiag.potential_energy[2] =
+        inner_product(thdiag.maxwell_solver, efield_dofs[2], efield_dofs_n[2], degree)
 
-    push!(thdiag.data, ( time,  
-                         thdiag.diagnostics...,
-                         thdiag.potential_energy..., 
-                         transfer,
-                         vvb,
-                         poynting,
-                         maximum(abs.(efield_dofs[1] .- efield_poisson))))
-end 
+    thdiag.potential_energy[3] =
+        l2norm_squared(thdiag.maxwell_solver, bfield_dofs, degree - 1)
 
-    
+    push!(
+        thdiag.data,
+        (
+            time,
+            thdiag.diagnostics...,
+            thdiag.potential_energy...,
+            transfer,
+            vvb,
+            poynting,
+            maximum(abs.(efield_dofs[1] .- efield_poisson)),
+        ),
+    )
+end
+
+
 """
     evaluate( kernel_smoother, field_dofs,  xi, n_dofs )
 
@@ -252,8 +276,11 @@ Evaluate the field at points xi
 - `field_dofs` : field value on dofs
 - `xi` : positions where the field is evaluated
 """
-function evaluate( kernel_smoother :: ParticleMeshCoupling1D, 
-                   field_dofs :: AbstractArray,  x :: AbstractArray )
+function evaluate(
+    kernel_smoother::ParticleMeshCoupling1D,
+    field_dofs::AbstractArray,
+    x::AbstractArray,
+)
 
     field_grid = similar(x)
     for j in eachindex(x)
@@ -261,7 +288,7 @@ function evaluate( kernel_smoother :: ParticleMeshCoupling1D,
     end
     field_grid
 
-end 
+end
 
 """
     pic_diagnostics_hpi( particle_group,  index, kinetic )
@@ -273,18 +300,18 @@ compute v(index)-part of kinetic energy
 - `kinetic` : value of index part of kinetic energy
 
 """
-function pic_diagnostics_hpi( particle_group,  index, kinetic )
-    
+function pic_diagnostics_hpi(particle_group, index, kinetic)
+
     kinetic = 0.0
     for i_part = 1:particle_group.n_particles
-       vi = get_v(   particle_group, i_part)
-       wi = get_mass(particle_group, i_part)
-       kinetic += kinetic_local + (vi[index]^2) * wi[1]
+        vi = get_v(particle_group, i_part)
+        wi = get_mass(particle_group, i_part)
+        kinetic += kinetic_local + (vi[index]^2) * wi[1]
     end
 
     kinetic
-    
-end 
+
+end
 
 """
     eval_derivative_spline( position, xmin, delta_x, n_grid, 
@@ -300,25 +327,25 @@ Compute the spline coefficient of the derivative of some given spline expansion
 - `degree` : degree of spline
 - `derivative` : value of the derivative
 """
-function eval_derivative_spline( position, xmin, delta_x, 
-                                 n_grid, field_dofs, degree )
-    
-    der_degree = degree-1
-    
-    xi = (position[1] - xmin)/delta_x
+function eval_derivative_spline(position, xmin, delta_x, n_grid, field_dofs, degree)
+
+    der_degree = degree - 1
+
+    xi = (position[1] - xmin) / delta_x
     index = ceil(xi)
-    xi = xi - (index-1)
+    xi = xi - (index - 1)
     index = index - der_degree
 
-    spline_val = uniform_bsplines_eval_basis( der_degree, xi )
-    
+    spline_val = uniform_bsplines_eval_basis(der_degree, xi)
+
     derivative = 0.0
 
     for i1 = 1:degree
-       ind = mod(index+i1-2, n_grid)+1
-       derivative += spline_val[i1]*(field_dofs[ind]-field_dofs[mod(ind-2, n_grid)+1])
+        ind = mod(index + i1 - 2, n_grid) + 1
+        derivative +=
+            spline_val[i1] * (field_dofs[ind] - field_dofs[mod(ind - 2, n_grid)+1])
     end
 
-    derivative/delta_x
-    
-end 
+    derivative / delta_x
+
+end
