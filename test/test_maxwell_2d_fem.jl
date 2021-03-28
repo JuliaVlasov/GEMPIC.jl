@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-# +
 using Test
 using GEMPIC
 
-@time @testset "Maxwell 2D" begin
+@testset "Maxwell 2D" begin
 
     function evaluate_spline_2d(nx1, nx2, degs, dofs)
 
@@ -19,7 +17,6 @@ using GEMPIC
 
     end
 
-    # +
     x1min, x1max = 0.0, 2π
     nx1 = 16
     x2min, x2max = 0.0, 2π
@@ -69,7 +66,6 @@ using GEMPIC
     @test efield_val2 ≈ efield_ref[2] rtol = 1e-4
     @test efield_val3 ≈ efield_ref[3]
 
-    # +
     e1(x, y) = cos(x) * sin(y) * sin(sqrt(2) * time) / sqrt(2)
     e2(x, y) = -sin(x) * cos(y) * sin(sqrt(2) * time) / sqrt(2)
     b3(x, y) = -cos(x) * cos(y) * cos(sqrt(2) * time)
