@@ -142,7 +142,8 @@ end
 ```
 
 ```@example strong
-@time results = run(1000)    
+@time results = run(1000);
+nothing # hide
 ```
 
 ## Time evolution of electric energy 
