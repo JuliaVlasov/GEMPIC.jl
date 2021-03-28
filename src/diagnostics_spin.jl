@@ -11,14 +11,11 @@ Compute ``\\sum_{particles} w  p e(x_p) ``
 
 """
 function pic_diagnostics_transfer(
-    particle_group::ParticleGroup{1,1},
-    kernel_smoother,
-    efield_dofs::Vector{Float64},
+    particle_group::ParticleGroup{1,1}, kernel_smoother, efield_dofs::Vector{Float64}
 )
-
     transfer = 0.0
 
-    @inbounds for i_part = 1:particle_group.n_particles
+    @inbounds for i_part in 1:(particle_group.n_particles)
         xi = particle_group.array[1, i_part]
         vi = particle_group.array[2, i_part]
         wi =
@@ -28,11 +25,9 @@ function pic_diagnostics_transfer(
         efield = evaluate(kernel_smoother, xi, efield_dofs)
 
         transfer += (vi * efield) * wi
-
     end
 
-    transfer
-
+    return transfer
 end
 
 export TimeHistoryDiagnosticsSpin
@@ -50,7 +45,6 @@ Context to save and plot diagnostics
 - `data` : DataFrame containing time history values
 """
 struct TimeHistoryDiagnosticsSpin
-
     particle_group::ParticleGroup
     maxwell_solver::Maxwell1DFEM
     kernel_smoother_0::ParticleMeshCoupling1D
@@ -65,35 +59,33 @@ struct TimeHistoryDiagnosticsSpin
         kernel_smoother_0::ParticleMeshCoupling1D,
         kernel_smoother_1::ParticleMeshCoupling1D,
     )
-
-        data = DataFrame(
-            Time = Float64[],
-            KineticEnergy = Float64[],
-            Kineticspin = Float64[],
-            Momentum1 = Float64[],
-            Momentum2 = Float64[],
-            Momentum3 = Float64[],
-            Momentum4 = Float64[],
-            Momentum5 = Float64[],
-            Momentum6 = Float64[],
-            Momentum7 = Float64[],
-            Momentum8 = Float64[],
-            Momentum9 = Float64[],
-            Momentum10 = Float64[],
-            PotentialEnergyE1 = Float64[],
-            PotentialEnergyE2 = Float64[],
-            PotentialEnergyE3 = Float64[],
-            PotentialEnergyB2 = Float64[],
-            PotentialEnergyB3 = Float64[],
-            Transfer = Float64[],
-            ErrorPoisson = Float64[],
+        data = DataFrame(;
+            Time=Float64[],
+            KineticEnergy=Float64[],
+            Kineticspin=Float64[],
+            Momentum1=Float64[],
+            Momentum2=Float64[],
+            Momentum3=Float64[],
+            Momentum4=Float64[],
+            Momentum5=Float64[],
+            Momentum6=Float64[],
+            Momentum7=Float64[],
+            Momentum8=Float64[],
+            Momentum9=Float64[],
+            Momentum10=Float64[],
+            PotentialEnergyE1=Float64[],
+            PotentialEnergyE2=Float64[],
+            PotentialEnergyE3=Float64[],
+            PotentialEnergyB2=Float64[],
+            PotentialEnergyB3=Float64[],
+            Transfer=Float64[],
+            ErrorPoisson=Float64[],
         )
 
         diagnostics = zeros(Float64, 12)
         potential_energy = zeros(Float64, 5)
 
-
-        new(
+        return new(
             particle_group,
             maxwell_solver,
             kernel_smoother_0,
@@ -131,14 +123,13 @@ function write_step!(
     efield_poisson,
     propagator,
 )
-
     nn = thdiag.kernel_smoother_0.n_dofs
     tmp = zeros(Float64, nn)
 
     fill!(thdiag.diagnostics, 0.0)
     fill!(thdiag.potential_energy, 0.0)
 
-    for i_part = 1:thdiag.particle_group.n_particles
+    for i_part in 1:(thdiag.particle_group.n_particles)
         fill!(propagator.j_dofs[1], 0.0)
         fill!(propagator.j_dofs[2], 0.0)
 
@@ -157,9 +148,7 @@ function write_step!(
         thdiag.diagnostics[1] += 0.5 * (vi[1]^2 + v2[1]^2 + v3[1]^2) * wi[1]
         add_charge!(propagator.j_dofs[2], propagator.kernel_smoother_1, xi, 1.0)
         compute_rderivatives_from_basis!(
-            propagator.j_dofs[1],
-            propagator.maxwell_solver,
-            propagator.j_dofs[2],
+            propagator.j_dofs[1], propagator.maxwell_solver, propagator.j_dofs[2]
         )
         thdiag.diagnostics[2] +=
             propagator.HH * (
@@ -184,13 +173,10 @@ function write_step!(
         )
         thdiag.diagnostics[11] += afield_dofs[1]' * propagator.j_dofs[1] * wi * s1 * (-1.0)
         thdiag.diagnostics[12] += afield_dofs[2]' * propagator.j_dofs[1] * wi * s1 * (-1.0)
-
     end
 
     transfer = pic_diagnostics_transfer(
-        thdiag.particle_group,
-        thdiag.kernel_smoother_0,
-        efield_dofs[1],
+        thdiag.particle_group, thdiag.kernel_smoother_0, efield_dofs[1]
     )
 
     thdiag.potential_energy[1] =
@@ -211,7 +197,7 @@ function write_step!(
     thdiag.potential_energy[5] =
         0.5 * l2norm_squared(thdiag.maxwell_solver, tmp, degree - 1)
 
-    push!(
+    return push!(
         thdiag.data,
         (
             time,
@@ -221,6 +207,4 @@ function write_step!(
             maximum(abs.(efield_dofs[1] .- efield_poisson)),
         ),
     )
-
-
 end

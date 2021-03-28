@@ -27,7 +27,6 @@ export Maxwell1DFEM
 
 """
 struct Maxwell1DFEM <: AbstractMaxwellSolver
-
     xmin::Float64
     Lx::Float64
     delta_x::Float64
@@ -48,7 +47,6 @@ struct Maxwell1DFEM <: AbstractMaxwellSolver
     eigvals::Vector{Float64}
 
     function Maxwell1DFEM(mesh::OneDGrid, degree::Int)
-
         xmin = mesh.xmin[1]
         n_dofs = mesh.nx[1]
         Lx = mesh.xmax[1] - mesh.xmin[1]
@@ -90,9 +88,7 @@ struct Maxwell1DFEM <: AbstractMaxwellSolver
             mass_1[3] = 1.0 / 120.0
 
         else
-
             throw(ArgumentError("Wrong value of degree = $degree  (1,2 or 3)"))
-
         end
 
         eig_mass0 = zeros(Float64, n_dofs)
@@ -114,52 +110,51 @@ struct Maxwell1DFEM <: AbstractMaxwellSolver
         eig_mass0[1] = 1.0  # sum of coefficents is one
         eig_mass1[1] = 1.0  # sum of coefficents is one
 
-        for k = 1:n_dofs÷2-1
+        for k in 1:(n_dofs ÷ 2 - 1)
             coef0 = mass_0[1]
             coef1 = mass_1[1]
-            for j = 1:s_deg_0-1
+            for j in 1:(s_deg_0 - 1)
                 cos_mode = cos(2 * pi * j * k / n_dofs)
-                coef0 = coef0 + 2 * mass_0[j+1] * cos_mode
-                coef1 = coef1 + 2 * mass_1[j+1] * cos_mode
+                coef0 = coef0 + 2 * mass_0[j + 1] * cos_mode
+                coef1 = coef1 + 2 * mass_1[j + 1] * cos_mode
             end
             # add last term for larger matrix
             j = s_deg_0
-            coef0 = coef0 + 2 * mass_0[j+1] * cos(2 * pi * j * k / n_dofs)
+            coef0 = coef0 + 2 * mass_0[j + 1] * cos(2 * pi * j * k / n_dofs)
             # compute eigenvalues
-            eig_mass0[k+1] = coef0 # real part
-            eig_mass0[n_dofs-k+1] = 0.0 # imaginary part
-            eig_mass1[k+1] = coef1 # real part
-            eig_mass1[n_dofs-k+1] = 0.0 # imaginary part
+            eig_mass0[k + 1] = coef0 # real part
+            eig_mass0[n_dofs - k + 1] = 0.0 # imaginary part
+            eig_mass1[k + 1] = coef1 # real part
+            eig_mass1[n_dofs - k + 1] = 0.0 # imaginary part
             cos_mode = cos(2 * pi * k / n_dofs)
             sin_mode = sin(2 * pi * k / n_dofs)
-            eig_weak_ampere[k+1] = (coef1 / coef0) * (1 - cos_mode) # real part
-            eig_weak_ampere[n_dofs-k+1] = -(coef1 / coef0) * sin_mode   # imaginary part
-            eig_weak_poisson[k+1] = 1.0 / (coef1 * ((1 - cos_mode)^2 + sin_mode^2))  # real part
-            eig_weak_poisson[n_dofs-k+1] = 0.0  # imaginary part
-
+            eig_weak_ampere[k + 1] = (coef1 / coef0) * (1 - cos_mode) # real part
+            eig_weak_ampere[n_dofs - k + 1] = -(coef1 / coef0) * sin_mode   # imaginary part
+            eig_weak_poisson[k + 1] = 1.0 / (coef1 * ((1 - cos_mode)^2 + sin_mode^2))  # real part
+            eig_weak_poisson[n_dofs - k + 1] = 0.0
         end
 
         # N/2 mode
         coef0 = mass_0[1]
         coef1 = mass_1[1]
-        for j = 1:s_deg_0-1
-            coef0 = coef0 + 2 * mass_0[j+1] * cos(pi * j)
-            coef1 = coef1 + 2 * mass_1[j+1] * cos(pi * j)
+        for j in 1:(s_deg_0 - 1)
+            coef0 = coef0 + 2 * mass_0[j + 1] * cos(pi * j)
+            coef1 = coef1 + 2 * mass_1[j + 1] * cos(pi * j)
         end
 
         # add last term for larger matrix
         j = s_deg_0
-        coef0 = coef0 + 2 * mass_0[j+1] * cos(pi * j)
+        coef0 = coef0 + 2 * mass_0[j + 1] * cos(pi * j)
 
         # compute eigenvalues
-        eig_mass0[n_dofs÷2+1] = coef0
-        eig_mass1[n_dofs÷2+1] = coef1
-        eig_weak_ampere[n_dofs÷2+1] = 2.0 * (coef1 / coef0)
-        eig_weak_poisson[n_dofs÷2+1] = 1.0 / (coef1 * 4.0)
+        eig_mass0[n_dofs ÷ 2 + 1] = coef0
+        eig_mass1[n_dofs ÷ 2 + 1] = coef1
+        eig_weak_ampere[n_dofs ÷ 2 + 1] = 2.0 * (coef1 / coef0)
+        eig_weak_poisson[n_dofs ÷ 2 + 1] = 1.0 / (coef1 * 4.0)
 
         eigvals = zeros(Float64, n_dofs)
 
-        new(
+        return new(
             xmin,
             Lx,
             delta_x,
@@ -178,10 +173,7 @@ struct Maxwell1DFEM <: AbstractMaxwellSolver
             wsave,
             eigvals,
         )
-
-
     end
-
 end
 
 export compute_rhs_from_function!
@@ -194,12 +186,8 @@ Compute the FEM right-hand-side for a given function f and periodic splines of g
 Its components are ``\\int f N_i dx`` where ``N_i`` is the B-spline starting at ``x_i``. 
 """
 function compute_rhs_from_function!(
-    coefs_dofs::Vector{Float64},
-    self::Maxwell1DFEM,
-    func::Function,
-    degree::Int64,
+    coefs_dofs::Vector{Float64}, self::Maxwell1DFEM, func::Function, degree::Int64
 )
-
     bspl = zeros(Float64, (degree + 1, degree + 1))
 
     # take enough Gauss points so that projection is exact for splines of degree deg
@@ -210,48 +198,45 @@ function compute_rhs_from_function!(
     w .= 0.5 .* w
 
     # Compute bsplines at gauss_points
-    for k = 1:degree+1
+    for k in 1:(degree + 1)
         bspl[k, :] .= uniform_bsplines_eval_basis(degree, x[k])
     end
 
     # Compute coefs_dofs = int f(x)N_i(x) 
-    for i = 1:self.n_dofs
+    for i in 1:(self.n_dofs)
         coef = 0.0
         # loop over support of B spline
-        for j = 1:degree+1
+        for j in 1:(degree + 1)
             # loop over Gauss points
-            for k = 1:degree+1
+            for k in 1:(degree + 1)
                 coef =
                     coef +
-                    w[k] * func(self.delta_x * (x[k] + i + j - 2)) * bspl[k, degree+2-j]
+                    w[k] * func(self.delta_x * (x[k] + i + j - 2)) * bspl[k, degree + 2 - j]
             end
         end
         # rescale by cell size
         coefs_dofs[i] = coef * self.delta_x
     end
-
 end
 
 function solve_circulant!(self, eigvals, rhs)
-
     n = self.n_dofs
     # Compute res from rhs, using eigenvalue of circulant  matrix
     self.work .= rhs
     # Forward FFT
     mul!(self.wsave, self.plan_fw, self.work)
     self.wsave[1] = self.wsave[1] * eigvals[1]
-    for k = 2:n÷2
-        re_p = self.wsave[k] * eigvals[k] - self.wsave[n-k+2] * eigvals[n-k+2]
-        im_p = self.wsave[k] * eigvals[n-k+2] + self.wsave[n-k+2] * eigvals[k]
+    for k in 2:(n ÷ 2)
+        re_p = self.wsave[k] * eigvals[k] - self.wsave[n - k + 2] * eigvals[n - k + 2]
+        im_p = self.wsave[k] * eigvals[n - k + 2] + self.wsave[n - k + 2] * eigvals[k]
         self.wsave[k] = re_p
-        self.wsave[n-k+2] = im_p
+        self.wsave[n - k + 2] = im_p
     end
-    self.wsave[n÷2+1] = self.wsave[n÷2+1] * eigvals[n÷2+1]
+    self.wsave[n ÷ 2 + 1] = self.wsave[n ÷ 2 + 1] * eigvals[n ÷ 2 + 1]
     # Backward FFT 
     mul!(self.work, self.plan_bw, self.wsave)
 
-    self.work ./= n
-
+    return self.work ./= n
 end
 
 export compute_e_from_rho!
@@ -262,12 +247,11 @@ function compute_e_from_rho!(e::Vector{Float64}, self::Maxwell1DFEM, rho::Vector
     # inverse matrix
     solve_circulant!(self, self.eig_weak_poisson, rho)
     # Compute spline coefficients of Ex from those of phi
-    for i = 2:self.n_dofs
-        e[i] = self.work[i-1] - self.work[i]
+    for i in 2:(self.n_dofs)
+        e[i] = self.work[i - 1] - self.work[i]
     end
     # treat Periodic point
-    e[1] = self.work[self.n_dofs] - self.work[1]
-
+    return e[1] = self.work[self.n_dofs] - self.work[1]
 end
 
 export compute_e_from_j!
@@ -277,12 +261,8 @@ export compute_e_from_j!
 Compute ``E_i`` from ``j_i`` integrated over the time interval using weak Ampere formulation
 """
 function compute_e_from_j!(
-    e::Vector{Float64},
-    self::Maxwell1DFEM,
-    current::Vector{Float64},
-    component::Int64,
+    e::Vector{Float64}, self::Maxwell1DFEM, current::Vector{Float64}, component::Int64
 )
-
     n = self.n_dofs
     fill!(self.eigvals, 0.0)
 
@@ -290,12 +270,12 @@ function compute_e_from_j!(
     # inverse matrix
 
     if (component == 1)
-        for i = 1:n÷2+1
+        for i in 1:(n ÷ 2 + 1)
             self.eigvals[i] = 1.0 / self.eig_mass1[i]
         end
         solve_circulant!(self, self.eigvals, current)
     elseif (component == 2)
-        for i = 1:n÷2+1
+        for i in 1:(n ÷ 2 + 1)
             self.eigvals[i] = 1.0 / self.eig_mass0[i]
         end
         solve_circulant!(self, self.eigvals, current)
@@ -305,8 +285,7 @@ function compute_e_from_j!(
 
     # Update the electric field and scale
     self.work ./= self.delta_x
-    e .-= self.work
-
+    return e .-= self.work
 end
 
 export l2norm_squared
@@ -321,23 +300,17 @@ function l2norm_squared(self, coefs_dofs, degree)
 
     # Multiply coefficients by mass matrix (use diagonalization FFT and mass matrix eigenvalues)
     if (degree == self.s_deg_0)
-
         solve_circulant!(self, self.eig_mass0, coefs_dofs)
 
     elseif (degree == self.s_deg_1)
-
         solve_circulant!(self, self.eig_mass1, coefs_dofs)
-
     end
 
     # Multiply by the coefficients from the left (inner product)
     r = sum(coefs_dofs .* self.work)
     # Scale by delt_x
-    r .* self.delta_x
-
+    return r .* self.delta_x
 end
-
-
 
 export l2norm_squared2
 
@@ -351,20 +324,16 @@ function l2norm_squared2(self, coefs_dofs, degree)
 
     # Multiply coefficients by mass matrix (use diagonalization FFT and mass matrix eigenvalues)
     if (degree == self.s_deg_0)
-
         solve_circulant!(self, self.eig_mass0, coefs_dofs)
 
     elseif (degree == self.s_deg_1)
-
         solve_circulant!(self, self.eig_mass1, coefs_dofs)
-
     end
 
     # Multiply by the coefficients from the left (inner product)
     r = sum(self.work .* self.work)
     # Scale by delt_x
-    r .* self.delta_x
-
+    return r .* self.delta_x
 end
 
 export l2projection!
@@ -376,12 +345,8 @@ Compute the L2 projection of a given function f on periodic splines
 of given degree
 """
 function l2projection!(
-    coefs_dofs::Vector{Float64},
-    self::Maxwell1DFEM,
-    func::Function,
-    degree::Int64,
+    coefs_dofs::Vector{Float64}, self::Maxwell1DFEM, func::Function, degree::Int64
 )
-
     n = self.n_dofs
     eigvals = zeros(Float64, n)
 
@@ -390,11 +355,11 @@ function l2projection!(
 
     # Multiply by inverse mass matrix 
     if (degree == self.s_deg_0)
-        for i = 1:n÷2+1
+        for i in 1:(n ÷ 2 + 1)
             eigvals[i] = 1.0 / self.eig_mass0[i]
         end
     elseif (degree == self.s_deg_0 - 1)
-        for i = 1:n÷2+1
+        for i in 1:(n ÷ 2 + 1)
             eigvals[i] = 1.0 / self.eig_mass1[i]
         end
     else
@@ -405,8 +370,7 @@ function l2projection!(
 
     # Account for scaling in the mass matrix by dx
 
-    coefs_dofs .= coefs_dofs ./ self.delta_x
-
+    return coefs_dofs .= coefs_dofs ./ self.delta_x
 end
 
 export compute_e_from_b!
@@ -423,14 +387,12 @@ function compute_e_from_b!(
     delta_t::Float64,
     field_in::Vector{Float64},
 )
-
     coef = delta_t / self.delta_x
 
     # Compute potential weak curl of Bz using eigenvalue of circulant inverse matrix
     solve_circulant!(self, self.eig_weak_ampere, field_in)
     # Update bz from self value
-    field_out .+= coef .* self.work
-
+    return field_out .+= coef .* self.work
 end
 
 export compute_b_from_e!
@@ -448,55 +410,42 @@ function compute_b_from_e!(
     delta_t::Float64,
     field_in::Vector{Float64},
 )
-
     coef = delta_t / self.delta_x
     # relation betwen spline coefficients for strong Ampere
-    for i = 2:self.n_dofs
-        field_out[i] = field_out[i] + coef * (field_in[i-1] - field_in[i])
+    for i in 2:(self.n_dofs)
+        field_out[i] = field_out[i] + coef * (field_in[i - 1] - field_in[i])
     end
     # treat Periodic point
-    field_out[1] = field_out[1] + coef * (field_in[end] - field_in[1])
-
+    return field_out[1] = field_out[1] + coef * (field_in[end] - field_in[1])
 end
-
 
 export compute_rderivatives_from_basis!
 
 function compute_rderivatives_from_basis!(
-    field_out::Vector{Float64},
-    self::Maxwell1DFEM,
-    field_in::Vector{Float64},
+    field_out::Vector{Float64}, self::Maxwell1DFEM, field_in::Vector{Float64}
 )
-
     coef = 1 / self.delta_x
     # relation betwen spline coefficients for strong Ampere
-    for i = 1:(self.n_dofs-1)
-        @inbounds field_out[i] = coef * (field_in[i] - field_in[i+1])
+    for i in 1:(self.n_dofs - 1)
+        @inbounds field_out[i] = coef * (field_in[i] - field_in[i + 1])
     end
     # treat Periodic point
-    field_out[end] = coef * (field_in[end] - field_in[1])
-
+    return field_out[end] = coef * (field_in[end] - field_in[1])
 end
 
 export compute_lderivatives_from_basis!
 
 function compute_lderivatives_from_basis!(
-    field_out::Vector{Float64},
-    self::Maxwell1DFEM,
-    field_in::Vector{Float64},
+    field_out::Vector{Float64}, self::Maxwell1DFEM, field_in::Vector{Float64}
 )
-
     coef = 1 / self.delta_x
     # relation betwen spline coefficients for strong Ampere
-    for i = 2:(self.n_dofs)
-        @inbounds field_out[i] = coef * (field_in[i] - field_in[i-1])
+    for i in 2:(self.n_dofs)
+        @inbounds field_out[i] = coef * (field_in[i] - field_in[i - 1])
     end
     # treat Periodic point
-    field_out[1] = coef * (field_in[1] - field_in[end])
-
+    return field_out[1] = coef * (field_in[1] - field_in[end])
 end
-
-
 
 """
     inner_product( maxwell_solver, coefs1_dofs, coefs2_dofs, degree )
@@ -513,18 +462,14 @@ function inner_product(self, coefs1_dofs, coefs2_dofs, degree)
 
     # Multiply coefficients by mass matrix (use diagonalization FFT and mass matrix eigenvalues)
     if degree == self.s_deg_0
-
         solve_circulant!(self, self.eig_mass0, coefs2_dofs)
 
     elseif degree == self.s_deg_1
-
         solve_circulant!(self, self.eig_mass1, coefs2_dofs)
-
     end
 
     # Multiply by the coefficients from the left (inner product)
     # Scaled by delt_x
 
-    sum(coefs1_dofs .* self.work) * self.delta_x
-
+    return sum(coefs1_dofs .* self.work) * self.delta_x
 end

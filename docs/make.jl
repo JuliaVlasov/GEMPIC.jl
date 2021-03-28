@@ -1,5 +1,5 @@
 push!(LOAD_PATH, "../src/")
-ENV["GKSwstype"]="100"
+ENV["GKSwstype"] = "100"
 using Documenter
 using GEMPIC
 using Literate
@@ -17,39 +17,42 @@ using Plots
 #     #Literate.script(EXAMPLE, OUTPUT)
 # end
 
-makedocs(
-    sitename = "GEMPIC",
-    doctest = true,
-    authors = "Julia Vlasov", 
-    format = Documenter.HTML(
-        prettyurls = get(ENV, "CI", nothing) == "true",
-        mathengine = MathJax(Dict(
-            :TeX => Dict(
-                :equationNumbers => Dict(:autoNumber => "AMS"),
-                :Macros => Dict()
-            )
-        ))
+makedocs(;
+    sitename="GEMPIC",
+    doctest=true,
+    authors="Julia Vlasov",
+    format=Documenter.HTML(;
+        prettyurls=get(ENV, "CI", nothing) == "true",
+        mathengine=MathJax(
+            Dict(
+                :TeX =>
+                    Dict(:equationNumbers => Dict(:autoNumber => "AMS"), :Macros => Dict()),
+            ),
+        ),
     ),
-    modules = [GEMPIC],
-    pages = ["Documentation" => ["index.md",
-                                 "mesh.md",
-                                 "low_level_bsplines.md",
-                                 "splinepp.md",
-                                 "particle_mesh_coupling.md",
-                                 "distributions.md",
-                                 "particle_group.md",
-                                 "particle_sampling.md",
-                                 "maxwell_solver.md",
-                                 "Splitting" => [
-                                 "hamiltonian_splitting.md",
-                                 "hamiltonian_splitting_spin.md",
-                                 "hamiltonian_splitting_boris.md"],
-                                 "diagnostics.md"],
-              "Examples" => [ "strong_landau_damping.md" ],
-             # "Scalar Spin Vlasov-Maxwell" => "scalar_spin_vlasov_maxwell.md",
-             "Contents"      => "contents.md"]
+    modules=[GEMPIC],
+    pages=[
+        "Documentation" => [
+            "index.md",
+            "mesh.md",
+            "low_level_bsplines.md",
+            "splinepp.md",
+            "particle_mesh_coupling.md",
+            "distributions.md",
+            "particle_group.md",
+            "particle_sampling.md",
+            "maxwell_solver.md",
+            "Splitting" => [
+                "hamiltonian_splitting.md",
+                "hamiltonian_splitting_spin.md",
+                "hamiltonian_splitting_boris.md",
+            ],
+            "diagnostics.md",
+        ],
+        "Examples" => ["strong_landau_damping.md"],
+        # "Scalar Spin Vlasov-Maxwell" => "scalar_spin_vlasov_maxwell.md",
+        "Contents" => "contents.md",
+    ],
 )
 
-deploydocs(
-    repo   = "github.com/JuliaVlasov/GEMPIC.jl.git",
-	)
+deploydocs(; repo="github.com/JuliaVlasov/GEMPIC.jl.git")

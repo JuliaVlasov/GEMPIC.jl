@@ -1,6 +1,5 @@
 export HamiltonianSplittingSpin
 
-
 """
     HamiltonianSplittingSpin( maxwell_solver,
                               kernel_smoother_0, kernel_smoother_1,
@@ -14,7 +13,6 @@ Hamiltonian splitting type for Vlasov-Maxwell
 - `a_dofs` describing the potential vector
 """
 struct HamiltonianSplittingSpin
-
     maxwell_solver::AbstractMaxwellSolver
     kernel_smoother_0::ParticleMeshCoupling1D
     kernel_smoother_1::ParticleMeshCoupling1D
@@ -44,16 +42,16 @@ struct HamiltonianSplittingSpin
         particle_group,
         e_dofs,
         a_dofs,
-        HH = 0.0,
+        HH=0.0,
     ) #0.00022980575) 
 
         # Check that n_dofs is the same for both kernel smoothers.
         @assert kernel_smoother_0.n_dofs == kernel_smoother_1.n_dofs
 
-        j_dofs = [zeros(Float64, kernel_smoother_0.n_dofs) for i = 1:2]
+        j_dofs = [zeros(Float64, kernel_smoother_0.n_dofs) for i in 1:2]
 
         nx = maxwell_solver.n_dofs
-        part = [zeros(Float64, nx) for i = 1:4]
+        part = [zeros(Float64, nx) for i in 1:4]
         x_min = maxwell_solver.xmin
         Lx = maxwell_solver.Lx
         spline_degree = 3
@@ -62,7 +60,7 @@ struct HamiltonianSplittingSpin
         cell_integrals_1 = SVector{3}([0.5, 2.0, 0.5] ./ 3.0)
         cell_integrals_0 = SVector{4}([1.0, 11.0, 11.0, 1.0] ./ 24.0)
 
-        new(
+        return new(
             maxwell_solver,
             kernel_smoother_0,
             kernel_smoother_1,
@@ -80,9 +78,7 @@ struct HamiltonianSplittingSpin
             part,
             HH,
         )
-
     end
-
 end
 
 export strang_splitting!
@@ -96,8 +92,7 @@ Strang splitting
 - number of time steps
 """
 function strang_splitting!(h::HamiltonianSplittingSpin, dt::Float64, number_steps::Int64)
-
-    for i_step = 1:number_steps
+    for i_step in 1:number_steps
         operatorHE(h, 0.5dt)
         operatorHp(h, 0.5dt)
         operatorHA(h, 0.5dt)
@@ -105,9 +100,7 @@ function strang_splitting!(h::HamiltonianSplittingSpin, dt::Float64, number_step
         operatorHA(h, 0.5dt)
         operatorHp(h, 0.5dt)
         operatorHE(h, 0.5dt)
-
     end
-
 end
 
 """
@@ -122,13 +115,12 @@ end
 ```
 """
 function operatorHp(h::HamiltonianSplittingSpin, dt::Float64)
-
     n_cells = h.kernel_smoother_0.n_dofs
 
     fill!(h.j_dofs[1], 0.0)
     fill!(h.j_dofs[2], 0.0)
 
-    for i_part = 1:h.particle_group.n_particles
+    for i_part in 1:(h.particle_group.n_particles)
 
         # Read out particle position and velocity
         x_old = h.particle_group.array[1, i_part]
@@ -144,12 +136,10 @@ function operatorHp(h::HamiltonianSplittingSpin, dt::Float64)
 
         x_new = mod(x_new, h.Lx)
         h.particle_group.array[1, i_part] = x_new
-
     end
 
     # Update the electric field.
-    compute_e_from_j!(h.e_dofs[1], h.maxwell_solver, h.j_dofs[1], 1)
-
+    return compute_e_from_j!(h.e_dofs[1], h.maxwell_solver, h.j_dofs[1], 1)
 end
 
 """
@@ -164,7 +154,6 @@ end
 ```
 """
 function operatorHA(h::HamiltonianSplittingSpin, dt::Float64)
-
     n_cells = h.kernel_smoother_0.n_dofs
 
     fill!.(h.part, 0.0)
@@ -176,7 +165,7 @@ function operatorHA(h::HamiltonianSplittingSpin, dt::Float64)
     tmp_jdofs1 = zeros(h.kernel_smoother_1.n_span + 1)
     tmp_jdofs2 = zeros(h.kernel_smoother_0.n_span)
 
-    for i_part = 1:h.particle_group.n_particles
+    for i_part in 1:(h.particle_group.n_particles)
 
         # fill!(h.j_dofs[1], 0.0)
         # fill!(h.j_dofs[2], 0.0)
@@ -194,12 +183,10 @@ function operatorHA(h::HamiltonianSplittingSpin, dt::Float64)
         index = index - h.kernel_smoother_0.spline_degree
 
         uniform_bsplines_eval_basis!(
-            h.kernel_smoother_0.spline_val,
-            h.kernel_smoother_0.spline_degree,
-            xn,
+            h.kernel_smoother_0.spline_val, h.kernel_smoother_0.spline_degree, xn
         )
 
-        for i = 1:h.kernel_smoother_0.n_span
+        for i in 1:(h.kernel_smoother_0.n_span)
             tmp_jdofs2[i] = h.kernel_smoother_0.spline_val[i] * h.kernel_smoother_0.scaling
         end
 
@@ -211,12 +198,10 @@ function operatorHA(h::HamiltonianSplittingSpin, dt::Float64)
         index = index - h.kernel_smoother_1.spline_degree
 
         uniform_bsplines_eval_basis!(
-            h.kernel_smoother_1.spline_val,
-            h.kernel_smoother_1.spline_degree,
-            xn,
+            h.kernel_smoother_1.spline_val, h.kernel_smoother_1.spline_degree, xn
         )
 
-        for i = 1:h.kernel_smoother_1.n_span
+        for i in 1:(h.kernel_smoother_1.n_span)
             tmp_jdofs1[i] = h.kernel_smoother_1.spline_val[i] * h.kernel_smoother_1.scaling
         end
 
@@ -225,15 +210,15 @@ function operatorHA(h::HamiltonianSplittingSpin, dt::Float64)
 
         coef = 1 / h.maxwell_solver.delta_x
         # relation betwen spline coefficients for strong Ampere
-        for i = 1:h.kernel_smoother_1.n_span
+        for i in 1:(h.kernel_smoother_1.n_span)
             index1d = mod1(index + i, n_cells)
-            aa[index1d] = coef * (tmp_jdofs1[i] - tmp_jdofs1[i+1])
+            aa[index1d] = coef * (tmp_jdofs1[i] - tmp_jdofs1[i + 1])
         end
         ## treat Periodic point
         #aa[end] =  coef * ( field_in[end] - field_in[1] )
         # h.j_dofs[1] .= aa
 
-        for i = 1:h.kernel_smoother_1.n_span
+        for i in 1:(h.kernel_smoother_1.n_span)
             index1d = mod1(index + i, n_cells)
             tmp_jdofs1[i] = aa[index1d]
         end
@@ -248,7 +233,7 @@ function operatorHA(h::HamiltonianSplittingSpin, dt::Float64)
         p21 = 0.0
         p12 = 0.0
         p22 = 0.0
-        for i = 1:h.kernel_smoother_0.n_span
+        for i in 1:(h.kernel_smoother_0.n_span)
             index1d = mod1(index + i, n_cells)
             p11 += h.a_dofs[1][index1d] * tmp_jdofs1[i]
             p21 += h.a_dofs[2][index1d] * tmp_jdofs1[i]
@@ -262,14 +247,11 @@ function operatorHA(h::HamiltonianSplittingSpin, dt::Float64)
 
         # below we solve electric field
         # first define part1 and part2 to be 0 vector
-        for i = 1:h.kernel_smoother_0.n_span
+        for i in 1:(h.kernel_smoother_0.n_span)
             index1d = mod1(index + i, n_cells)
             h.part[1][index1d] = h.part[1][index1d] - tmp_jdofs2[i] * dt * wi * p12
             h.part[2][index1d] = h.part[2][index1d] - tmp_jdofs2[i] * dt * wi * p22
         end
-
-
-
     end
 
     # Update the electric field. Also, we still need to scale with 1/Lx 
@@ -282,11 +264,8 @@ function operatorHA(h::HamiltonianSplittingSpin, dt::Float64)
     compute_lderivatives_from_basis!(h.part[4], h.maxwell_solver, h.a_dofs[2])
 
     compute_e_from_b!(h.e_dofs[2], h.maxwell_solver, dt, h.part[3])
-    compute_e_from_b!(h.e_dofs[3], h.maxwell_solver, dt, h.part[4])
-
-
+    return compute_e_from_b!(h.e_dofs[3], h.maxwell_solver, dt, h.part[4])
 end
-
 
 """
     operatorHE(h, dt)
@@ -300,7 +279,6 @@ end
 ```
 """
 function operatorHE(h::HamiltonianSplittingSpin, dt::Float64)
-
     np = h.particle_group.n_particles
 
     if np > 2
@@ -323,10 +301,8 @@ function operatorHE(h::HamiltonianSplittingSpin, dt::Float64)
     end
 
     h.a_dofs[1] .-= dt * h.e_dofs[2]
-    h.a_dofs[2] .-= dt * h.e_dofs[3]
-
+    return h.a_dofs[2] .-= dt * h.e_dofs[3]
 end
-
 
 """
     operatorHs(h, dt)
@@ -342,7 +318,6 @@ Push H_s: Equations to be solved
 ```
 """
 function operatorHs(h::HamiltonianSplittingSpin, dt::Float64)
-
     n_cells = h.kernel_smoother_0.n_dofs
 
     fill!.(h.part, 0.0)
@@ -354,7 +329,7 @@ function operatorHs(h::HamiltonianSplittingSpin, dt::Float64)
     V = zeros(Float64, 3)
     aa = zeros(Float64, n_cells)
 
-    @inbounds for i_part = 1:h.particle_group.n_particles
+    @inbounds for i_part in 1:(h.particle_group.n_particles)
         xi = h.particle_group.array[1, i_part]
         vi = h.particle_group.array[2, i_part]
 
@@ -426,7 +401,6 @@ function operatorHs(h::HamiltonianSplittingSpin, dt::Float64)
             h.HH * (h.a_dofs[2]' * h.j_dofs[1] * St[2] + h.a_dofs[1]' * h.j_dofs[1] * St[3])
 
         set_v!(h.particle_group, i_part, vi)
-
     end
 
     # Update bfield
@@ -437,6 +411,5 @@ function operatorHs(h::HamiltonianSplittingSpin, dt::Float64)
     h.j_dofs[2] .*= h.HH
 
     compute_e_from_j!(h.e_dofs[2], h.maxwell_solver, h.j_dofs[1], 2)
-    compute_e_from_j!(h.e_dofs[3], h.maxwell_solver, h.j_dofs[2], 2)
-
+    return compute_e_from_j!(h.e_dofs[3], h.maxwell_solver, h.j_dofs[2], 2)
 end
