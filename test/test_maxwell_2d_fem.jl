@@ -5,10 +5,10 @@ using GEMPIC
     function evaluate_spline_2d(nx1, nx2, degs, dofs)
         deg1, deg2 = degs
         vals = collect(reshape(dofs, nx1, nx2))
-        for j in 1:nx2
+        for j = 1:nx2
             vals[:, j] .= GEMPIC.eval_uniform_periodic_spline_curve(deg1, vals[:, j])
         end
-        for i in 1:nx1
+        for i = 1:nx1
             vals[i, :] .= GEMPIC.eval_uniform_periodic_spline_curve(deg2, vals[i, :])
         end
         return vec(vals)
@@ -27,15 +27,15 @@ using GEMPIC
 
     maxwell = TwoDMaxwell(mesh, deg)
 
-    efield = [zeros(nx1 * nx2) for _ in 1:3]
+    efield = [zeros(nx1 * nx2) for _ = 1:3]
     bfield = deepcopy(efield)
     efield_val = deepcopy(efield)
     bfield_val = deepcopy(efield)
     efield_ref = deepcopy(efield)
     bfield_ref = deepcopy(efield)
 
-    x = LinRange(x1min, x1max, nx1 + 1)[1:(end - 1)] .* transpose(ones(nx2))
-    y = ones(nx1) .* transpose(LinRange(x2min, x2max, nx2 + 1)[1:(end - 1)])
+    x = LinRange(x1min, x1max, nx1 + 1)[1:(end-1)] .* transpose(ones(nx2))
+    y = ones(nx1) .* transpose(LinRange(x2min, x2max, nx2 + 1)[1:(end-1)])
 
     w1 = sqrt(3)
     w2 = sqrt(3)
@@ -80,7 +80,7 @@ using GEMPIC
     efield[3] .= l2projection(maxwell, b3, 3, 1)
     efield[3] .*= -1
 
-    for istep in 1:nsteps
+    for istep = 1:nsteps
         compute_b_from_e!(bfield, maxwell, delta_t, efield)
         compute_e_from_b!(efield, maxwell, delta_t, bfield)
     end
