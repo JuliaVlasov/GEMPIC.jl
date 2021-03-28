@@ -1,5 +1,4 @@
 @testset "Hamiltonian splitting with spin" begin
-
     import GEMPIC: get_x, get_charge, add_charge!
     import GEMPIC: operatorHp1, operatorHp2, operatorHE, operatorHB
 
@@ -17,14 +16,16 @@
 
     mesh = OneDGrid(eta_min, eta_max, num_cells)
 
-    pg = ParticleGroup{1,1}(n_particles, n_spin = 3)
+    pg = ParticleGroup{1,1}(n_particles; n_spin=3)
 
     # Initialize kernel smoothers
-    kernel_smoother_1 =
-        ParticleMeshCoupling1D(mesh, n_particles, degree_smoother - 1, :galerkin)
+    kernel_smoother_1 = ParticleMeshCoupling1D(
+        mesh, n_particles, degree_smoother - 1, :galerkin
+    )
 
-    kernel_smoother_0 =
-        ParticleMeshCoupling1D(mesh, n_particles, degree_smoother, :galerkin)
+    kernel_smoother_0 = ParticleMeshCoupling1D(
+        mesh, n_particles, degree_smoother, :galerkin
+    )
 
     # Initialize Maxwell solver
     maxwell_solver = Maxwell1DFEM(mesh, degree_smoother)
@@ -38,12 +39,11 @@
     bfield_ref = zeros(Float64, n_dofs)
     rho = zeros(Float64, n_dofs)
 
-    for i_part = 1:n_particles
+    for i_part in 1:n_particles
         xi = get_x(pg, i_part)[1]
         wi = get_charge(pg, i_part)
         add_charge!(rho, kernel_smoother_0, xi, wi)
     end
 
     @test true
-
 end

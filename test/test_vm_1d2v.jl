@@ -8,7 +8,6 @@ FEM with splines, degree 3 for B and 2 for E
 """
 
 @testset " PIC VM 1D2V " begin
-
     delta_t = 0.05
     n_time_steps = 5
     beta = 0.0001
@@ -84,10 +83,7 @@ FEM with splines, degree 3 for B and 2 for E
     end
 
     thdiag = TimeHistoryDiagnostics(
-        particle_group,
-        maxwell_solver,
-        kernel_smoother0,
-        kernel_smoother1,
+        particle_group, maxwell_solver, kernel_smoother0, kernel_smoother1
     )
 
     write_step!(
@@ -100,18 +96,14 @@ FEM with splines, degree 3 for B and 2 for E
         efield_poisson,
     )
 
-    for j = 1:n_time_steps # loop over time
+    for j in 1:n_time_steps # loop over time
 
         # Strang splitting
         strang_splitting!(propagator, delta_t, 1)
 
         # Diagnostics
         solve_poisson!(
-            efield_poisson,
-            particle_group,
-            kernel_smoother0,
-            maxwell_solver,
-            rho,
+            efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho
         )
 
         write_step!(
@@ -125,17 +117,15 @@ FEM with splines, degree 3 for B and 2 for E
         )
 
         @test true
-
     end
 
     # Compute final rho
     fill!(rho, 0.0)
-    for i_part = 1:particle_group.n_particles
+    for i_part in 1:(particle_group.n_particles)
         xi = get_x(particle_group, i_part)[1]
         wi = get_charge(particle_group, i_part)
         add_charge!(rho, kernel_smoother0, xi, wi)
     end
 
     @show thdiag.data
-
 end

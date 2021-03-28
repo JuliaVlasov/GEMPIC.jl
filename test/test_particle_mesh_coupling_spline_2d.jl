@@ -1,5 +1,4 @@
 @testset "ParticleMeshCoupling 2D" begin
-
     n_cells = 10 # Number of cells
     n_particles = 4 # Number of particles
     spline_degree = 3 # Spline degree
@@ -13,9 +12,9 @@
     x_vec = [0.1 0.65 0.7 1.5; 0.0 0.0 0.0 0.0]
     v_vec = [1.5 0.00 0.0 0.0; 0.0 0.5 0.0 0.0]
 
-    pg = ParticleGroup{2,2}(n_particles, charge = 1.0, mass = 1.0, n_weights = 1)
+    pg = ParticleGroup{2,2}(n_particles; charge=1.0, mass=1.0, n_weights=1)
 
-    for i_part = 1:n_particles
+    for i_part in 1:n_particles
         pg.array[1, i_part] = x_vec[1, i_part]
         pg.array[2, i_part] = x_vec[2, i_part]
         pg.array[3, i_part] = v_vec[1, i_part]
@@ -57,7 +56,7 @@
     ρ_dofs_pp = zeros(Float64, (16, 100))
 
     # Accumulate ρ
-    for i_part = 1:n_particles
+    for i_part in 1:n_particles
         x = pg.array[1, i_part]
         y = pg.array[2, i_part]
         w = pg.array[5, i_part]
@@ -88,7 +87,7 @@
     particle_values_ref = zeros(4)
 
     # Test function evaluation
-    for i_part = 1:n_particles
+    for i_part in 1:n_particles
         xp = pg.array[1, i_part]
         yp = pg.array[2, i_part]
         particle_values[i_part] = evaluate(kernel, xp, yp, ρ_dofs)
@@ -101,15 +100,15 @@
 
     fill!(particle_values_ref, 0.0)
 
-    for i_part = 1:n_particles
-        for i = 1:4
+    for i_part in 1:n_particles
+        for i in 1:4
             i1 = mod(index_grid[1, i_part] + i - 2, n_cells)
-            for j = 1:4
+            for j in 1:4
                 i2 = mod(index_grid[2, i_part] + j - 2, n_cells)
                 res =
                     v_grid[i, 1, i_part] *
                     v_grid[j, 2, i_part] *
-                    ρ_dofs_ref[i1+i2*n_cells+1]
+                    ρ_dofs_ref[i1 + i2 * n_cells + 1]
                 particle_values_ref[i_part] += res
             end
         end
@@ -117,5 +116,4 @@
 
     @test particle_values ≈ particle_values_ref
     @test particle_values1 ≈ particle_values_ref
-
 end

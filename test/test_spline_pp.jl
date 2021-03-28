@@ -1,5 +1,4 @@
 @testset " spline pp 1d " begin
-
     import GEMPIC: SplinePP, b_to_pp, uniform_bsplines_eval_basis, horner_1d
 
     ncells = 8
@@ -9,7 +8,7 @@
 
     b = rand(ncells)
 
-    for d = 1:5
+    for d in 1:5
         xp = 4.8141437173987800
 
         spline_pp = SplinePP(d, ncells)
@@ -27,7 +26,7 @@
 
         res2 = 0.0
 
-        for i = 1:d+1
+        for i in 1:(d + 1)
             index1d = (index + i - 2) % ncells + 1
             res2 += b[index1d] * val[i]
         end
@@ -41,19 +40,15 @@
         res1 = horner_1d(d, pp, xp, index)
 
         res2 = 0.0
-        for i = 1:d+1
+        for i in 1:(d + 1)
             res2 += pp[i, 1] * xp^((d + 1) - i)
         end
 
         @test res1 ≈ res2
-
     end
-
 end
 
-
 @testset " spline pp 2d " begin
-
     using Random
 
     ncells = 50
@@ -93,9 +88,9 @@ end
     val2 = uniform_bsplines_eval_basis(d, yi)
 
     res2 = 0.0
-    for i = 1:d+1
+    for i in 1:(d + 1)
         idx1 = mod(ind_x + i - 2, ncells)
-        for j = 1:d+1
+        for j in 1:(d + 1)
             idx2 = mod(ind_y + j - 2, ncells)
             index2d = idx1 + idx2 * ncells + 1
             res2 += b[index2d] * val1[i] * val2[j]
@@ -109,10 +104,9 @@ end
     res1 = GEMPIC.horner_2d((d, d), pp, xp, [1, 1], [1, 1])
 
     res2 = 0.0
-    for i = 1:d+1, j = 1:d+1
-        res2 += pp[i+(j-1)*(d+1), 1] * xp[1]^((d + 1) - i) * xp[2]^((d + 1) - j)
+    for i in 1:(d + 1), j in 1:(d + 1)
+        res2 += pp[i + (j - 1) * (d + 1), 1] * xp[1]^((d + 1) - i) * xp[2]^((d + 1) - j)
     end
 
     @test res1 ≈ res2
-
 end

@@ -1,8 +1,6 @@
 using GEMPIC
 
 @testset " Mesh " begin
-
-
     mesh1d = OneDGrid(-π, π, 11)
     mesh2d = TwoDGrid(0.0, 2π, 11, -6.0, 6.0, 21)
     #mesh3d = Mesh( 0.0, 2π, 11, -π, π, 21, 0.0, 1.0, 32 )

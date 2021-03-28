@@ -1,5 +1,4 @@
 @testset " particle-mesh coupling with spline 1d " begin
-
     import GEMPIC: set_x!, set_v!, set_weights!
     import GEMPIC: get_x, get_v, get_charge, add_charge!, add_charge_pp!
     import GEMPIC: add_current_update_v!, add_current_update_v_pp!
@@ -17,7 +16,7 @@
 
     particle_group = ParticleGroup{1,2}(n_particles)
 
-    for i_part = 1:n_particles
+    for i_part in 1:n_particles
         set_x!(particle_group, i_part, x_vec[i_part])
         set_v!(particle_group, i_part, v_vec[i_part, :])
         set_weights!(particle_group, i_part, 1.0)
@@ -48,7 +47,7 @@
     # Accumulate rho
     rho_dofs = zeros(Float64, n_cells)
     rho_dofs1 = zeros(Float64, n_cells)
-    for i_part = 1:n_particles
+    for i_part in 1:n_particles
         xi = get_x(particle_group, i_part)[1]
         wi = get_charge(particle_group, i_part)
         add_charge!(rho_dofs, kernel, xi, wi)
@@ -69,7 +68,7 @@
     j_dofs1 = zeros(Float64, n_cells)
     b_dofs = zeros(Float64, n_cells)
 
-    for i_part = 1:n_particles
+    for i_part in 1:n_particles
         xi = get_x(particle_group, i_part)[1]
         wi = get_charge(particle_group, i_part)
         vi = get_v(particle_group, i_part)
@@ -78,7 +77,6 @@
 
         vi[2] = add_current_update_v!(j_dofs, kernel, xi, x_new, wi, 1.0, b_dofs, vi[2])
         vi1 = add_current_update_v_pp!(j_dofs1, kernel, xi, x_new, wi, 1.0, b_dofs, vi1)
-
     end
 
     j_dofs_ref = [
@@ -130,18 +128,18 @@
     particle_values = zeros(Float64, 4)
     particle_values1 = zeros(Float64, 4)
 
-    for i_part = 1:n_particles
+    for i_part in 1:n_particles
         xi = get_x(particle_group, i_part)
         particle_values[i_part] = evaluate(kernel, xi[1], rho_dofs)
         particle_values1[i_part] = evaluate_pp(kernel, xi[1], rho_dofs_pp)
     end
 
-    particle_values_ref =
-        [1.1560058593749998, 2.3149278428819446, 2.2656250000000000, 1.1512586805555554]
+    particle_values_ref = [
+        1.1560058593749998, 2.3149278428819446, 2.2656250000000000, 1.1512586805555554
+    ]
 
     particle_values_ref ./= mesh.xmax[1]
 
     @test maximum(abs.(particle_values .- particle_values_ref)) < 1e-15
     @test maximum(abs.(particle_values1 .- particle_values_ref)) < 1e-15
-
 end

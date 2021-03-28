@@ -1,5 +1,4 @@
 @testset "VM 1D1V with spin" begin
-
     σ, μ = 0.02, 0.0
     kx, α = 1.004355, 0.001
     xmin, xmax = 0, 2π / kx
@@ -12,7 +11,7 @@
 
     df = CosSumGaussianSpin([[kx]], [α], [[σ]], [[μ]])
 
-    particle_group2 = ParticleGroup{1,1}(n_particles, n_spin = 3)
+    particle_group2 = ParticleGroup{1,1}(n_particles; n_spin=3)
     sampler = ParticleSampler{1,1}(:sobol, n_particles)
 
     sample!(particle_group2, sampler, df, mesh)
@@ -26,12 +25,11 @@
         1.0 1.0
     ]
 
-
     @test particle_group2.array ≈ ref
 
-    particle_group = ParticleGroup{1,1}(n_particles, n_spin = 3)
+    particle_group = ParticleGroup{1,1}(n_particles; n_spin=3)
 
-    for i_part = 1:n_particles
+    for i_part in 1:n_particles
         x = zeros(1)
         v = zeros(1)
         s = zeros(3)
@@ -51,14 +49,15 @@
         GEMPIC.set_spin!(particle_group, i_part, 2, s2)
         GEMPIC.set_spin!(particle_group, i_part, 3, s3)
         GEMPIC.set_weights!(particle_group, i_part, w[1])
-
     end
 
     kernel_smoother0 = ParticleMeshCoupling1D(mesh, n_particles, spline_degree, :galerkin)
-    kernel_smoother1 =
-        ParticleMeshCoupling1D(mesh, n_particles, spline_degree - 1, :galerkin)
-    kernel_smoother2 =
-        ParticleMeshCoupling1D(mesh, n_particles, spline_degree - 2, :galerkin)
+    kernel_smoother1 = ParticleMeshCoupling1D(
+        mesh, n_particles, spline_degree - 1, :galerkin
+    )
+    kernel_smoother2 = ParticleMeshCoupling1D(
+        mesh, n_particles, spline_degree - 2, :galerkin
+    )
 
     rho = zeros(Float64, nx)
     efield_poisson = zeros(Float64, nx)
@@ -153,10 +152,7 @@
     efield_dofs_n = propagator.e_dofs
 
     thdiag = TimeHistoryDiagnosticsSpin(
-        particle_group,
-        maxwell_solver,
-        kernel_smoother0,
-        kernel_smoother1,
+        particle_group, maxwell_solver, kernel_smoother0, kernel_smoother1
     )
 
     steps, Δt = 2, 0.1
@@ -165,7 +161,6 @@
     strang_splitting!(propagator, Δt, 1)
 
     solve_poisson!(efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho)
-
 
     @test efield_poisson ≈ [-0.579, -0.836, -2.782, 1.379, -1.381, 2.784, 0.836, 0.580] atol =
         1e-2
@@ -198,8 +193,5 @@
         propagator,
     )
 
-
     GEMPIC.save("particles", 1, particle_group)
-
-
 end

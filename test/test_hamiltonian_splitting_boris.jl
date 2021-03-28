@@ -3,7 +3,6 @@ import GEMPIC: get_charge, add_charge!
 import GEMPIC: push_x_accumulate_j!
 
 @testset "Hamiltonian splitting Boris" begin
-
     n_particles = 2
     eta_min = 0.0
     eta_max = 4.0π
@@ -13,8 +12,7 @@ import GEMPIC: push_x_accumulate_j!
 
     mesh = OneDGrid(eta_min, eta_max, num_cells)
 
-    pg = ParticleGroup{1,2}(n_particles; common_weight = 1.0)
-
+    pg = ParticleGroup{1,2}(n_particles; common_weight=1.0)
 
     particle_info_ref = reshape(
         [
@@ -33,53 +31,47 @@ import GEMPIC: push_x_accumulate_j!
 
     # Initialize particles from particle_info_ref
 
-    for i_part = 1:n_particles
+    for i_part in 1:n_particles
         xi = particle_info_ref[1, i_part]
         set_x!(pg, i_part, xi)
         xi = particle_info_ref[2:3, i_part]
         set_v!(pg, i_part, xi)
         xi = particle_info_ref[4, i_part]
         set_weights!(pg, i_part, xi[1])
-
     end
 
     # Initialize kernel smoother    
 
-    kernel_smoother_1 =
-        ParticleMeshCoupling1D(mesh, n_particles, degree_smoother - 1, :galerkin)
-    kernel_smoother_0 =
-        ParticleMeshCoupling1D(mesh, n_particles, degree_smoother, :galerkin)
+    kernel_smoother_1 = ParticleMeshCoupling1D(
+        mesh, n_particles, degree_smoother - 1, :galerkin
+    )
+    kernel_smoother_0 = ParticleMeshCoupling1D(
+        mesh, n_particles, degree_smoother, :galerkin
+    )
 
     # Initialize Maxwell solver
     maxwell_solver = Maxwell1DFEM(mesh, degree_smoother)
 
     efield = [
-        ones(Float64, (kernel_smoother_0.n_dofs)),
-        ones(Float64, (kernel_smoother_0.n_dofs)),
+        ones(Float64, (kernel_smoother_0.n_dofs)), ones(Float64, (kernel_smoother_0.n_dofs))
     ]
 
     bfield = ones(Float64, (kernel_smoother_0.n_dofs))
 
     rho = zeros(Float64, (kernel_smoother_0.n_dofs))
 
-    for i_part = 1:n_particles
+    for i_part in 1:n_particles
         xi = get_x(pg, i_part)[1]
 
         wi = get_charge(pg, i_part)
 
         add_charge!(rho, kernel_smoother_0, xi, wi[1])
-
     end
 
     compute_e_from_rho!(efield[1], maxwell_solver, rho)
 
     propagator = HamiltonianSplittingBoris(
-        maxwell_solver,
-        kernel_smoother_0,
-        kernel_smoother_1,
-        pg,
-        efield,
-        bfield,
+        maxwell_solver, kernel_smoother_0, kernel_smoother_1, pg, efield, bfield
     )
 
     staggering!(propagator, 0.5 * delta_t)
@@ -103,7 +95,7 @@ import GEMPIC: push_x_accumulate_j!
         n_particles,
     )
 
-    for i_part = 1:n_particles
+    for i_part in 1:n_particles
         xi = get_x(pg, i_part)
 
         @test xi[1] ≈ particle_info_ref[1, i_part]
@@ -116,7 +108,6 @@ import GEMPIC: push_x_accumulate_j!
         xi = get_charge(pg, i_part)
 
         @test xi[1] ≈ particle_info_ref[4, i_part]
-
     end
 
     bfield_ref = [
@@ -181,5 +172,4 @@ import GEMPIC: push_x_accumulate_j!
 
     @test maximum(abs.(efield[1] .- efield_ref[:, 1])) ≈ 0.0 atol = 1e-15
     @test maximum(abs.(efield[2] .- efield_ref[:, 2])) ≈ 0.0 atol = 1e-15
-
 end

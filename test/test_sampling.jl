@@ -1,5 +1,4 @@
 @testset "Sampling" begin
-
     import GEMPIC: get_x, get_v
 
     function test_sampling(
@@ -8,7 +7,6 @@
         pg::ParticleGroup{D,V},
         df::GEMPIC.AbstractCosGaussian,
     ) where {D,V}
-
         mean = zeros(3)
         sigma = zeros(3)
         xi = zeros(3)
@@ -19,7 +17,7 @@
 
         sample!(pg, sampling, df, mesh)
 
-        for i_part = 1:n_particles
+        for i_part in 1:n_particles
             xi = get_x(pg, i_part)
             vi = get_v(pg, i_part)
             mean[1] += xi[1]
@@ -29,7 +27,7 @@
 
         mean = mean / n_particles
 
-        for i_part = 1:n_particles
+        for i_part in 1:n_particles
             xi = get_x(pg, i_part)
             vi = get_v(pg, i_part)
             sigma[1] += (xi[1] - mean[1])^2
@@ -39,8 +37,7 @@
 
         sigma = sigma / (n_particles - 1)
 
-        mean, sigma
-
+        return mean, sigma
     end
 
     n_particles = 100000
@@ -53,7 +50,7 @@
 
     pg = ParticleGroup{1,2}(n_particles)
 
-    params = (k = [[0.5]], α = [0.01], σ = [[0.1, 2.0]], μ = [[0.0, 0.0]])
+    params = (k=[[0.5]], α=[0.01], σ=[[0.1, 2.0]], μ=[[0.0, 0.0]])
 
     df1 = CosSumGaussian{1,2}(params...)
 
@@ -90,25 +87,25 @@
     # 16/12 π^2 , 0.01, 4
 
     params = (
-        k = [[0.5]],
-        α = [0.01],
-        σ = [[0.1, 2.0], [2.0, 2.0]],
-        μ = [[0.0, 0.0], [1.0, 1.0]],
-        δ = [0.7, 0.3],
+        k=[[0.5]],
+        α=[0.01],
+        σ=[[0.1, 2.0], [2.0, 2.0]],
+        μ=[[0.0, 0.0], [1.0, 1.0]],
+        δ=[0.7, 0.3],
     )
 
     df2 = CosSumGaussian{1,2}(params...)
 
     mean_ref = [Lx * 0.5 + xmin, 0.3, 0.3]
     sigma_ref[1] = Lx^2 / 12.0
-    for j = 1:2
-        sigma_ref[j+1] =
+    for j in 1:2
+        sigma_ref[j + 1] =
             -(
                 df2.params.δ[1] * df2.params.μ[j][1] +
                 (df2.params.δ[2] - df2.params.δ[1]) * df2.params.μ[j][2]
             )^2
-        for k = 1:2
-            sigma_ref[j+1] +=
+        for k in 1:2
+            sigma_ref[j + 1] +=
                 df2.params.δ[k] * (df2.params.σ[j][k]^2 + df2.params.μ[j][k]^2)
         end
     end
@@ -119,11 +116,9 @@
     @show abs.(sigma .- sigma_ref)
     @test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e2 / sqrt(n_particles)
 
-
     @info "Sobol symmetric"
     mean, sigma = test_sampling(:sobol, true, pg, df2)
     @show abs.(mean .- mean_ref)
     @show abs.(sigma .- sigma_ref)
     @test maximum(abs.(mean .- mean_ref)) ≈ 0.0 atol = 1e2 / sqrt(n_particles)
-
 end

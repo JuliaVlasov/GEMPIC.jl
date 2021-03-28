@@ -1,11 +1,7 @@
 @testset "Spin Sampling" begin
-
     function test_sampling_spin(
-        sampling_type::Symbol,
-        pg::ParticleGroup{D,V},
-        df::CosSumGaussianSpin,
+        sampling_type::Symbol, pg::ParticleGroup{D,V}, df::CosSumGaussianSpin
     ) where {D,V}
-
         mean = zeros(2)
         sigma = zeros(2)
 
@@ -15,7 +11,7 @@
 
         sample!(pg, sampling, df, mesh)
 
-        for i_part = 1:n_particles
+        for i_part in 1:n_particles
             xi = get_x(pg, i_part)
             vi = get_v(pg, i_part)
             mean[1] += xi[1]
@@ -24,7 +20,7 @@
 
         mean = mean / n_particles
 
-        for i_part = 1:n_particles
+        for i_part in 1:n_particles
             xi = get_x(pg, i_part)
             vi = get_v(pg, i_part)
             sigma[1] += (xi[1] - mean[1])^2
@@ -33,8 +29,7 @@
 
         sigma = sigma / (n_particles - 1)
 
-        mean, sigma
-
+        return mean, sigma
     end
 
     σ, μ = 0.02, 0.0
@@ -47,14 +42,13 @@
 
     mesh = OneDGrid(xmax, xmin, nx)
 
-    pg = ParticleGroup{1,1}(n_particles, n_spin = 3)
+    pg = ParticleGroup{1,1}(n_particles; n_spin=3)
 
-    params = (k = [[kx]], α = [α], σ = [[σ]], μ = [[μ]])
+    params = (k=[[kx]], α=[α], σ=[[σ]], μ=[[μ]])
 
     df = CosSumGaussianSpin(params...)
 
     mean, sigma = test_sampling_spin(:sobol, pg, df)
 
     @test true
-
 end

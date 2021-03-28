@@ -1,5 +1,4 @@
 @testset "Save particles data into file" begin
-
     n_particles = 100000
     xmin = 1.0::Float64
     xmax = 4π + 1.0
@@ -10,7 +9,7 @@
 
     pg = ParticleGroup{1,2}(n_particles)
 
-    params = (k = [[0.5]], α = [0.01], σ = [[0.1, 2.0]], μ = [[0.0, 0.0]])
+    params = (k=[[0.5]], α=[0.01], σ=[[0.1, 2.0]], μ=[[0.0, 0.0]])
 
     df = CosSumGaussian{1,2}(params...)
 
@@ -35,7 +34,7 @@
 
     df = CosSumGaussianSpin([[kx]], [α], [[σ]], [[μ]])
 
-    spg = ParticleGroup{1,1}(n_particles, n_spin = 3)
+    spg = ParticleGroup{1,1}(n_particles; n_spin=3)
     sampler = ParticleSampler{1,1}(:sobol, n_particles)
 
     sample!(spg, sampler, df, mesh)
@@ -43,5 +42,4 @@
     GEMPIC.save("test", 2, spg)
 
     @test isfile("test-000002.jld2")
-
 end

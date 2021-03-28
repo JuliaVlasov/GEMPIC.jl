@@ -1,6 +1,5 @@
 
 @testset " Maxwell 1D FEM solver " begin
-
     using GEMPIC
     using LinearAlgebra
 
@@ -49,7 +48,7 @@
     # Test Poisson
     #-------------
     # Set exact solution
-    for i = 1:nc_eta1
+    for i in 1:nc_eta1
         xi = eta1_min + (i - 1) * delta_eta1
         ex_exact[i] = sin_k(xi) / (2.0 * mode * pi / Lx)
     end
@@ -70,7 +69,7 @@
     # Set time step
     dt = 0.5 * delta_eta1
     # Set exact solution
-    for i = 1:nc_eta1
+    for i in 1:nc_eta1
         xi = eta1_min + (i - 1) * delta_eta1
         ex_exact[i] = -cos_k(xi) * dt
     end
@@ -102,14 +101,14 @@
     ex = 0.0 # 0-form -> splines of degree deg
     l2projection!(bz, maxwell_1d, cos_k, deg - 1) # 0-form -> splines of degree deg-1
 
-    for istep = 1:nstep
+    for istep in 1:nstep
         compute_b_from_e!(bz, maxwell_1d, 0.5 * dt, ey)
         compute_e_from_b!(ey, maxwell_1d, dt, bz)
         compute_b_from_e!(bz, maxwell_1d, 0.5 * dt, ey)
 
         time = time + dt
 
-        for i = 1:nc_eta1
+        for i in 1:nc_eta1
             xi = eta1_min + (i - 1) * delta_eta1
             ey_exact[i] = sin(mode * 2π * xi / Lx) * sin(mode * 2π * time / Lx)
             bz_exact[i] = cos(mode * 2π * xi / Lx) * cos(mode * 2π * time / Lx)
@@ -123,7 +122,5 @@
 
         @test err_ey ≈ 0.0 atol = 1e-2
         @test err_bz ≈ 0.0 atol = 1e-2
-
     end
-
 end
