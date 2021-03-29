@@ -28,30 +28,27 @@ const inv_720 = 1.0 / 720.0
 - `scratch_p` : scratch data for `b_to_pp-converting`
 """
 struct SplinePP{N}
-
     degree::Int
     poly_coeffs::SMatrix{N,N,Float64}
     poly_coeffs_fp::SMatrix{N,N,Float64}
     ncells::Int
 
     function SplinePP(degree, ncells)
-
         @assert (ncells >= degree)
 
         if degree == 1
-
             poly_coeffs = SMatrix{2,2}(-1.0, 1.0, 1.0, 0.0)
             poly_coeffs_fp = SMatrix{2,2}(-inv_2, 1.0, inv_2, 0.0)
 
         elseif degree == 2
-
-            poly_coeffs =
-                SMatrix{3,3}(inv_2, -1.0, inv_2, -1.0, 1.0, inv_2, inv_2, 0.0, 0.0)
-            poly_coeffs_fp =
-                SMatrix{3,3}(inv_6, -inv_2, inv_2, -inv_3, inv_2, inv_2, inv_6, 0.0, 0)
+            poly_coeffs = SMatrix{3,3}(
+                inv_2, -1.0, inv_2, -1.0, 1.0, inv_2, inv_2, 0.0, 0.0
+            )
+            poly_coeffs_fp = SMatrix{3,3}(
+                inv_6, -inv_2, inv_2, -inv_3, inv_2, inv_2, inv_6, 0.0, 0
+            )
 
         elseif degree == 3
-
             poly_coeffs = SMatrix{4,4}(
                 -inv_6,
                 inv_2,
@@ -91,7 +88,6 @@ struct SplinePP{N}
             )
 
         elseif degree == 4
-
             poly_coeffs = SMatrix{5,5}(
                 inv_24,
                 -inv_6,
@@ -149,7 +145,6 @@ struct SplinePP{N}
             )
 
         elseif degree == 5
-
             poly_coeffs = SMatrix{6,6}(
                 -inv_120,
                 inv_24,
@@ -228,17 +223,13 @@ struct SplinePP{N}
                 0.0,
             )
         else
-
             throw(ArgumentError(" degree $degree not implemented"))
-
         end
 
         N = degree + 1
 
-        new{N}(degree, poly_coeffs, poly_coeffs_fp, ncells)
-
+        return new{N}(degree, poly_coeffs, poly_coeffs_fp, ncells)
     end
-
 end
 
 """
@@ -248,27 +239,25 @@ Convert 1d spline in B form to spline in pp form with
 periodic boundary conditions
 """
 function b_to_pp(self::SplinePP, ncells::Int, b_coeffs::Vector{Float64})
-
     dp1 = self.degree + 1
     pp_coeffs = zeros(Float64, (dp1, ncells))
     coeffs = zeros(Float64, dp1)
 
-    @inbounds for i = 1:self.degree
-        coeffs .= vcat(b_coeffs[end-self.degree+i:end], b_coeffs[1:i])
-        for j = 1:dp1
+    @inbounds for i in 1:(self.degree)
+        coeffs .= vcat(b_coeffs[(end - self.degree + i):end], b_coeffs[1:i])
+        for j in 1:dp1
             pp_coeffs[j, i] = sum(coeffs .* self.poly_coeffs[j, :])
         end
     end
 
-    @inbounds for i = self.degree+1:ncells
-        coeffs .= b_coeffs[i-self.degree:i]
-        for j = 1:dp1
+    @inbounds for i in (self.degree + 1):ncells
+        coeffs .= b_coeffs[(i - self.degree):i]
+        for j in 1:dp1
             pp_coeffs[j, i] = sum(coeffs .* self.poly_coeffs[j, :])
         end
     end
 
-    pp_coeffs
-
+    return pp_coeffs
 end
 
 """
@@ -277,13 +266,11 @@ end
 Perform a 1d Horner schema on the `pp_coeffs` at index
 """
 function horner_1d(degree::Int, pp_coeffs, x::Float64, index::Int)
-
     res = pp_coeffs[1, index]
-    @inbounds for i = 1:degree
-        res = res * x + pp_coeffs[i+1, index]
+    @inbounds for i in 1:degree
+        res = res * x + pp_coeffs[i + 1, index]
     end
-    res
-
+    return res
 end
 
 """
@@ -292,14 +279,10 @@ end
 Perform a 1d Horner schema on the `pp_coeffs` evaluate at x
 """
 function horner_primitive_1d(val::Vector{Float64}, degree, pp_coeffs, x)
-
     @inbounds for i in eachindex(val)
         val[i] = horner_1d(degree, pp_coeffs, x, i) * x
-
     end
-
 end
-
 
 """
     horner_m_2d!(val, spl1, spl2, degree, x)
@@ -310,14 +293,11 @@ Perform two times a 1d hornerschema on the poly_coeffs
 - x : point at which we evaluate our spline
 """
 function horner_m_2d!(val, spl1::SplinePP, spl2::SplinePP, degree, x, y)
-
-    for i = 1:degree+1
+    for i in 1:(degree + 1)
         val[i, 1] = horner_1d(degree, spl1.poly_coeffs, x, i)
         val[i, 2] = horner_1d(degree, spl2.poly_coeffs, y, i)
     end
-
 end
-
 
 """
     b_to_pp_1d_cell( self, b_coeffs, pp_coeffs )
@@ -328,13 +308,11 @@ Convert 1d spline in B form in a cell to spline in pp form with periodic boundar
 - pp_coeffs(self%degree+1) : coefficients of spline in pp-form
 """
 function b_to_pp_1d_cell!(pp, spline, b)
-
     dp1 = spline.degree + 1
     fill!(pp, 0.0)
-    for i = 1:dp1, j = 1:dp1
+    for i in 1:dp1, j in 1:dp1
         pp[j] += b[i] * spline.poly_coeffs[j, i]
     end
-
 end
 
 """
@@ -349,7 +327,6 @@ Convert 2d spline in B form in a cell to spline in pp form with periodic boundar
 - pp_coeffs((spline1.degree+1)*(spline2.degree+1),n_cells(1)*n_cells(2)) : coefficients of spline in pp-form
 """
 function b_to_pp_2d_cell!(pp, spline1::SplinePP, spline2::SplinePP, b, i, j)
-
     n1 = spline1.ncells
     n2 = spline2.ncells
     d1 = spline1.degree
@@ -363,40 +340,45 @@ function b_to_pp_2d_cell!(pp, spline1::SplinePP, spline2::SplinePP, b, i, j)
     # convert b-coefficients in pp-coefficients in first dimension
     if i > d1
         if j > d2
-            for l = 0:d2
+            for l in 0:d2
                 k = i + (j - dp2 + l) * n1
-                b1 .= b[k-d1:k]
-                b_to_pp_1d_cell!(view(pp, 1+l*dp1:dp1*(l+1), i + n1 * (j - 1)), spline1, b1)
+                b1 .= b[(k - d1):k]
+                b_to_pp_1d_cell!(
+                    view(pp, (1 + l * dp1):(dp1 * (l + 1)), i + n1 * (j - 1)), spline1, b1
+                )
             end
         else
             # use of modulo for boundary cells in second dimension 
-            for l = 0:d2
+            for l in 0:d2
                 k = i + mod(j - dp2 + l, n2) * n1
-                b1 .= b[k-d1:k]
-                b_to_pp_1d_cell!(view(pp, 1+l*dp1:dp1*(l+1), i + n1 * (j - 1)), spline1, b1)
+                b1 .= b[(k - d1):k]
+                b_to_pp_1d_cell!(
+                    view(pp, (1 + l * dp1):(dp1 * (l + 1)), i + n1 * (j - 1)), spline1, b1
+                )
             end
         end
     else
         # use of modulo for boundary cells in both dimensions 
-        for l = 0:d2
-            for k = 0:d1
-                b1[k+1] = b[mod(i - dp1 + k, n1)+1+mod(j - dp2 + l, n2)*n1]
+        for l in 0:d2
+            for k in 0:d1
+                b1[k + 1] = b[mod(i - dp1 + k, n1) + 1 + mod(j - dp2 + l, n2) * n1]
             end
-            b_to_pp_1d_cell!(view(pp, 1+l*dp1:dp1*(l+1), i + n1 * (j - 1)), spline1, b1)
+            b_to_pp_1d_cell!(
+                view(pp, (1 + l * dp1):(dp1 * (l + 1)), i + n1 * (j - 1)), spline1, b1
+            )
         end
     end
 
     # convert b-coefficients in pp_coefficients in second dimension
-    for k = 1:dp1
-        for l = 1:dp2
-            b2[l] = pp[k+dp1*(l-1), i+n1*(j-1)]
+    for k in 1:dp1
+        for l in 1:dp2
+            b2[l] = pp[k + dp1 * (l - 1), i + n1 * (j - 1)]
         end
         b_to_pp_1d_cell!(p2, spline2, b2)
-        for l = 1:dp2
-            pp[k+dp1*(l-1), i+n1*(j-1)] = p2[l]
+        for l in 1:dp2
+            pp[k + dp1 * (l - 1), i + n1 * (j - 1)] = p2[l]
         end
     end
-
 end
 
 """
@@ -408,14 +390,12 @@ Convert 2d spline in B form to spline in pp form
 - pp_coeffs  : coefficients of spline in pp-form
 """
 function b_to_pp_2d!(pp, spl1::SplinePP, spl2::SplinePP, b)
-
     ncells1 = spl1.ncells
     ncells2 = spl2.ncells
 
-    for j = 1:ncells2, i = 1:ncells1
+    for j in 1:ncells2, i in 1:ncells1
         b_to_pp_2d_cell!(pp, spl1, spl2, b, i, j)
     end
-
 end
 
 """
@@ -430,7 +410,6 @@ Perform a 2d hornerschema on the pp_coeffs at the indices
 - res : value of the splinefunction at position
 """
 function horner_2d(degrees, pp, position, indices, ncells)
-
     x1, x2 = position
     d1, d2 = degrees
     i1, i2 = indices
@@ -438,19 +417,18 @@ function horner_2d(degrees, pp, position, indices, ncells)
 
     pp_1d = zeros(d2 + 1, 1)
 
-    for i = 0:d2
+    for i in 0:d2
         istart = 1 + i * (d1 + 1)
         istop = (d1 + 1) * (i + 1)
         jstart = 1 + (i2 - 1) * n1
         jstop = n1 * i2
-        pp_1d[i+1, 1] = horner_1d(d1, view(pp, istart:istop, jstart:jstop), x1, i1)
+        pp_1d[i + 1, 1] = horner_1d(d1, view(pp, istart:istop, jstart:jstop), x1, i1)
     end
 
     res = pp_1d[1, 1]
-    for i = 1:d2
-        res = res * x2 + pp_1d[i+1, 1]
+    for i in 1:d2
+        res = res * x2 + pp_1d[i + 1, 1]
     end
 
-    res
-
+    return res
 end

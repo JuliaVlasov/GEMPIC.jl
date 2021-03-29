@@ -15,7 +15,6 @@ Generate a cartesians mesh on rectangle `dimx`x `dimy` with `nx` x `ny` points
 - `dx, dy` : step size
 """
 struct TwoDGrid <: AbstractGrid
-
     nx::Int
     ny::Int
     xmin::Float64
@@ -29,21 +28,18 @@ struct TwoDGrid <: AbstractGrid
     dx::Float64
     dy::Float64
 
-    function TwoDGrid(xmin, xmax, nx :: Int, ymin, ymax, ny :: Int)
-
+    function TwoDGrid(xmin, xmax, nx::Int, ymin, ymax, ny::Int)
         dimx = xmax - xmin
         dimy = ymax - ymin
 
-        x = LinRange(0, dimx, nx + 1) |> collect
-        y = LinRange(0, dimy, ny + 1) |> collect
+        x = collect(LinRange(0, dimx, nx + 1))
+        y = collect(LinRange(0, dimy, ny + 1))
 
         dx = dimx / nx
         dy = dimy / ny
 
-        new(nx, ny, xmin, xmax, ymin, ymax, dimx, dimy, x, y, dx, dy)
-
+        return new(nx, ny, xmin, xmax, ymin, ymax, dimx, dimy, x, y, dx, dy)
     end
-
 end
 
 TwoDGrid(dimx, nx::Int, dimy, ny::Int) = TwoDGrid(0.0, dimx, nx, 0.0, dimy, ny)
@@ -54,7 +50,6 @@ TwoDGrid(dimx, nx::Int, dimy, ny::Int) = TwoDGrid(0.0, dimx, nx, 0.0, dimy, ny)
 Simple structure to store mesh data from 2 dimensions
 """
 struct OneDGrid <: AbstractGrid
-
     nx::Int
     xmin::Float64
     xmax::Float64
@@ -63,15 +58,12 @@ struct OneDGrid <: AbstractGrid
     x::Vector{Float64}
 
     function OneDGrid(xmin, xmax, nx::Int)
-
         dimx = xmax - xmin
         dx = dimx / (nx - 1)
-        x = LinRange(0, dimx, nx + 1) |> collect
+        x = collect(LinRange(0, dimx, nx + 1))
 
-        new(nx, xmin, xmax, dimx, dx, x)
-
+        return new(nx, xmin, xmax, dimx, dx, x)
     end
-
 end
 
 export get_x
@@ -82,9 +74,7 @@ export get_x
 Get position
 """
 function get_x(m::OneDGrid, i)
-
-    m.xmin + (i - 1) * m.dx
-
+    return m.xmin + (i - 1) * m.dx
 end
 
 """  
@@ -97,10 +87,8 @@ normalized position inside the cell
 
 """
 function get_cell_and_offset(m::OneDGrid, x)
-
     cell = floor(Int64, ((x - m.xmin) / m.Lx) * m.nx) + 1
     offset = (x - get_x(m, cell)) / dx
 
-    cell, offset
-
+    return cell, offset
 end
