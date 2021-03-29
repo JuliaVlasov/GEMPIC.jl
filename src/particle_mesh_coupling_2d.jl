@@ -10,7 +10,6 @@ export ParticleMeshCoupling2D
 - smoothing_type : Define if Galerkin or collocation smoothing for right scaling in accumulation routines 
 """
 struct ParticleMeshCoupling2D <: AbstractParticleMeshCoupling
-
     grid::TwoDGrid
     npart::Int
     spline1::SplinePP
@@ -21,12 +20,8 @@ struct ParticleMeshCoupling2D <: AbstractParticleMeshCoupling
     values::Array{Float64,2}
 
     function ParticleMeshCoupling2D(
-        pg::ParticleGroup{2,2},
-        grid::TwoDGrid,
-        degree::Int,
-        smoothing_type::Symbol,
+        pg::ParticleGroup{2,2}, grid::TwoDGrid, degree::Int, smoothing_type::Symbol
     )
-
         npart = pg.n_particles
         spline1 = SplinePP(degree, grid.nx)
         spline2 = SplinePP(degree, grid.ny)
@@ -45,12 +40,9 @@ struct ParticleMeshCoupling2D <: AbstractParticleMeshCoupling
 
         values = zeros(n_span, 2)
 
-        new(grid, npart, spline1, spline2, n_span, degree, scaling, values)
-
+        return new(grid, npart, spline1, spline2, n_span, degree, scaling, values)
     end
-
 end
-
 
 """
     compute_shape_factor(pm, xp, yp)
@@ -60,7 +52,6 @@ Helper function computing shape factor
 - xp, xp : poisition of the particle
 """
 function compute_shape_factor(pm::ParticleMeshCoupling2D, xp, yp)
-
     xp = (xp - pm.grid.xmin) / pm.grid.dx
     yp = (yp - pm.grid.ymin) / pm.grid.dy
     ip = ceil(Int, xp)
@@ -71,7 +62,6 @@ function compute_shape_factor(pm::ParticleMeshCoupling2D, xp, yp)
     uniform_bsplines_eval_basis!(pm.values, pm.degree, dxp, dyp)
 
     return (ip - pm.degree, jp - pm.degree)
-
 end
 
 """
@@ -84,15 +74,12 @@ It also takes periodic boundary conditions into account.
 - index2d   !< Corresponding index in 1d array representing 2d data (start counting with one).
 """
 function index_1dto2d_column_major(pm, index1d_1, index1d_2)
-
     index1d_1 = mod(index1d_1, pm.grid.nx)
     index1d_2 = mod(index1d_2, pm.grid.ny)
     index2d = index1d_1 + index1d_2 * pm.grid.nx + 1
 
     return index2d
-
 end
-
 
 export add_charge!
 
@@ -105,18 +92,16 @@ Add charge of single particle
 - ρ_dofs : spline coefficient of accumulated density
 """
 function add_charge!(ρ_dofs, pm::ParticleMeshCoupling2D, xp, yp, wp)
-
     ind_x, ind_y = compute_shape_factor(pm, xp, yp)
 
-    @inbounds for i1 = 1:pm.n_span
+    @inbounds for i1 in 1:(pm.n_span)
         index1d_1 = ind_x + i1 - 2
-        for i2 = 1:pm.n_span
+        for i2 in 1:(pm.n_span)
             index1d_2 = ind_y + i2 - 2
             index2d = index_1dto2d_column_major(pm, index1d_1, index1d_2)
             ρ_dofs[index2d] += (wp * pm.scaling * pm.values[i1, 1] * pm.values[i2, 2])
         end
     end
-
 end
 
 export add_charge_pp!
@@ -140,7 +125,6 @@ export add_charge_pp!
     
 """
 function add_charge_pp!(ρ_dofs, pm::ParticleMeshCoupling2D, xp, yp, wp)
-
     xp = (xp - pm.grid.xmin) / pm.grid.dx
     yp = (yp - pm.grid.ymin) / pm.grid.dy
     ip = floor(Int, xp) + 1
@@ -153,15 +137,14 @@ function add_charge_pp!(ρ_dofs, pm::ParticleMeshCoupling2D, xp, yp, wp)
 
     horner_m_2d!(pm.values, pm.spline1, pm.spline2, pm.degree, dxp, dyp)
 
-    for i1 = 1:pm.n_span
+    for i1 in 1:(pm.n_span)
         index1d_1 = ip + i1 - 2
-        for i2 = 1:pm.n_span
+        for i2 in 1:(pm.n_span)
             index1d_2 = jp + i2 - 2
             index2d = index_1dto2d_column_major(pm, index1d_1, index1d_2)
             ρ_dofs[index2d] += (wp * pm.scaling * pm.values[i1, 1] * pm.values[i2, 2])
         end
     end
-
 end
 
 export evaluate_pp, evaluate
@@ -177,7 +160,6 @@ Evaluate field at position using horner scheme
 
 """
 function evaluate_pp(pm::ParticleMeshCoupling2D, xp, yp, pp)
-
     xi = (xp - pm.grid.xmin) / pm.grid.dx
     yi = (yp - pm.grid.ymin) / pm.grid.dy
 
@@ -192,10 +174,8 @@ function evaluate_pp(pm::ParticleMeshCoupling2D, xp, yp, pp)
     nx = pm.grid.nx
     ny = pm.grid.ny
 
-    horner_2d((d, d), pp, (xi, yi), (idx, idy), (nx, ny))
-
+    return horner_2d((d, d), pp, (xi, yi), (idx, idy), (nx, ny))
 end
-
 
 """
     evaluate(pm, xp, yp, field_dofs)
@@ -207,21 +187,19 @@ end
 Evaluate field with given dofs at position
 """
 function evaluate(pm, xp, yp, field_dofs)
-
     ix, iy = compute_shape_factor(pm, xp, yp)
 
     value = 0.0
-    for i1 = 1:pm.n_span
+    for i1 in 1:(pm.n_span)
         index1d_1 = ix + i1 - 2
-        for i2 = 1:pm.n_span
+        for i2 in 1:(pm.n_span)
             index1d_2 = iy + i2 - 2
             index2d = index_1dto2d_column_major(pm, index1d_1, index1d_2)
             value += field_dofs[index2d] * pm.values[i1, 1] * pm.values[i2, 2]
         end
     end
 
-    value
-
+    return value
 end
 
 """
@@ -234,14 +212,13 @@ end
 - field_value(:) : Value of the field
 """
 function evaluate_multiple(pm, position, field_dofs)
-
     indices = compute_shape_factor(pm, position...)
 
     field_value1 = 0.0
     field_value2 = 0.0
-    for i1 = 1:pm.n_span
+    for i1 in 1:(pm.n_span)
         index1d_1 = indices[1] + i1 - 2
-        for i2 = 1:pm.n_span
+        for i2 in 1:(pm.n_span)
             index1d_2 = indices[2] + i2 - 2
             index2d = index_1dto2d_column_major(pm, index1d_1, index1d_2)
             c = pm.values[i1, 1] * pm.values[i2, 2]
@@ -250,6 +227,5 @@ function evaluate_multiple(pm, position, field_dofs)
         end
     end
 
-    field_value1, field_value2
-
+    return field_value1, field_value2
 end
