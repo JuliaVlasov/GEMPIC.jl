@@ -223,3 +223,47 @@ function sample_sym(ps, pg, df, mesh)
         set_weights!(pg, i_part, wi)
     end
 end
+
+
+
+"""
+    sample!(d, pg)
+
+Sampling from a probability distribution to initialize a Landau damping in
+1D1V space.
+
+```math
+f_0(x,v,t) = \\frac{n_0}{2π v_{th}^2} ( 1 + \\alpha cos(k_x x)) exp( - \\frac{v^2}{2 v_{th}^2})
+```
+"""
+function sample!( pg::ParticleGroup{1,1}, ps::ParticleSampler, df::AbstractCosGaussian, mesh::OneDGrid)
+
+    @show alpha = df.params.α[1] 
+    @show kx = df.params.k[1][1]
+
+    function newton(r, alpha, kx)
+        x0, x1 = 0.0, 1.0
+        r *= 2π / kx
+        while (abs(x1 - x0) > 1e-12)
+            p = x0 + alpha * sin(kx * x0) / kx
+            f = 1 + alpha * cos(kx * x0)
+            x0, x1 = x1, x0 - (p - r) / f
+        end
+        x1
+    end
+
+    s = Sobol.SobolSeq(2)
+    @assert mesh.dimx ≈ 2π / kx
+
+    nbpart = pg.n_particles
+
+    for i = 1:nbpart
+        v = sqrt(-2 * log((i - 0.5) / nbpart))
+        r1, r2 = Sobol.next!(s)
+        θ = r1 * 2π
+        pg.array[1,i] = newton(r2, alpha, kx)
+        pg.array[2,i] = v * sin(θ) 
+        pg.array[3,i] = mesh.dimx / nbpart
+    end
+
+end

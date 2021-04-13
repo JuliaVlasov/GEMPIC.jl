@@ -90,10 +90,10 @@ struct CosSumGaussian{D,V} <: AbstractCosGaussian
     params::CosGaussianParams
 
     function CosSumGaussian{D,V}(
-        k::Array{Vector{Float64},1},
+        k::Vector{Vector{Float64}},
         α::Vector{Float64},
-        σ::Array{Vector{Float64},1},
-        μ::Array{Vector{Float64},1},
+        σ::Vector{Vector{Float64}},
+        μ::Vector{Vector{Float64}};
         δ::Vector{Float64}=[1.0],
     ) where {D,V}
         dims = (D, V)
