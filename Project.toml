@@ -18,7 +18,7 @@ Sobol = "ed01d8cd-4d21-5b2a-85b4-cc3bdc58bad4"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
-DataFrames = "0.20, 0.22"
+DataFrames = "0.20, 0.22, 1.0"
 Distributions = "0.20, 0.24"
 FFTW = "1"
 FastGaussQuadrature = "0.3, 0.4"
