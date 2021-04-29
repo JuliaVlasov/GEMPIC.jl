@@ -31,6 +31,9 @@ include("landau_damping.jl")
 
 # Splittings
 include("hamiltonian_splitting.jl")
+include("hamiltonian_splitting_1d1v.jl")
+include("hamiltonian_splitting_1d2v.jl")
+include("hamiltonian_splitting_2d3v.jl")
 include("hamiltonian_splitting_boris.jl")
 include("hamiltonian_splitting_spin.jl")
 

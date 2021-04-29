@@ -247,11 +247,11 @@ function compute_e_from_rho!(e::Vector{Float64}, self::Maxwell1DFEM, rho::Vector
     # inverse matrix
     solve_circulant!(self, self.eig_weak_poisson, rho)
     # Compute spline coefficients of Ex from those of phi
-    for i in 2:(self.n_dofs)
+    for i in 2:self.n_dofs
         e[i] = self.work[i - 1] - self.work[i]
     end
     # treat Periodic point
-    return e[1] = self.work[self.n_dofs] - self.work[1]
+    e[1] = self.work[self.n_dofs] - self.work[1]
 end
 
 export compute_e_from_j!

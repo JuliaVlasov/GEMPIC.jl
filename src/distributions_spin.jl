@@ -35,7 +35,8 @@ df = CosSumGaussian{1,1,3}([[k]],[α], [[σ₁,σ₂]], [[μ₁,μ₂]])
 ```
 
 """
-struct CosSumGaussianSpin <: AbstractCosGaussian
+struct CosSumGaussianSpin 
+
     params::CosGaussianParams
 
     function CosSumGaussianSpin(

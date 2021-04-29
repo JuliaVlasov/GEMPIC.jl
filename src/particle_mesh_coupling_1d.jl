@@ -451,3 +451,130 @@ function evaluate(p::ParticleMeshCoupling1D, position::Float64, field_dofs::Vect
 
     return field_value
 end
+
+
+"""
+    add_current_update_v!( j_dofs, p, 
+                           position_old, position_new, 
+                           marker_charge, qoverm, vi) 
+
+Add current for one particle and update v (according to ``H_{p1}``
+part in Hamiltonian splitting)
+
+**This is the 1d1v case, there is no magnetic field.**
+
+- Read out particle position and velocity
+- Compute index_old, the index of the last DoF on the grid the 
+particle contributes to, and `r_old`, its position (normalized to cell size one).
+
+"""
+function add_current_update_v!( j_dofs        :: AbstractArray,
+                                p             :: ParticleMeshCoupling1D, 
+                                position_old  :: Float64, 
+                                position_new  :: Float64, 
+                                marker_charge :: Float64, 
+                                qoverm        :: Float64, 
+                                vi            :: Float64) 
+
+
+    xi = (position_old - p.xmin) / p.delta_x
+    index_old = trunc(Int64,xi)
+    r_old = xi - index_old
+
+    # Compute the new box index index_new and normalized position r_old.
+
+    xi = (position_new - p.xmin) / p.delta_x
+    index_new = floor(Int64, xi)
+    r_new = xi - index_new
+ 
+    if index_old == index_new
+
+        if r_old < r_new
+            vi = update_jv!(j_dofs, p, r_old, r_new, index_old, marker_charge, 
+                       qoverm, 1.0, vi)
+        else
+            vi = update_jv!(j_dofs, p, r_new, r_old, index_old, marker_charge, qoverm, 
+                      -1.0, vi)
+        end
+
+    elseif index_old < index_new
+
+        vi = update_jv!(j_dofs, p, r_old, 1.0, index_old, marker_charge, 
+                  qoverm, 1.0, vi)
+
+        vi = update_jv!(j_dofs, p, 0.0, r_new, index_new, marker_charge, 
+                  qoverm, 1.0, vi)
+
+        @inbounds for ind = index_old+1:index_new-1
+            vi = update_jv!(j_dofs, p, 0.0, 1.0, ind, marker_charge, 
+                      qoverm, 1.0, vi)
+        end
+
+    else
+
+        vi = update_jv!( j_dofs, p, r_new, 1.0, index_new, marker_charge, qoverm, 
+                  -1.0, vi)
+        vi = update_jv!( j_dofs, p, 0.0, r_old, index_old, marker_charge, qoverm, 
+                  -1.0, vi)
+
+        for ind = index_new+1:index_old-1
+            vi = update_jv!( j_dofs, p, 0.0, 1.0, ind, marker_charge, qoverm, 
+                      -1.0, vi)
+        end
+
+     end    
+
+     vi
+
+end
+
+"""
+    update_jv!(j_dofs, p, 
+               lower, upper, index, marker_charge, 
+               qoverm, sign, vi)
+
+Helper function for `add_current_update_v` without the magnetic field (1d1v case)
+"""
+function update_jv!(j_dofs        :: AbstractArray, 
+                    p             :: ParticleMeshCoupling1D, 
+                    lower         :: Float64, 
+                    upper         :: Float64, 
+                    index         :: Int64, 
+                    marker_charge :: Float64, 
+                    qoverm        :: Float64, 
+                    sign          :: Float64, 
+                    vi            :: Float64)
+                    
+
+   n_cells = p.n_grid[1]
+
+   c1 = 0.5 * (upper-lower)
+   c2 = 0.5 * (upper+lower)
+
+   uniform_bsplines_eval_basis!(p.spline_val, p.spline_degree, 
+                                               c1 * p.quad_x[1]+c2)
+
+   p.spline_val .*= p.quad_w[1] * c1
+
+
+   for j = 2:p.n_quad_points
+
+       uniform_bsplines_eval_basis!( p.spline_val_more, p.spline_degree, 
+                                                        c1 * p.quad_x[j]+c2) 
+
+       p.spline_val .+= p.spline_val_more .* p.quad_w[j] .* c1
+
+   end
+
+   p.spline_val .*= sign * p.delta_x
+   
+   ind = 1
+   @inbounds for i_grid in index - p.spline_degree:index
+      i_mod = mod(i_grid, n_cells ) + 1
+      j_dofs[i_mod] += marker_charge * p.spline_val[ind] * p.scaling
+      ind = ind + 1
+   end
+
+   return vi
+
+end

@@ -58,7 +58,7 @@ FEM with splines, degree 3 for B and 2 for E
     rho = zeros(Float64, nx)
     efield_poisson = zeros(Float64, nx)
 
-    propagator = HamiltonianSplitting(
+    propagator = HamiltonianSplitting{1,2}(
         maxwell_solver,
         kernel_smoother0,
         kernel_smoother1,
