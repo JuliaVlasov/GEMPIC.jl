@@ -166,9 +166,7 @@ function compute_rhs_from_function(solver::TwoDPoisson, f)
                 x = dx * (xg[k1] + (i1 + j1 - 2))
                 y = dy * (xg[k2] + (i2 + j2 - 2))
                 coef +=
-                    wg[k1] *
-                    wg[k2] *
-                    f(x, y) *
+                    wg[k1] * wg[k2] * f(x, y) *
                     bspl_d1[k1, d + 2 - j1] *
                     bspl_d1[k2, d + 2 - j2]
             end

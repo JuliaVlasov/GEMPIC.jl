@@ -180,9 +180,7 @@ function compute_rhs_from_function(
                 x = dx * (x1[k1] + i1 + j1 - 2)
                 y = dy * (x2[k2] + i2 + j2 - 2)
                 coef +=
-                    w1[k1] *
-                    w2[k2] *
-                    f(x, y) *
+                    w1[k1] * w2[k2] * f(x, y) *
                     bspl_d1[k1, d1 + 2 - j1] *
                     bspl_d2[k2, d2 + 2 - j2]
             end
@@ -269,9 +267,7 @@ function compute_fem_rhs!(
                 xg1 = δ1 * (x1[k1] + i1 + j1 - 2)
                 xg2 = δ2 * (x2[k2] + i2 + j2 - 2)
                 coef +=
-                    w1[k1] *
-                    w2[k2] *
-                    f(xg1, xg2) *
+                    w1[k1] * w2[k2] * f(xg1, xg2) *
                     bspl_d1[k1, d1 + 2 - j1] *
                     bspl_d2[k2, d2 + 2 - j2]
             end
