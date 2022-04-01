@@ -55,4 +55,7 @@ makedocs(;
     ],
 )
 
-deploydocs(; repo="github.com/JuliaVlasov/GEMPIC.jl.git")
+deploydocs(; 
+    branch = "gh-pages",
+    devbranch = "master",
+    repo = "github.com/JuliaVlasov/GEMPIC.jl")
