@@ -7,7 +7,6 @@ include("mesh.jl")
 include("low_level_bsplines.jl")
 include("splinepp.jl")
 include("distributions.jl")
-include("distributions_spin.jl")
 
 # Maxwell solvers
 include("maxwell_1d_fem.jl")
@@ -22,11 +21,9 @@ include("particle_group.jl")
 abstract type AbstractParticleMeshCoupling end
 include("particle_mesh_coupling_1d.jl")
 include("particle_mesh_coupling_2d.jl")
-include("particle_mesh_coupling_spin.jl")
 
 # Particle sampling
 include("particle_sampling.jl")
-include("particle_sampling_spin.jl")
 include("landau_damping.jl")
 
 # Splittings
@@ -35,10 +32,8 @@ include("hamiltonian_splitting_1d1v.jl")
 include("hamiltonian_splitting_1d2v.jl")
 include("hamiltonian_splitting_2d3v.jl")
 include("hamiltonian_splitting_boris.jl")
-include("hamiltonian_splitting_spin.jl")
 
 # Diagnostics
 include("diagnostics.jl")
-include("diagnostics_spin.jl")
 
 end
