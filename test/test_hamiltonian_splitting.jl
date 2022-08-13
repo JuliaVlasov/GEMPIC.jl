@@ -76,7 +76,7 @@
     # Solve Poisson problem
     compute_e_from_rho!(efield_1, maxwell_solver, rho)
 
-    propagator = HamiltonianSplitting(
+    propagator = HamiltonianSplitting{1,2}(
         maxwell_solver,
         kernel_smoother_0,
         kernel_smoother_1,
