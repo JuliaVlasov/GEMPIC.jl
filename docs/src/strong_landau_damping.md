@@ -112,7 +112,7 @@ function run( steps)
     efield_dofs = [efield_poisson, zeros(Float64, nx)]
     bfield_dofs = zeros(Float64, nx)
 
-    propagator = HamiltonianSplitting( maxwell_solver,
+    propagator = HamiltonianSplitting{1,2}( maxwell_solver,
                                        kernel_smoother0,
                                        kernel_smoother1,
                                        particle_group,
