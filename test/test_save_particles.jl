@@ -23,23 +23,4 @@
 
     @test isfile("test-000001.jld2")
 
-    σ, μ = 0.02, 0.0
-    kx, α = 1.004355, 0.001
-    xmin, xmax = 0, 2π / kx
-    domain = [xmin, xmax, xmax - xmin]
-    nx = 64
-    n_particles = 1000
-    mesh = OneDGrid(xmin, xmax, nx)
-    spline_degree = 3
-
-    df = CosSumGaussianSpin([[kx]], [α], [[σ]], [[μ]])
-
-    spg = ParticleGroup{1,1}(n_particles; n_spin=3)
-    sampler = ParticleSampler{1,1}(:sobol, n_particles)
-
-    sample!(spg, sampler, df, mesh)
-
-    GEMPIC.save("test", 2, spg)
-
-    @test isfile("test-000002.jld2")
 end
