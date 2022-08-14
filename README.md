@@ -2,6 +2,7 @@
 
 Geometric ElectroMagnetic Particle-In-Cell Methods
 
+[![CI](https://github.com/JuliaVlasov/GEMPIC.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/JuliaVlasov/GEMPIC.jl/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/JuliaVlasov/GEMPIC.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaVlasov/GEMPIC.jl)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliavlasov.github.io/GEMPIC.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliavlasov.github.io/GEMPIC.jl/dev)
