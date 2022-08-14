@@ -27,7 +27,7 @@ julia> using GEMPIC
 
 ## Credits
 
-This is a translation from a Fortran code written by :
+This is a translation from Fortran code [selalib](https://github.com/selalib/selalib) written by :
 
 - Yaman Güçlü
 - Katharina Kormann  
