@@ -12,9 +12,3 @@ Modules = [GEMPIC]
 Pages   = ["landau_damping.jl"]
 ```
 
-## Spin version
-
-```@autodocs
-Modules = [GEMPIC]
-Pages   = ["particle_sampling_spin.jl"]
-```

@@ -21,13 +21,12 @@ struct ParticleGroup{D,V} <: AbstractParticleGroup
     mass::Float64
     n_weights::Int
     q_over_m::Float64
-    n_spin::Int
 
     function ParticleGroup{D,V}(
-        n_particles; charge=1.0, mass=1.0, n_weights=1, common_weight=0.0, n_spin=0
+        n_particles; charge=1.0, mass=1.0, n_weights=1, common_weight=0.0
     ) where {D,V}
         dims = (D, V)
-        array = zeros(Float64, (sum(dims) + n_weights + n_spin, n_particles))
+        array = zeros(Float64, (sum(dims) + n_weights, n_particles))
         if common_weight == 0.0
             common_weight = 1.0 / n_particles
         end
@@ -41,8 +40,7 @@ struct ParticleGroup{D,V} <: AbstractParticleGroup
             charge,
             mass,
             n_weights,
-            q_over_m,
-            n_spin,
+            q_over_m
         )
     end
 end
@@ -86,24 +84,6 @@ Get ith particle weights of group p
 """
 @inline function get_weights(p::ParticleGroup{D,V}, i::Int) where {D,V}
     return p.array[(D + V + 1):(D + V + p.n_weights), i]
-end
-
-"""
-    get_spin( p, i, j)
-
-Get the jth weight of the ith particle weights of group p
-"""
-@inline function get_spin(p::ParticleGroup{D,V}, i::Int, j::Int) where {D,V}
-    return p.array[D + V + p.n_weights + j, i]
-end
-
-"""
-    set_spin!( p, i, j)
-
-Set the jth weight of the ith particle weights of group p
-"""
-@inline function set_spin!(p::ParticleGroup{D,V}, i::Int, j::Int, s) where {D,V}
-    return p.array[D + V + p.n_weights + j, i] = s
 end
 
 """
@@ -170,27 +150,16 @@ function set_weights!(p::ParticleGroup{D,V}, i::Int, w::Float64) where {D,V}
 end
 
 function save(file, step, p::ParticleGroup{D,V}) where {D,V}
+
     datafile = @sprintf("%s-%06d.jld2", file, step)
 
-    if p.n_spin > 0
-        FileIO.save(
-            datafile,
-            Dict(
-                "x" => p.array[1:D, :],
-                "v" => p.array[(D + 1):(D + V), :],
-                "w" => p.array[(D + V + 1):(D + V + p.n_weights), :],
-                "s" => p.array[(D + V + p.n_weights + 1):end, :],
-            ),
-        )
+    FileIO.save(
+        datafile,
+        Dict(
+            "x" => p.array[1:D, :],
+            "v" => p.array[(D + 1):(D + V), :],
+            "w" => p.array[(D + V + 1):end, :],
+        ),
+    )
 
-    else
-        FileIO.save(
-            datafile,
-            Dict(
-                "x" => p.array[1:D, :],
-                "v" => p.array[(D + 1):(D + V), :],
-                "w" => p.array[(D + V + 1):end, :],
-            ),
-        )
-    end
 end
