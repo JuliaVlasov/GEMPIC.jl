@@ -244,6 +244,15 @@ function newton(r, α, k)
     x1
 end
 
+function sample!( pg::ParticleGroup{1,1}, ps::ParticleSampler, df::AbstractCosGaussian, mesh::OneDGrid)
+
+    α = df.params.α[1] 
+    k = df.params.k[1][1]
+    σ = df.params.σ[1][1]
+    sample!( pg, α, k, σ, mesh)
+
+end
+
 """
     sample!( pg::ParticleGroup{1,1}, α, k, σ, mesh::OneDGrid)
 
@@ -257,15 +266,16 @@ f_0(x,v,t) = \\frac{n_0}{\\sqrt{2π} v_{th}} ( 1 + \\alpha cos(k_x x)) exp( - \\
 function sample!( pg::ParticleGroup{1,1}, α::Float64, k::Float64, σ::Float64, mesh::OneDGrid)
 
 
-    s = Sobol.SobolSeq(1)
-    @assert mesh.dimx ≈ 2π / k
+    s = Sobol.SobolSeq(2)
 
     nbpart = pg.n_particles
 
     for i = 1:nbpart
-        r = Sobol.next!(s)[1]
-        pg.array[1,i] = newton(r, α, k)
-        pg.array[2,i] = σ * randn()
+        v = σ * sqrt(-2 * log((i - 0.5) / nbpart))
+        r1, r2 = Sobol.next!(s)
+        θ = r1 * 2π
+        pg.array[1,i] = newton(r2, α, k)
+        pg.array[2,i] = v * cos(θ) 
         pg.array[3,i] = mesh.dimx
     end
 
