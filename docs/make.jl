@@ -18,7 +18,6 @@ makedocs(;
             ),
         ),
     ),
-    modules=[GEMPIC],
     pages=[
         "Documentation" => [
             "index.md",
