@@ -135,11 +135,11 @@ struct TimeHistoryDiagnostics
     potential_energy::Vector{Float64}
 
     function TimeHistoryDiagnostics(
-        particle_group::ParticleGroup,
+            particle_group::ParticleGroup{D, V},
         maxwell_solver::Maxwell1DFEM,
         kernel_smoother_0::ParticleMeshCoupling1D,
         kernel_smoother_1::ParticleMeshCoupling1D,
-    )
+        ) where {D, V}
         data = DataFrame(;
             Time=Float64[],
             KineticEnergy=Float64[],
