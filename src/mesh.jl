@@ -1,6 +1,6 @@
 abstract type AbstractGrid end
 
-export OneDGrid, TwoDGrid
+export OneDGrid, TwoDGrid, ThreeDGrid
 
 """
     TwoDGrid( dimx, nx, dimy, ny)
@@ -32,8 +32,8 @@ struct TwoDGrid <: AbstractGrid
         dimx = xmax - xmin
         dimy = ymax - ymin
 
-        x = collect(LinRange(0, dimx, nx + 1))
-        y = collect(LinRange(0, dimy, ny + 1))
+        x = collect(LinRange(xmin, xmax, nx + 1))
+        y = collect(LinRange(ymin, ymax, ny + 1))
 
         dx = dimx / nx
         dy = dimy / ny
@@ -45,9 +45,9 @@ end
 TwoDGrid(dimx, nx::Int, dimy, ny::Int) = TwoDGrid(0.0, dimx, nx, 0.0, dimy, ny)
 
 """
-    TwoDGrid( xmin, xmax, nx, ymin, ymax, ny )
+    OneDGrid( xmin, xmax, nx )
 
-Simple structure to store mesh data from 2 dimensions
+Simple structure to store mesh data from 1 dimension
 """
 struct OneDGrid <: AbstractGrid
     nx::Int
@@ -60,7 +60,7 @@ struct OneDGrid <: AbstractGrid
     function OneDGrid(xmin, xmax, nx::Int)
         dimx = xmax - xmin
         dx = dimx / (nx - 1)
-        x = collect(LinRange(0, dimx, nx + 1))
+        x = collect(LinRange(xmin, xmax, nx + 1))
 
         return new(nx, xmin, xmax, dimx, dx, x)
     end
@@ -92,3 +92,56 @@ function get_cell_and_offset(m::OneDGrid, x)
 
     return cell, offset
 end
+
+"""
+    ThreeDGrid( dimx, nx, dimy, ny, dimz, nz)
+
+Generate a cartesians mesh on cube `dimx` x `dimy` x `dimz` with `nx` x `ny` x `nz` points
+
+- `nx` : indices are in [1:nx]
+- `ny` : indices are in [1:ny]
+- `nz` : indices are in [1:nz]
+- `dimx = xmax - xmin`
+- `dimy = ymax - ymin`
+- `dimz = zmax - zmin`
+- `x, y, z` : node positions
+- `dx, dy, dz` : step size
+"""
+struct ThreeDGrid <: AbstractGrid
+    nx::Int
+    ny::Int
+    nz::Int
+    xmin::Float64
+    xmax::Float64
+    ymin::Float64
+    ymax::Float64
+    zmin::Float64
+    zmax::Float64
+    dimx::Float64
+    dimy::Float64
+    dimz::Float64
+    x::Vector{Float64}
+    y::Vector{Float64}
+    z::Vector{Float64}
+    dx::Float64
+    dy::Float64
+    dz::Float64
+
+    function ThreDGrid(xmin, xmax, nx::Int, ymin, ymax, ny::Int, zmin, zmax, nz::Int)
+        dimx = xmax - xmin
+        dimy = ymax - ymin
+        dimz = zmax - zmin
+
+        x = collect(LinRange(xmin, xmax, nx + 1))
+        y = collect(LinRange(ymin, ymax, ny + 1))
+        z = collect(LinRange(zmin, zmax, nz + 1))
+
+        dx = dimx / nx
+        dy = dimy / ny
+        dz = dimz / nz
+
+        return new(nx, ny, nz, xmin, xmax, ymin, ymax, zmin, zmax, dimx, dimy, dimz, x, y, z, dx, dy, dz)
+    end
+end
+
+ThreeDGrid(dimx, nx::Int, dimy, ny::Int, dimz, nz::Int) = ThreDGrid(0.0, dimx, nx, 0.0, dimy, ny, 0.0, dimz, nz)
