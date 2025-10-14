@@ -1,6 +1,6 @@
 module GEMPIC
 
-import Base.Threads: @sync, @spawn, nthreads, threadid
+using .Threads
 
 # Utilities
 include("mesh.jl")
