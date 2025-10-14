@@ -45,9 +45,9 @@ function operatorHp1(h::HamiltonianSplitting{1,2}, dt::Float64)
     fill!(h.j_dofs[1], 0.0)
     fill!(h.j_dofs[2], 0.0)
 
-    @sync for i_chunk in h.chunks
+    tasks = map(h.chunks) do i_chunk
         @spawn begin
-            fill!(h.buffer[threadid()], 0.0)
+            buffer = zero(h.j_dofs[1])
             for i_part in i_chunk
 
                 # Read out particle position and velocity
@@ -66,7 +66,7 @@ function operatorHp1(h::HamiltonianSplitting{1,2}, dt::Float64)
                 qoverm = h.particle_group.q_over_m
 
                 v2_new = add_current_update_v!(
-                    h.buffer[threadid()],
+                    buffer,
                     h.kernel_smoother_1,
                     x_old,
                     x_new,
@@ -81,14 +81,15 @@ function operatorHp1(h::HamiltonianSplitting{1,2}, dt::Float64)
                 h.particle_group.array[1, i_part] = x_new
                 h.particle_group.array[3, i_part] = v2_new
             end
+            return buffer
         end
     end
 
-    h.j_dofs[1] .= reduce(+, h.buffer)
+    h.j_dofs[1] .= reduce(+, fetch.(tasks))
 
-    @sync for i_chunk in h.chunks
+    tasks = map(h.chunks) do i_chunk 
         @spawn begin
-            fill!(h.buffer[threadid()], 0.0)
+            buffer = zero(h.j_dofs[2])
             for i_part in i_chunk
 
                 # Read out particle position and charge
@@ -98,12 +99,13 @@ function operatorHp1(h::HamiltonianSplitting{1,2}, dt::Float64)
                 w = w * h.particle_group.common_weight
 
                 # Accumulate rho for Poisson diagnostics
-                add_charge!(h.buffer[threadid()], h.kernel_smoother_0, x, w)
+                add_charge!(buffer, h.kernel_smoother_0, x, w)
             end
+            return buffer
         end
     end
 
-    h.j_dofs[2] .= reduce(+, h.buffer)
+    h.j_dofs[2] .= reduce(+, fetch.(tasks))
 
     # Update the electric field.
     return compute_e_from_j!(h.e_dofs[1], h.maxwell_solver, h.j_dofs[1], 1)
@@ -136,9 +138,9 @@ function operatorHp2(h::HamiltonianSplitting{1,2}, dt::Float64)
 
     # Update v_1
 
-    @sync for i_chunk in h.chunks
+    tasks = map(h.chunks) do i_chunk 
         @spawn begin
-            fill!(h.buffer[threadid()], 0.0)
+            buffer = zero(h.j_dofs[2])
             for i_part in i_chunk
 
                 # Evaluate b at particle position (splines of order p)
@@ -158,12 +160,13 @@ function operatorHp2(h::HamiltonianSplitting{1,2}, dt::Float64)
                 w = w * h.particle_group.common_weight
                 w = w * v2
 
-                add_charge!(h.buffer[threadid()], h.kernel_smoother_0, x1, w)
+                add_charge!(buffer, h.kernel_smoother_0, x1, w)
             end
+            return buffer
         end
     end
 
-    h.j_dofs[2] .= reduce(+, h.buffer)
+    h.j_dofs[2] .= reduce(+, fetch.(tasks))
 
     # Update the electric field. Also, we still need to scale with 1/Lx 
 
@@ -192,26 +195,23 @@ function operatorHE(h::HamiltonianSplitting{1,2}, dt::Float64)
 
     # V_new = V_old + dt * E
 
-    @sync for i_chunk in h.chunks
-        @spawn begin
-            for i_part in i_chunk
-                v_old1 = h.particle_group.array[2, i_part]
-                v_old2 = h.particle_group.array[3, i_part]
+    @threads for i_part in 1:np
 
-                # Evaluate efields at particle position
+        v_old1 = h.particle_group.array[2, i_part]
+        v_old2 = h.particle_group.array[3, i_part]
 
-                xi = h.particle_group.array[1, i_part]
+        # Evaluate efields at particle position
 
-                e1 = evaluate(h.kernel_smoother_1, xi, h.e_dofs[1])
-                e2 = evaluate(h.kernel_smoother_0, xi, h.e_dofs[2])
+        xi = h.particle_group.array[1, i_part]
 
-                v_new1 = v_old1 + dt * qm * e1
-                v_new2 = v_old2 + dt * qm * e2
+        e1 = evaluate(h.kernel_smoother_1, xi, h.e_dofs[1])
+        e2 = evaluate(h.kernel_smoother_0, xi, h.e_dofs[2])
 
-                h.particle_group.array[2, i_part] = v_new1
-                h.particle_group.array[3, i_part] = v_new2
-            end
-        end
+        v_new1 = v_old1 + dt * qm * e1
+        v_new2 = v_old2 + dt * qm * e2
+
+        h.particle_group.array[2, i_part] = v_new1
+        h.particle_group.array[3, i_part] = v_new2
     end
 
     # Update bfield
