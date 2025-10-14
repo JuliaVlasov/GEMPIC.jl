@@ -36,7 +36,6 @@ struct HamiltonianSplitting{D,V}
     b_dofs::Array{Float64,1}
     j_dofs::Array{Array{Float64,1}}
 
-    buffer::Array{Array{Float64,1}}
     chunks::Iterators.PartitionIterator
 
     function HamiltonianSplitting{D, V}(
@@ -64,8 +63,6 @@ struct HamiltonianSplitting{D,V}
 
         @assert np % n_jobs == 0
 
-        buffer = [zeros(Float64, kernel_smoother_0.n_dofs) for i in 1:n_jobs]
-
         chunks = Iterators.partition(1:np, np ÷ n_jobs)
 
         return new(
@@ -83,7 +80,6 @@ struct HamiltonianSplitting{D,V}
             e_dofs,
             b_dofs,
             j_dofs,
-            buffer,
             chunks,
         )
     end
