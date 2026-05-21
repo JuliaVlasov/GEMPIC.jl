@@ -1,11 +1,11 @@
-using ProgressMeter, Plots
-using CSV, DataFrames
 using GEMPIC
+using Plots
+using ProgressMeter
 
 function run( steps)
 
     σ, μ = 1.0, 0.0
-    kx, α = 0.5, 0.5
+    kx, α = 0.5, 0.0
     xmin, xmax = 0, 2π/kx
     dt = 0.05
     nx = 32 
@@ -63,15 +63,15 @@ function run( steps)
 end
 
 @time results = run(1000) # change number of steps
-CSV.write("results.csv", results)
+#CSV.write("results.csv", results)
 
 plot(results.Time, log.(results.PotentialEnergyE1))
 
-ref = CSV.read("200K.csv", DataFrame)
-plot!(ref.Time, log.(ref.PotentialEnergyE1), label="200K")
-ref = CSV.read("300K.csv", DataFrame)
-plot!(ref.Time, log.(ref.PotentialEnergyE1), label="300K")
-ref = CSV.read("500K.csv", DataFrame)
-plot!(ref.Time, log.(ref.PotentialEnergyE1), label="500K")
-
-png("results")
+#ref = CSV.read("200K.csv", DataFrame)
+#plot!(ref.Time, log.(ref.PotentialEnergyE1), label="200K")
+#ref = CSV.read("300K.csv", DataFrame)
+#plot!(ref.Time, log.(ref.PotentialEnergyE1), label="300K")
+#ref = CSV.read("500K.csv", DataFrame)
+#plot!(ref.Time, log.(ref.PotentialEnergyE1), label="500K")
+#
+#png("results")

@@ -1,6 +1,6 @@
-using ProgressMeter, Plots
-using CSV, DataFrames
 using GEMPIC
+using Plots
+using ProgressMeter
 
 function run( steps)
 
@@ -39,9 +39,9 @@ function run( steps)
                                        bfield_dofs)
     
     efield_dofs_n = propagator.e_dofs
-    
-    thdiag = TimeHistoryDiagnostics( particle_group, maxwell_solver, 
-                            kernel_smoother0, kernel_smoother1 )
+
+    time = Float64[]
+    energy = Float64[]
     
     @showprogress 1 for j = 1:steps # loop over time
     
@@ -51,20 +51,19 @@ function run( steps)
         # Diagnostics
         solve_poisson!( efield_poisson, particle_group, 
                         kernel_smoother0, maxwell_solver, rho)
+
+        push!(time, j * dt)
+        push!(energy, GEMPIC.inner_product(maxwell_solver, efield_dofs[1], efield_dofs_n[1], spline_degree - 1))
+
         
-        write_step!(thdiag, j * dt, spline_degree, 
-                        efield_dofs,  bfield_dofs,
-                        efield_dofs_n, efield_poisson)
-    
     end
     
-    return thdiag.data
+    return time, energy
     
 end
 
-@time results = run(1000) # change number of steps
-CSV.write("results.csv", results)
+@time time, energy = run(1000) # change number of steps
 
-plot(results.Time, log.(results.PotentialEnergyE1))
+plot(time, log.(energy))
 
 png("results")
