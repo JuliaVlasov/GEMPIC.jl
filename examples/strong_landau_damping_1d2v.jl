@@ -6,7 +6,7 @@ function run( steps)
 
     σ, μ = 1.0, 0.0
     kx, α = 0.5, 0.0
-    xmin, xmax = 0, 2π/kx
+    xmin, xmax = 0, 10π/kx
     dt = 0.05
     nx = 32 
     n_particles = 100000
@@ -23,9 +23,9 @@ function run( steps)
     
     rho = zeros(Float64, nx)
     efield_poisson = zeros(Float64, nx)
-    # Initialize the field solver
+    
     maxwell_solver = Maxwell1DFEM(mesh, spline_degree)
-    # efield by Poisson
+    
     solve_poisson!( efield_poisson, particle_group, kernel_smoother0, maxwell_solver, rho )
     
     efield_dofs = [efield_poisson, zeros(Float64, nx)]
@@ -45,10 +45,8 @@ function run( steps)
     
     @showprogress 1 for j = 1:steps # loop over time
     
-        # Strang splitting
         strang_splitting!(propagator, dt, 1)
     
-        # Diagnostics
         solve_poisson!( efield_poisson, particle_group, 
                         kernel_smoother0, maxwell_solver, rho)
         

@@ -23,7 +23,8 @@ include("particle_mesh_coupling_1d.jl")
 include("particle_mesh_coupling_2d.jl")
 
 # Particle sampling
-include("particle_sampling.jl")
+include("particle_sampling_1d1v.jl")
+include("particle_sampling_1d2v.jl")
 include("landau_damping.jl")
 
 # Splittings
