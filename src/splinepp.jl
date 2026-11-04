@@ -239,24 +239,34 @@ Convert 1d spline in B form to spline in pp form with
 periodic boundary conditions
 """
 function b_to_pp(self::SplinePP, ncells::Int, b_coeffs::Vector{Float64})
-    dp1 = self.degree + 1
-    pp_coeffs = zeros(Float64, (dp1, ncells))
-    coeffs = zeros(Float64, dp1)
+    pp_coeffs = zeros(Float64, (self.degree + 1, ncells))
+    return b_to_pp!(pp_coeffs, self, ncells, b_coeffs)
+end
 
-    @inbounds for i in 1:(self.degree)
-        coeffs .= vcat(b_coeffs[(end - self.degree + i):end], b_coeffs[1:i])
-        for j in 1:dp1
-            pp_coeffs[j, i] = sum(coeffs .* self.poly_coeffs[j, :])
+"""
+    b_to_pp!(pp_coeffs, spline, ncells, b_coeffs)
+
+Convert a periodic 1d spline from B form to pp form in a preallocated matrix.
+"""
+function b_to_pp!(
+    pp_coeffs::Matrix{Float64}, self::SplinePP, ncells::Int, b_coeffs::Vector{Float64}
+)
+    return b_to_pp!(pp_coeffs, self.poly_coeffs, ncells, b_coeffs)
+end
+
+function b_to_pp!(
+    pp_coeffs::Matrix{Float64}, poly_coeffs::AbstractMatrix{Float64},
+    ncells::Int, b_coeffs::Vector{Float64},
+)
+    dp1 = size(poly_coeffs, 1)
+    for cell in 1:ncells, j in 1:dp1
+        value = 0.0
+        for i in 1:dp1
+            index = mod1(cell - dp1 + i, ncells)
+            value += b_coeffs[index] * poly_coeffs[j, i]
         end
+        pp_coeffs[j, cell] = value
     end
-
-    @inbounds for i in (self.degree + 1):ncells
-        coeffs .= b_coeffs[(i - self.degree):i]
-        for j in 1:dp1
-            pp_coeffs[j, i] = sum(coeffs .* self.poly_coeffs[j, :])
-        end
-    end
-
     return pp_coeffs
 end
 

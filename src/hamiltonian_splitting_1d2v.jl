@@ -39,76 +39,57 @@ Then update particle position:
 ``X_{new} = X_{old} + dt * V``
 """
 function operatorHp1(h::HamiltonianSplitting{1,2}, dt::Float64)
-    np = h.particle_group.n_particles
-    n_cells = h.kernel_smoother_0.n_dofs
-
     fill!(h.j_dofs[1], 0.0)
     fill!(h.j_dofs[2], 0.0)
 
-    tasks = map(h.chunks) do i_chunk
-        @spawn begin
-            buffer = zero(h.j_dofs[1])
-            for i_part in i_chunk
-
-                # Read out particle position and velocity
-                x_old = h.particle_group.array[1, i_part]
-                v1_old = h.particle_group.array[2, i_part]
-                v2_old = h.particle_group.array[3, i_part]
-
-                # Then update particle position:  X_new = X_old + dt * V
-                x_new = x_old + dt * v1_old
-
-                # Get charge for accumulation of j
-                wi = h.particle_group.array[4, i_part]
-                wi = wi * h.particle_group.charge
-                wi = wi * h.particle_group.common_weight
-
-                qoverm = h.particle_group.q_over_m
-
-                v2_new = add_current_update_v!(
-                    buffer,
-                    h.kernel_smoother_1,
-                    x_old,
-                    x_new,
-                    wi,
-                    qoverm,
-                    h.b_dofs,
-                    v2_old,
-                )
-
-                x_new = mod(x_new, h.Lx)
-
-                h.particle_group.array[1, i_part] = x_new
-                h.particle_group.array[3, i_part] = v2_new
-            end
-            return buffer
+    if length(h.hp1_workspaces) == 1
+        deposit_hp1!(h, dt, first(h.chunks), h.hp1_workspaces[1])
+    else
+        @sync for (i, i_chunk) in enumerate(h.chunks)
+            @spawn deposit_hp1!(h, dt, i_chunk, h.hp1_workspaces[i])
         end
     end
 
-    h.j_dofs[1] .= reduce(+, fetch.(tasks))
-
-    tasks = map(h.chunks) do i_chunk 
-        @spawn begin
-            buffer = zero(h.j_dofs[2])
-            for i_part in i_chunk
-
-                # Read out particle position and charge
-                x = h.particle_group.array[1, i_part]
-                w = h.particle_group.array[4, i_part]
-                w = w * h.particle_group.charge
-                w = w * h.particle_group.common_weight
-
-                # Accumulate rho for Poisson diagnostics
-                add_charge!(buffer, h.kernel_smoother_0, x, w)
-            end
-            return buffer
-        end
+    for workspace in h.hp1_workspaces
+        h.j_dofs[1] .+= workspace.current
+        h.j_dofs[2] .+= workspace.charge
     end
 
-    h.j_dofs[2] .= reduce(+, fetch.(tasks))
-
-    # Update the electric field.
     return compute_e_from_j!(h.e_dofs[1], h.maxwell_solver, h.j_dofs[1], 1)
+end
+
+function deposit_hp1!(h::HamiltonianSplitting{1,2}, dt, i_chunk, workspace::Hp1Workspace)
+    fill!(workspace.current, 0.0)
+    fill!(workspace.charge, 0.0)
+    particles = h.particle_group.array
+    @inbounds for i_part in i_chunk
+        x_old = particles[1, i_part]
+        v1_old = particles[2, i_part]
+        v2_old = particles[3, i_part]
+        x_new = x_old + dt * v1_old
+
+        wi = particles[4, i_part] * h.particle_group.charge
+        wi *= h.particle_group.common_weight
+
+        v2_new = add_current_update_v!(
+            workspace.current,
+            workspace.kernel_1,
+            x_old,
+            x_new,
+            wi,
+            h.particle_group.q_over_m,
+            h.b_dofs,
+            v2_old,
+        )
+
+        x_new = mod(x_new, h.Lx)
+        particles[1, i_part] = x_new
+        particles[3, i_part] = v2_new
+
+        # Accumulate rho for Poisson diagnostics at the updated position.
+        add_charge!(workspace.charge, workspace.kernel_0, x_new, wi)
+    end
+    return nothing
 end
 
 """
@@ -189,33 +170,37 @@ Push ``H_E``: Equations to be solved
 ```
 """
 function operatorHE(h::HamiltonianSplitting{1,2}, dt::Float64)
-    qm = h.particle_group.q_over_m
+    # Convert once per field, then share read-only coefficients between particle tasks.
+    b_to_pp!(h.he_pp[1], h.kernel_smoother_1.spline_pp, h.kernel_smoother_1.n_grid, h.e_dofs[1])
+    b_to_pp!(h.he_pp[2], h.kernel_smoother_0.spline_pp, h.kernel_smoother_0.n_grid, h.e_dofs[2])
 
     np = h.particle_group.n_particles
-
-    # V_new = V_old + dt * E
-
-    @threads for i_part in 1:np
-
-        v_old1 = h.particle_group.array[2, i_part]
-        v_old2 = h.particle_group.array[3, i_part]
-
-        # Evaluate efields at particle position
-
-        xi = h.particle_group.array[1, i_part]
-
-        e1 = evaluate(h.kernel_smoother_1, xi, h.e_dofs[1])
-        e2 = evaluate(h.kernel_smoother_0, xi, h.e_dofs[2])
-
-        v_new1 = v_old1 + dt * qm * e1
-        v_new2 = v_old2 + dt * qm * e2
-
-        h.particle_group.array[2, i_part] = v_new1
-        h.particle_group.array[3, i_part] = v_new2
+    n_chunks = length(h.hp1_workspaces)
+    if n_chunks == 1
+        push_he!(h, dt, 1:np)
+    else
+        chunk_size = np ÷ n_chunks
+        @threads for i in 1:n_chunks
+            push_he!(h, dt, ((i - 1) * chunk_size + 1):(i * chunk_size))
+        end
     end
 
     # Update bfield
     return compute_b_from_e!(h.b_dofs, h.maxwell_solver, dt, h.e_dofs[2])
+end
+
+function push_he!(h::HamiltonianSplitting{1,2}, dt, i_chunk)
+    particles = h.particle_group.array
+    qm = h.particle_group.q_over_m
+    e1_pp, e2_pp = h.he_pp
+    @inbounds for i_part in i_chunk
+        xi = particles[1, i_part]
+        e1 = evaluate_pp(h.kernel_smoother_1, xi, e1_pp)
+        e2 = evaluate_pp(h.kernel_smoother_0, xi, e2_pp)
+        particles[2, i_part] += dt * qm * e1
+        particles[3, i_part] += dt * qm * e2
+    end
+    return nothing
 end
 
 @doc raw"""

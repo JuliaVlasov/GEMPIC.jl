@@ -30,6 +30,46 @@ function solve_poisson!(
     return compute_e_from_rho!(efield_dofs, maxwell_solver, rho)
 end
 
+function solve_poisson!(
+    efield_dofs::Vector{Float64},
+    particle_group::ParticleGroup{1,V},
+    kernel_smoother_0::ParticleMeshCoupling1D,
+    maxwell_solver::Maxwell1DFEM,
+    rho::Vector{Float64},
+) where {V}
+    deposit_charge!(rho, particle_group, kernel_smoother_0)
+    return compute_e_from_rho!(efield_dofs, maxwell_solver, rho)
+end
+
+function solve_poisson!(
+    efield_dofs::Vector{Vector{Float64}},
+    particle_group::ParticleGroup{2,2},
+    kernel::ParticleMeshCoupling2D,
+    maxwell_solver::TwoDMaxwell,
+    rho::Vector{Float64},
+)
+    deposit_charge!(rho, particle_group, kernel)
+    return compute_e_from_rho!(efield_dofs, maxwell_solver.poisson, rho)
+end
+
+function deposit_charge!(
+    rho::Vector{Float64},
+    particle_group::ParticleGroup{2,2},
+    kernel::ParticleMeshCoupling2D,
+)
+    fill!(rho, 0.0)
+    for i in 1:particle_group.n_particles
+        add_charge!(
+            rho,
+            kernel,
+            particle_group.array[1, i],
+            particle_group.array[2, i],
+            get_charge(particle_group, i),
+        )
+    end
+    return rho
+end
+
 """
     pic_diagnostics_transfer( particle_group, kernel_smoother_0, 
                             kernel_smoother_1, efield_dofs, transfer)
@@ -63,6 +103,26 @@ function pic_diagnostics_transfer(
 end
 
 """
+    pic_diagnostics_transfer(particle_group::ParticleGroup{1,1}, ...)
+
+Compute the longitudinal particle-to-electric-field transfer for 1d1v.
+"""
+function pic_diagnostics_transfer(
+    particle_group::ParticleGroup{1,1}, kernel_smoother_0, kernel_smoother_1, efield_dofs
+)
+    transfer = 0.0
+    for i_part in 1:particle_group.n_particles
+        xi = particle_group.array[1, i_part]
+        wi = particle_group.array[3, i_part] * particle_group.charge
+        wi *= particle_group.common_weight
+        v1 = particle_group.array[2, i_part]
+        efield_1 = evaluate(kernel_smoother_1, xi, efield_dofs[1])
+        transfer += v1 * efield_1 * wi
+    end
+    return transfer
+end
+
+"""
     pic_diagnostics_vvb( particle_group, kernel_smoother_1, bfield_dofs )
 
 Compute ``\\sum_{particles} ( w_p v_1, p b(x_p) v_2, p )``
@@ -72,7 +132,9 @@ Compute ``\\sum_{particles} ( w_p v_1, p b(x_p) v_2, p )``
 - `bfield_dofs` : coefficients of bfield
 
 """
-function pic_diagnostics_vvb(particle_group, kernel_smoother_1, bfield_dofs)
+function pic_diagnostics_vvb(
+    particle_group::ParticleGroup{1,2}, kernel_smoother_1, bfield_dofs
+)
     vvb = 0.0::Float64
 
     for i_part in 1:(particle_group.n_particles)
@@ -90,6 +152,8 @@ function pic_diagnostics_vvb(particle_group, kernel_smoother_1, bfield_dofs)
 
     return vvb
 end
+
+pic_diagnostics_vvb(::ParticleGroup{1,1}, kernel_smoother_1, bfield_dofs) = 0.0
 
 """
     pic_diagnostics_poynting( maxwell_solver, degree, efield_dofs, bfield_dofs, 
@@ -112,6 +176,109 @@ function pic_diagnostics_poynting(maxwell_solver, degree, efield_dofs, bfield_do
 end
 
 export TimeHistoryDiagnostics
+
+export TimeHistoryDiagnostics2D
+
+struct TimeHistoryDiagnostics2D
+    particle_group::ParticleGroup{2,2}
+    maxwell_solver::TwoDMaxwell
+    kernel_ex::ParticleMeshCoupling2DAnisotropic
+    kernel_ey::ParticleMeshCoupling2DAnisotropic
+    density_kernel::ParticleMeshCoupling2D
+    rho::Vector{Float64}
+    gauss_rho::Vector{Float64}
+    data::DataFrame
+
+    function TimeHistoryDiagnostics2D(
+        particle_group::ParticleGroup{2,2}, maxwell_solver::TwoDMaxwell
+    )
+        degree = maxwell_solver.s_deg_0
+        grid = maxwell_solver.mesh
+        kernel_ex =
+            ParticleMeshCoupling2DAnisotropic(grid, degree - 1, degree, :galerkin)
+        kernel_ey =
+            ParticleMeshCoupling2DAnisotropic(grid, degree, degree - 1, :galerkin)
+        density_kernel = ParticleMeshCoupling2D(
+            particle_group, grid, degree, :galerkin
+        )
+        n_dofs = grid.nx * grid.ny
+        data = DataFrame(
+            Time=Float64[],
+            KineticEnergy=Float64[],
+            MomentumX=Float64[],
+            MomentumY=Float64[],
+            ElectricEnergyEx=Float64[],
+            ElectricEnergyEy=Float64[],
+            MagneticEnergyBz=Float64[],
+            Transfer=Float64[],
+            GaussLawError=Float64[],
+        )
+        return new(
+            particle_group,
+            maxwell_solver,
+            kernel_ex,
+            kernel_ey,
+            density_kernel,
+            zeros(n_dofs),
+            zeros(n_dofs),
+            data,
+        )
+    end
+end
+
+function write_step!(
+    diagnostics::TimeHistoryDiagnostics2D,
+    time,
+    efield_dofs::Vector{Vector{Float64}},
+    bfield_dofs::Vector{Vector{Float64}},
+)
+    particles = diagnostics.particle_group
+    kinetic = momentum_x = momentum_y = transfer = 0.0
+    for i in 1:particles.n_particles
+        vx, vy = particles.array[3, i], particles.array[4, i]
+        mass = get_mass(particles, i)
+        charge = get_charge(particles, i)
+        kinetic += (vx^2 + vy^2) * mass
+        momentum_x += vx * mass
+        momentum_y += vy * mass
+        x, y = particles.array[1, i], particles.array[2, i]
+        transfer += charge * (
+            vx * evaluate(diagnostics.kernel_ex, x, y, efield_dofs[1]) +
+            vy * evaluate(diagnostics.kernel_ey, x, y, efield_dofs[2])
+        )
+    end
+
+    deposit_charge!(diagnostics.rho, particles, diagnostics.density_kernel)
+    compute_rho_from_e!(diagnostics.gauss_rho, diagnostics.maxwell_solver, efield_dofs)
+    mean_charge = sum(diagnostics.rho) / length(diagnostics.rho)
+    gauss_law_error = maximum(
+        abs.(diagnostics.gauss_rho .- (diagnostics.rho .- mean_charge))
+    )
+    electric_energy_ex = inner_product(
+        diagnostics.maxwell_solver, efield_dofs[1], efield_dofs[1], 1, 1
+    )
+    electric_energy_ey = inner_product(
+        diagnostics.maxwell_solver, efield_dofs[2], efield_dofs[2], 2, 1
+    )
+    magnetic_energy_bz = inner_product(
+        diagnostics.maxwell_solver, bfield_dofs[3], bfield_dofs[3], 3, 3
+    )
+
+    return push!(
+        diagnostics.data,
+        (
+            time,
+            kinetic,
+            momentum_x,
+            momentum_y,
+            electric_energy_ex,
+            electric_energy_ey,
+            magnetic_energy_bz,
+            transfer,
+            gauss_law_error,
+        ),
+    )
+end
 
 """
     TimeHistoryDiagnostics( particle_group, maxwell_solver, 
@@ -192,13 +359,18 @@ function write_step!(
     efield_dofs_n,
     efield_poisson,
 )
+    if !(thdiag.particle_group.dims in ((1, 1), (1, 2)))
+        throw(ArgumentError("Diagnostics are implemented for 1d1v and 1d2v particle groups"))
+    end
     fill!(thdiag.diagnostics, 0.0)
     fill!(thdiag.potential_energy, 0.0)
 
     for i_part in 1:(thdiag.particle_group.n_particles)
         v1 = thdiag.particle_group.array[2, i_part]
-        v2 = thdiag.particle_group.array[3, i_part]
-        wi = thdiag.particle_group.array[4, i_part]
+        v2 = thdiag.particle_group.dims == (1, 2) ?
+             thdiag.particle_group.array[3, i_part] : 0.0
+        weight_index = thdiag.particle_group.dims[1] + thdiag.particle_group.dims[2] + 1
+        wi = thdiag.particle_group.array[weight_index, i_part]
         wi *= thdiag.particle_group.mass
         wi *= thdiag.particle_group.common_weight
 
@@ -219,9 +391,13 @@ function write_step!(
 
     vvb = pic_diagnostics_vvb(thdiag.particle_group, thdiag.kernel_smoother_1, bfield_dofs)
 
-    poynting = pic_diagnostics_poynting(
-        thdiag.maxwell_solver, degree, efield_dofs[2], bfield_dofs
-    )
+    poynting = if thdiag.particle_group.dims == (1, 1)
+        0.0
+    else
+        pic_diagnostics_poynting(
+            thdiag.maxwell_solver, degree, efield_dofs[2], bfield_dofs
+        )
+    end
 
     thdiag.potential_energy[1] = inner_product(
         thdiag.maxwell_solver, efield_dofs[1], efield_dofs_n[1], degree - 1
@@ -282,7 +458,7 @@ function pic_diagnostics_hpi(particle_group, index, kinetic)
     for i_part in 1:(particle_group.n_particles)
         vi = get_v(particle_group, i_part)
         wi = get_mass(particle_group, i_part)
-        kinetic += kinetic_local + (vi[index]^2) * wi[1]
+        kinetic += (vi[index]^2) * wi[1]
     end
 
     return kinetic

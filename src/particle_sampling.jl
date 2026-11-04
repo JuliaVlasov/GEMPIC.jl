@@ -81,6 +81,53 @@ function sample!(
     end
 end
 
+function sample!(
+    pg::ParticleGroup{2,2},
+    ps::ParticleSampler{2,2},
+    df::AbstractCosGaussian,
+    mesh::TwoDGrid,
+)
+    @assert pg.n_particles == ps.n_particles
+    x = zeros(2)
+    v = zeros(2)
+    velocity_rng = MersenneTwister(ps.seed)
+    cumulative = cumsum(df.params.δ)
+    normal = Normal()
+
+    if ps.sampling_type == :sobol
+        rng = SobolSeq(2)
+        for i in 1:pg.n_particles
+            point = Sobol.next!(rng)
+            x[1] = mesh.xmin + point[1] * mesh.dimx
+            x[2] = mesh.ymin + point[2] * mesh.dimy
+            sample_2d_velocity!(v, df, cumulative, normal, velocity_rng)
+            set_x!(pg, i, x)
+            set_v!(pg, i, v)
+            set_weights!(pg, i, eval_x_density(df, x) * mesh.dimx * mesh.dimy)
+        end
+    else
+        for i in 1:pg.n_particles
+            x[1] = mesh.xmin + rand(velocity_rng) * mesh.dimx
+            x[2] = mesh.ymin + rand(velocity_rng) * mesh.dimy
+            sample_2d_velocity!(v, df, cumulative, normal, velocity_rng)
+            set_x!(pg, i, x)
+            set_v!(pg, i, v)
+            set_weights!(pg, i, eval_x_density(df, x) * mesh.dimx * mesh.dimy)
+        end
+    end
+    return pg
+end
+
+function sample_2d_velocity!(v, df, cumulative, normal, rng)
+    gaussian = min(searchsortedfirst(cumulative, rand(rng)), length(cumulative))
+    for component in 1:2
+        v[component] =
+            rand(rng, normal) * df.params.σ[gaussian][component] +
+            df.params.μ[gaussian][component]
+    end
+    return v
+end
+
 """
     sample_all( ps, pg, df, mesh )
 

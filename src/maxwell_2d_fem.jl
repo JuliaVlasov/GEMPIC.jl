@@ -8,7 +8,7 @@ export TwoDMaxwell
 - s_deg_1    : spline degree 1-forms
 
 """
-struct TwoDMaxwell
+struct TwoDMaxwell <: AbstractMaxwellSolver
     s_deg_0::Int
     s_deg_1::Int
 

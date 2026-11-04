@@ -4,6 +4,13 @@ abstract type AbstractSplitting end
 
 export HamiltonianSplitting
 
+struct Hp1Workspace
+    current::Vector{Float64}
+    charge::Vector{Float64}
+    kernel_0::ParticleMeshCoupling1D
+    kernel_1::ParticleMeshCoupling1D
+end
+
 """
     HamiltonianSplitting( maxwell_solver,
                           kernel_smoother_0, kernel_smoother_1,
@@ -16,6 +23,8 @@ Hamiltonian splitting type for Vlasov-Maxwell
 - `e_dofs` describing the two components of the electric field
 - `b_dofs` describing the magnetic field
 - `j_dofs` for kernel representation of current density. 
+- `hp1_workspaces` holds reusable deposition buffers and private spline scratch per chunk.
+- `he_pp` holds reusable cell-polynomial coefficients for the electric fields.
 """
 struct HamiltonianSplitting{D,V}
     dims::Tuple{Int64,Int64}
@@ -37,6 +46,8 @@ struct HamiltonianSplitting{D,V}
     j_dofs::Array{Array{Float64,1}}
 
     chunks::Iterators.PartitionIterator
+    hp1_workspaces::Vector{Hp1Workspace}
+    he_pp::Tuple{Matrix{Float64},Matrix{Float64}}
 
     function HamiltonianSplitting{D, V}(
         maxwell_solver, kernel_smoother_0, kernel_smoother_1, particle_group, e_dofs, b_dofs
@@ -64,6 +75,17 @@ struct HamiltonianSplitting{D,V}
         @assert np % n_jobs == 0
 
         chunks = Iterators.partition(1:np, np ÷ n_jobs)
+        # Spline evaluation mutates scratch arrays, so each task needs its own kernels.
+        hp1_workspaces = dims == (1, 2) ? [
+            Hp1Workspace(
+                zero(j_dofs[1]), zero(j_dofs[2]),
+                deepcopy(kernel_smoother_0), deepcopy(kernel_smoother_1),
+            ) for _ in chunks
+        ] : Hp1Workspace[]
+        he_pp = dims == (1, 2) ? (
+            zeros(kernel_smoother_1.n_span, kernel_smoother_1.n_grid),
+            zeros(kernel_smoother_0.n_span, kernel_smoother_0.n_grid),
+        ) : (zeros(0, 0), zeros(0, 0))
 
         return new(
             dims,
@@ -81,6 +103,8 @@ struct HamiltonianSplitting{D,V}
             b_dofs,
             j_dofs,
             chunks,
+            hp1_workspaces,
+            he_pp,
         )
     end
 end
@@ -136,4 +160,3 @@ function lie_splitting_back!(h::HamiltonianSplitting, dt::Float64, number_steps:
         operatorHE(dt)
     end
 end
-
