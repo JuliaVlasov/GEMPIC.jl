@@ -1,6 +1,6 @@
 name = "GEMPIC"
 uuid = "b6d65c3a-4a4e-11e9-25d0-d309dc85ddeb"
-version = "0.4.2"
+version = "0.4.3"
 authors = "JuliaVlasov"
 
 [workspace]
