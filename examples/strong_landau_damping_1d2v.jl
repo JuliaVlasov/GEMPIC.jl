@@ -1,6 +1,11 @@
-using ProgressMeter, Plots
-using CSV, DataFrames
+using CSV
+using DataFrames
 using GEMPIC
+using Plots
+using ProgressMeter
+using TimerOutputs
+
+const to = TimerOutput()
 
 function run( steps)
 
@@ -9,7 +14,7 @@ function run( steps)
     xmin, xmax = 0, 2π/kx
     dt = 0.05
     nx = 32 
-    n_particles = 100000
+    n_particles = 180000
     mesh = OneDGrid( xmin, xmax, nx)
     spline_degree = 3
     
@@ -46,10 +51,16 @@ function run( steps)
     @showprogress 1 for j = 1:steps # loop over time
     
         # Strang splitting
-        strang_splitting!(propagator, dt, 1)
+        @timeit to "HB" GEMPIC.operatorHB(propagator, 0.5dt)
+        @timeit to "HE" GEMPIC.operatorHE(propagator, 0.5dt)
+        @timeit to "Hp2" GEMPIC.operatorHp2(propagator, 0.5dt)
+        @timeit to "Hp1" GEMPIC.operatorHp1(propagator, 1.0dt)
+        @timeit to "Hp2" GEMPIC.operatorHp2(propagator, 0.5dt)
+        @timeit to "HE" GEMPIC.operatorHE(propagator, 0.5dt)
+        @timeit to "HB" GEMPIC.operatorHB(propagator, 0.5dt)
     
         # Diagnostics
-        solve_poisson!( efield_poisson, particle_group, 
+        @timeit to "poisson" solve_poisson!( efield_poisson, particle_group, 
                         kernel_smoother0, maxwell_solver, rho)
         
         write_step!(thdiag, j * dt, spline_degree, 
@@ -67,11 +78,12 @@ CSV.write("results.csv", results)
 
 plot(results.Time, log.(results.PotentialEnergyE1))
 
-ref = CSV.read("200K.csv", DataFrame)
-plot!(ref.Time, log.(ref.PotentialEnergyE1), label="200K")
-ref = CSV.read("300K.csv", DataFrame)
-plot!(ref.Time, log.(ref.PotentialEnergyE1), label="300K")
-ref = CSV.read("500K.csv", DataFrame)
-plot!(ref.Time, log.(ref.PotentialEnergyE1), label="500K")
+# ref = CSV.read("200K.csv", DataFrame)
+# plot!(ref.Time, log.(ref.PotentialEnergyE1), label="200K")
+# ref = CSV.read("300K.csv", DataFrame)
+# plot!(ref.Time, log.(ref.PotentialEnergyE1), label="300K")
+# ref = CSV.read("500K.csv", DataFrame)
+# plot!(ref.Time, log.(ref.PotentialEnergyE1), label="500K")
 
 png("results")
+show(to)

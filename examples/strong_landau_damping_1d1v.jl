@@ -9,7 +9,7 @@ function run( steps)
     xmin, xmax = 0, 2π/kx
     dt = 0.05
     nx = 32 
-    n_particles = 100000
+    n_particles = 720000
     mesh = OneDGrid( xmin, xmax, nx)
     spline_degree = 3
     
