@@ -10,6 +10,11 @@ include("test_maxwell_1d_fem.jl")
 include("test_sampling.jl")
 include("test_particle_mesh_coupling_spline_1d.jl")
 include("test_particle_mesh_coupling_spline_2d.jl")
+include("test_hp1_workspace.jl")
+include("test_he_pp.jl")
+include("test_charge_moments.jl")
+include("test_diagnostics_1d1v.jl")
+include("test_2d2v.jl")
 
 if Threads.nthreads() <= 2
     include("test_hamiltonian_splitting.jl")

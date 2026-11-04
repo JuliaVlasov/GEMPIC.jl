@@ -34,7 +34,7 @@ makedocs(;
             ],
             "diagnostics.md",
         ],
-        "Examples" => ["strong_landau_damping.md"],
+        "Examples" => ["strong_landau_damping.md", "strong_landau_damping_2d2v.md"],
         "Contents" => "contents.md",
     ],
 )

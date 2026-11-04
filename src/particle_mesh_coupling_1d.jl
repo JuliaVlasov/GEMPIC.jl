@@ -17,6 +17,7 @@ Spline with index i starts at point i
 - `spline_val`: scratch data for spline evaluation
 - `spline_val_more` : more scratch data for spline evaluation
 - `quad_x, quad_w` : quadrature weights and points
+- `charge_moments` : reusable cell-local polynomial moments for bulk deposition
 
 !!! note
 
@@ -40,6 +41,7 @@ struct ParticleMeshCoupling1D <: AbstractParticleMeshCoupling
     spline_pp::SplinePP
     xmin::Float64
     Lx::Float64
+    charge_moments::Matrix{Float64}
 
     function ParticleMeshCoupling1D(
         mesh::OneDGrid, no_particles::Int, spline_degree::Int, smoothing_type::Symbol
@@ -90,8 +92,54 @@ struct ParticleMeshCoupling1D <: AbstractParticleMeshCoupling
             spline_pp,
             xmin,
             Lx,
+            zeros(n_span, n_grid),
         )
     end
+end
+
+"""
+    deposit_charge!(rho, particle_group, kernel)
+
+Deposit all 1d particle charges by accumulating polynomial moments per cell.
+The kernel owns reusable scratch, so concurrent calls need distinct kernels.
+"""
+function deposit_charge!(
+    rho::Vector{Float64}, pg::ParticleGroup{1,V}, p::ParticleMeshCoupling1D
+) where {V}
+    moments = p.charge_moments
+    fill!(moments, 0.0)
+    particles = pg.array
+    degree = p.spline_degree
+    @inbounds for i in 1:pg.n_particles
+        xi = (particles[1, i] - p.xmin) / p.delta_x
+        index = trunc(Int, xi)
+        offset = xi - index
+        cell = mod(index, p.n_grid) + 1
+        w = pg.charge * particles[V + 2, i] * pg.common_weight
+        for power in 0:degree
+            moments[degree + 1 - power, cell] += w
+            w *= offset
+        end
+    end
+    charge_from_moments!(rho, moments, p.spline_pp.poly_coeffs)
+    rho .*= p.scaling
+    return rho
+end
+
+function charge_from_moments!(
+    rho::Vector{Float64}, moments::Matrix{Float64},
+    poly_coeffs::AbstractMatrix{Float64},
+)
+    fill!(rho, 0.0)
+    n_span, n_cells = size(moments)
+    for cell in 1:n_cells, i in 1:n_span
+        value = 0.0
+        for j in 1:n_span
+            value += poly_coeffs[j, i] * moments[j, cell]
+        end
+        rho[mod1(cell - n_span + i, n_cells)] += value
+    end
+    return rho
 end
 
 """
@@ -232,7 +280,7 @@ end
 """
     evaluate_pp(p, position, field_dofs_pp)
 
-Evaluate field at `position` using horner scheme
+Evaluate a periodic field at `position` using the Horner scheme.
 - `p` : Kernel smoother object 
 - `position` : Position of the particle
 - `field_dofs_pp` : Degrees of freedom in kernel representation.
@@ -246,7 +294,7 @@ function evaluate_pp(
     index = trunc(Int, xi) + 1
     xi = xi - (index - 1)
 
-    return horner_1d(p.spline_degree, field_dofs_pp, xi, index)
+    return horner_1d(p.spline_degree, field_dofs_pp, xi, mod1(index, p.n_grid))
 end
 
 """
@@ -293,7 +341,7 @@ part in Hamiltonian splitting)
 particle contributes to, and `r_old`, its position (normalized to cell size one).
 
 """
-function add_current_update_v!(
+@inline function add_current_update_v!(
     j_dofs::AbstractArray,
     p::ParticleMeshCoupling1D,
     position_old::Float64,
@@ -382,7 +430,7 @@ end
 
 Helper function for `add_current_update_v`.
 """
-function update_jv!(
+@inline function update_jv!(
     j_dofs::AbstractArray,
     p::ParticleMeshCoupling1D,
     lower::Float64,
@@ -401,17 +449,23 @@ function update_jv!(
 
     uniform_bsplines_eval_basis!(p.spline_val, p.spline_degree, c1 * p.quad_x[1] + c2)
 
-    p.spline_val .*= p.quad_w[1] * c1
+    @inbounds for i in eachindex(p.spline_val)
+        p.spline_val[i] *= p.quad_w[1] * c1
+    end
 
     @inbounds for j in 2:(p.n_quad_points)
         uniform_bsplines_eval_basis!(
             p.spline_val_more, p.spline_degree, c1 * p.quad_x[j] + c2
         )
 
-        p.spline_val .+= p.spline_val_more .* p.quad_w[j] .* c1
+        for i in eachindex(p.spline_val)
+            p.spline_val[i] += p.spline_val_more[i] * p.quad_w[j] * c1
+        end
     end
 
-    p.spline_val .*= sign * p.delta_x[1]
+    @inbounds for i in eachindex(p.spline_val)
+        p.spline_val[i] *= sign * p.delta_x[1]
+    end
 
     ind = 1
     @inbounds for i_grid in (index - p.spline_degree):index

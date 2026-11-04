@@ -79,6 +79,25 @@ plot!(p[1,2], xg, sval, title=:ex, label=nothing )
 
 You will get better performance if your simulation is inside a function:
 
+The 1d2v `operatorHp1` reuses current and charge deposition buffers allocated by
+`HamiltonianSplitting`. Each particle chunk owns its spline scratch arrays, so
+current deposition can run in parallel without sharing mutable scratch. Current
+and diagnostic charge are accumulated in the same particle pass. Reuse the
+propagator between steps rather than reconstructing it in the time loop.
+
+The 1d2v `operatorHE` converts the electric fields to cell-polynomial form once
+per call, using reusable coefficient matrices. Particle kicks then use Horner
+evaluation of these read-only coefficients rather than recomputing spline basis
+values for every particle. This also avoids sharing mutable spline scratch
+between particle tasks.
+
+The 1d `solve_poisson!` accumulates charge using cell-local polynomial moments:
+particle weights and powers of the cell offset are summed first, then converted
+to spline charge coefficients once per cell. The kernel reuses its moment matrix,
+avoiding per-particle basis evaluation without changing the Poisson field solve.
+Deposition remains serial and allocation-free; concurrent solves require distinct
+kernel and Maxwell solver objects because they own mutable scratch.
+
 ```@example strong
 function run( steps)
 

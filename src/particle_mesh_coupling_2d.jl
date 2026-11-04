@@ -1,5 +1,71 @@
 export ParticleMeshCoupling2D
 
+struct ParticleMeshCoupling2DAnisotropic <: AbstractParticleMeshCoupling
+    grid::TwoDGrid
+    degree_x::Int
+    degree_y::Int
+    values_x::Vector{Float64}
+    values_y::Vector{Float64}
+    scaling::Float64
+
+    function ParticleMeshCoupling2DAnisotropic(
+        grid::TwoDGrid, degree_x::Int, degree_y::Int, smoothing_type::Symbol
+    )
+        degree_x >= 0 && degree_y >= 0 ||
+            throw(ArgumentError("Spline degrees must be nonnegative"))
+        scaling = if smoothing_type == :collocation
+            1.0 / (grid.dx * grid.dy)
+        elseif smoothing_type == :galerkin
+            1.0
+        else
+            throw(ArgumentError("Smoothing type $smoothing_type not implemented"))
+        end
+        return new(
+            grid,
+            degree_x,
+            degree_y,
+            zeros(degree_x + 1),
+            zeros(degree_y + 1),
+            scaling,
+        )
+    end
+end
+
+function shape_factor!(pm::ParticleMeshCoupling2DAnisotropic, xp, yp)
+    xi = (xp - pm.grid.xmin) / pm.grid.dx
+    yi = (yp - pm.grid.ymin) / pm.grid.dy
+    ip = ceil(Int, xi)
+    jp = ceil(Int, yi)
+    uniform_bsplines_eval_basis!(pm.values_x, pm.degree_x, xi - (ip - 1))
+    uniform_bsplines_eval_basis!(pm.values_y, pm.degree_y, yi - (jp - 1))
+    return ip - pm.degree_x, jp - pm.degree_y
+end
+
+function add_charge!(
+    rho::Vector{Float64}, pm::ParticleMeshCoupling2DAnisotropic, xp, yp, weight
+)
+    ix, iy = shape_factor!(pm, xp, yp)
+    nx = pm.grid.nx
+    @inbounds for i in 1:(pm.degree_x + 1), j in 1:(pm.degree_y + 1)
+        index = mod(ix + i - 2, nx) + mod(iy + j - 2, pm.grid.ny) * nx + 1
+        rho[index] += weight * pm.scaling * pm.values_x[i] * pm.values_y[j]
+    end
+    return rho
+end
+
+function evaluate(pm::ParticleMeshCoupling2DAnisotropic, xp, yp, field_dofs)
+    ix, iy = shape_factor!(pm, xp, yp)
+    nx = pm.grid.nx
+    value = 0.0
+    @inbounds for i in 1:(pm.degree_x + 1), j in 1:(pm.degree_y + 1)
+        index = mod(ix + i - 2, nx) + mod(iy + j - 2, pm.grid.ny) * nx + 1
+        value += field_dofs[index] * pm.values_x[i] * pm.values_y[j]
+    end
+    return value
+end
+
+export ParticleMeshCoupling2DAnisotropic
+
 """
     ParticleMeshCoupling2D( pg, grid, degree, smoothing_type)
 
